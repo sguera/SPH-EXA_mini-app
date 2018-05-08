@@ -10,7 +10,7 @@
 using namespace std;
 
 Simulation::Simulation() : 
-    n(1e5), simTime(0.0), targetTime(1.0),
+    n(1e2), simTime(0.0), targetTime(1.0),
     x(n, 0.0), y(n, 0.0), z(n, 0.0),
     vx(n, 0.0), vy(n, 0.0), vz(n, 0.0),
     grad_x(n, 0.0), grad_y(n, 0.0), grad_z(n, 0.0),
