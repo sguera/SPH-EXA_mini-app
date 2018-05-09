@@ -11,4 +11,4 @@ pipelines:
         script: # Modify the commands below to build your repository.
           - make clean
           - make
-          - make run
+          #- make run
