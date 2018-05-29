@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include "Octree"
 
 typedef float real;
 
@@ -26,6 +27,10 @@ public:
 	std::vector<real> vx, vy, vz;
 	std::vector<real> grad_x, grad_y, grad_z;
 	std::vector<real> mass, pressure, volume, h;
+    
+private:
+    Octree octree;
+    
 };
 
 #endif

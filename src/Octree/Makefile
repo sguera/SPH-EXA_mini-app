@@ -1,15 +1,17 @@
 CC := g++ # This is the main compiler
 # CC := clang --analyze # and comment out the linker last line for sanity
-SRCDIR := src
+SRCDIR := src 
 BUILDDIR := build
 TARGET := runner
+CXX := $(CC)
  
 SRCEXT := cpp
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-CFLAGS := -g -std=c++17 -O2 -march=native -mtune=native -fopenmp# -Wall
+CFLAGS := -g -std=c++17 -O2 #-march=native -mtune=native -fopenmp# -Wall
 LIB := -L lib #-lpthread #-lboost_thread-mt -lboost_filesystem-mt -lboost_system-mt
 INC := -I include
+CXXFLAGS := $(CFLAGS)
 
 $(TARGET): $(OBJECTS)
 	$(info )
