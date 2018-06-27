@@ -1,0 +1,60 @@
+diff -Naur rcabezon-sphynx-61f03b0a0272.ori/compile/makefile rcabezon-sphynx-61f03b0a0272/compile/makefile
+--- rcabezon-sphynx-61f03b0a0272.ori/compile/makefile	2018-06-18 15:05:49.088384000 +0200
++++ rcabezon-sphynx-61f03b0a0272/compile/makefile	2018-06-21 07:38:03.636173000 +0200
+@@ -31,8 +31,8 @@
+ comp = $(strip $(compiler))
+ 
+ ifeq ($(comp),intel) 
+-SF = -r8 -mcmodel=large -shared-intel -openmp #-qopt-report
+-SF2 = $(SF) -O2 -traceback
++SF = -r8 -mcmodel=large -shared-intel -qopenmp #-qopt-report
++SF2 = $(SF) -O2 -g 
+ else ifeq ($(comp),gnu)
+ SF = -fdefault-real-8 -fdefault-double-8 -mcmodel=large -fopenmp
+ SF2 = $(SF) -O2 -fbacktrace        
+@@ -281,10 +281,13 @@
+   parameters.o\
+   $(path)$(@:.o=.f90); $(FC) $(CF) $(path)$(@:.o=.f90)
+ 
++install:
++	@echo executable=$(executable)
++	@egrep ":nnl|:nmax|:nodes" $(pathsim)/parameters.f90
+ 
+ #cleaning
+ clean:
+ 	rm *.o *.mod
+ 
+ clena:
+-	rm *.o *.mod
+\ No newline at end of file
++	rm *.o *.mod
+diff -Naur rcabezon-sphynx-61f03b0a0272.ori/sphynx/init.f90 rcabezon-sphynx-61f03b0a0272/sphynx/init.f90
+--- rcabezon-sphynx-61f03b0a0272.ori/sphynx/init.f90	2018-06-18 15:05:49.152903000 +0200
++++ rcabezon-sphynx-61f03b0a0272/sphynx/init.f90	2018-06-21 07:38:23.384460000 +0200
+@@ -57,7 +57,7 @@
+          do i=1,n
+             call calculate_norm(indice(i),dim,pk(i),dpk(i))
+          enddo
+-         open(1,file='../sphynx/sinx_x.dat')
++         open(1,file='./sphynx/sinx_x.dat')
+          do i=1,20001
+             read(1,*) uk(i),fk(i),fdk1(i),fdk2(i)
+          enddo
+diff -Naur rcabezon-sphynx-61f03b0a0272.ori/sphynx/masscenter.f90 rcabezon-sphynx-61f03b0a0272/sphynx/masscenter.f90
+--- rcabezon-sphynx-61f03b0a0272.ori/sphynx/masscenter.f90	2018-06-18 15:05:49.153112000 +0200
++++ rcabezon-sphynx-61f03b0a0272/sphynx/masscenter.f90	2018-06-21 07:38:53.920613000 +0200
+@@ -14,6 +14,9 @@
+ !                                                     !
+ ! Calculates the center of mass.                      !
+ !=====================================================!
++MODULE mass
++
++contains
+ 
+ subroutine masscenter(n,dataini,datafin)
+       
+@@ -41,3 +44,4 @@
+   return
+ end subroutine masscenter
+ 
++END MODULE mass

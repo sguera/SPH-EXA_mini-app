@@ -1,0 +1,265 @@
+[2018-06-27T10:33:04] debug: reframe: executing OS command: modulecmd -V
+[2018-06-27T10:33:04] debug: reframe: executing OS command: modulecmd python
+[2018-06-27T10:33:04] debug: reframe: configuration
+    account=c16
+    checkpath=['./changa_square.py']
+    colorize=True
+    config_file=/users/piccinal/reframe.git/config/cscs.py
+    cpu_only=False
+    exclude_names=[]
+    exclude_nodes=None
+    exec_policy=serial
+    force_local=False
+    gpu_only=False
+    ignore_check_conflicts=False
+    job_options=[]
+    keep_stage_files=True
+    list=False
+    logdir=None
+    max_retries=0
+    mode=None
+    module_map_file=None
+    module_mappings=[]
+    names=[]
+    nodelist=None
+    output=None
+    partition=None
+    perflogdir=None
+    prefix=/scratch/snx3000/piccinal/sphexa
+    prgenv=[]
+    recursive=False
+    reservation=None
+    run=True
+    save_log_files=False
+    skip_performance_check=False
+    skip_prgenv_check=False
+    skip_sanity_check=False
+    skip_system_check=False
+    stage=None
+    strict=False
+    system=daint:gpu
+    tags=[]
+    timestamp=None
+    user_modules=[]
+[2018-06-27T10:33:04] info: reframe: Command line: /users/piccinal/reframe.git/reframe.py -A c16 --system daint:gpu -C /users/piccinal/reframe.git/config/cscs.py --keep-stage-files --prefix=/scratch/snx3000/piccinal/sphexa -r -c ./changa_square.py
+[2018-06-27T10:33:04] info: reframe: Reframe version: 2.14-dev0
+[2018-06-27T10:33:04] info: reframe: Launched by user: piccinal
+[2018-06-27T10:33:04] info: reframe: Launched on host: daint105
+[2018-06-27T10:33:04] info: reframe: Reframe paths
+[2018-06-27T10:33:04] info: reframe: =============
+[2018-06-27T10:33:04] info: reframe:     Check prefix      : 
+[2018-06-27T10:33:04] info: reframe:     Check search path : './changa_square.py'
+[2018-06-27T10:33:04] info: reframe:     Stage dir prefix     : /scratch/snx3000/piccinal/sphexa/stage/
+[2018-06-27T10:33:04] info: reframe:     Output dir prefix    : /scratch/snx3000/piccinal/sphexa/output/
+[2018-06-27T10:33:04] info: reframe:     Perf. logging prefix : /scratch/snx3000/piccinal/sphexa/perflogs
+[2018-06-27T10:33:04] debug: reframe: executing OS command: modulecmd python unload reframe
+[2018-06-27T10:33:04] info: reframe: [==========] Running 1 check(s)
+[2018-06-27T10:33:04] info: reframe: [==========] Started on Wed Jun 27 10:33:04 2018 
+[2018-06-27T10:33:04] info: reframe: 
+[2018-06-27T10:33:04] info: reframe: [----------] started processing changa_cpu_check (ReFrame Changa RotSquare3D check)
+[2018-06-27T10:33:04] info: reframe: [ [32mRUN     [0m ] changa_cpu_check on daint:gpu using PrgEnv-cray
+[2018-06-27T10:33:04] debug: changa_cpu_check: entering stage: setup
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: loading environment for the current partition
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: loading test's environment
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: modulecmd python show ChaNGa/rotsquaretensilecorr-CrayCCE-17.08
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: modulecmd python load ChaNGa/rotsquaretensilecorr-CrayCCE-17.08
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: setting up paths
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: setting up the job descriptor
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: job scheduler backend: local
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: entering stage: compile
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: entering stage: run
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: copying /project/c16/changa/reframe/src/ to stage directory (/scratch/snx3000/piccinal/sphexa/stage/gpu/changa_cpu_check/PrgEnv-cray)
+[2018-06-27T10:33:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: symlinking files: []
+[2018-06-27T10:33:05] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sbatch /scratch/snx3000/piccinal/sphexa/stage/gpu/changa_cpu_check/PrgEnv-cray/changa_cpu_check_daint_gpu_PrgEnv-cray.sh
+[2018-06-27T10:33:31] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: spawned job (jobid=8215073)
+[2018-06-27T10:33:31] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: entering stage: wait
+[2018-06-27T10:33:31] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:31] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: job state not matched (stdout follows)
+JobID|State|ExitCode
+
+[2018-06-27T10:33:32] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:32] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: job state not matched (stdout follows)
+JobID|State|ExitCode
+
+[2018-06-27T10:33:34] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:34] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: job state not matched (stdout follows)
+JobID|State|ExitCode
+
+[2018-06-27T10:33:37] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:37] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: job state not matched (stdout follows)
+JobID|State|ExitCode
+
+[2018-06-27T10:33:39] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:41] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:44] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:45] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:47] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:50] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:50] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:33:52] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:54] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:57] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:33:58] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:01] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:05] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:07] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:10] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:11] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:11] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:34:18] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:22] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:23] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:25] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:28] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:29] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:31] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:34] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:35] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:38] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:38] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:34:41] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:42] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:44] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:47] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:48] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:50] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:53] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:54] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:34:57] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:00] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:00] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:35:01] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:03] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:06] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:07] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:09] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:12] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:14] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:16] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:19] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:20] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:20] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:35:22] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:25] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:26] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:28] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:31] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:33] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:35] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:38] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:39] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:41] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:41] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:35:44] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:45] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:47] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:50] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:52] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:54] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:57] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:35:58] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:00] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:03] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:03] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:36:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:06] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:10] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:11] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:13] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:16] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:17] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:19] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:22] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:23] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:23] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:36:25] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:29] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:30] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:32] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:35] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:36] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:38] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:41] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:42] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:44] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:45] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:36:48] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:49] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:51] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:54] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:55] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:36:58] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:01] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:02] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:07] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:07] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:37:08] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:10] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:13] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:15] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:17] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:20] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:21] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:23] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:26] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:27] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:27] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:37:29] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:32] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:34] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:36] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:39] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:40] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:42] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:45] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:46] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:48] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:48] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:37:51] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:53] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:55] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:58] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:37:59] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:01] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:04] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:05] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:07] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:10] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:11] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: squeue -h -j 8215073 -o %r
+[2018-06-27T10:38:12] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:14] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:17] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:18] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:20] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:23] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:24] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:26] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:29] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:31] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:33] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:36] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:37] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:39] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:42] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:43] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:45] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:48] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:50] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:52] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:55] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:56] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: executing OS command: sacct -S 2018-06-27 -P -j 8215073 -o jobid,state,exitcode
+[2018-06-27T10:38:56] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: spawned job finished
+[2018-06-27T10:38:56] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: entering stage: sanity
+[2018-06-27T10:38:56] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: entering stage: performance
+[2018-06-27T10:38:56] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: entering stage: cleanup
+[2018-06-27T10:38:56] debug: changa_cpu_check on daint:gpu using PrgEnv-cray: copying interesting files to output directory
+[2018-06-27T10:38:56] info: reframe: [ [32m      OK[0m ] changa_cpu_check on daint:gpu using PrgEnv-cray
+[2018-06-27T10:38:56] verbose: reframe: [ [33m  SKIP  [0m ] skipping PrgEnv-gnu for daint:gpu
+[2018-06-27T10:38:56] verbose: reframe: [ [33m  SKIP  [0m ] skipping PrgEnv-intel for daint:gpu
+[2018-06-27T10:38:56] verbose: reframe: [ [33m  SKIP  [0m ] skipping PrgEnv-pgi for daint:gpu
+[2018-06-27T10:38:56] info: reframe: [----------] finished processing changa_cpu_check (ReFrame Changa RotSquare3D check)
+
+[2018-06-27T10:38:56] info: reframe: [ [32m PASSED [0m ] Ran 1 test case(s) from 1 check(s) (0 failure(s))
+[2018-06-27T10:38:56] info: reframe: [==========] Finished on Wed Jun 27 10:38:56 2018 

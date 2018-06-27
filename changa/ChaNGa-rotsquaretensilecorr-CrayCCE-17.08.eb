@@ -1,0 +1,35 @@
+easyblock = 'ConfigureMake'
+
+name = 'ChaNGa'
+version = 'rotsquaretensilecorr'
+#versionsuffix = ''
+#checksums = ['']
+
+homepage = 'http://faculty.washington.edu/trq/hpcc/tools/changa.html'
+description = """ChaNGa (Charm N-body GrAvity solver) is a code to perform
+collisionless N-body simulations."""
+toolchain = {'name': 'CrayCCE', 'version': '17.08'}
+# toolchainopts = {'pic': True}
+
+# source_urls = ['']
+sources = ['%(name)s-%(version)s.tar.gz']
+dependencies = [ 
+    ('Charm++', '6.8.2', '-cuda-8.0'), 
+    ('craype-hugepages8M', EXTERNAL_MODULE) 
+]
+
+skipsteps = ['configure']
+prebuildopts  = 'cd changarotsquaretensilecorr && '
+prebuildopts += 'export PE_PKGCONFIG_LIBS=cray-pmi:cray-ugni:$PE_PKGCONFIG_LIBS && '
+prebuildopts += 'export CRAYPE_LINK_TYPE=dynamic && '
+buildopts = 'FLAG_COOLING="-DCOOLING_NONE -DISOTHERMAL" prefix=%(installdir)s '
+preinstallopts = 'pwd && cd changarotsquaretensilecorr && '
+installopts = 'prefix=%(installdir)s '
+maxparallel = 4
+
+sanity_check_paths = {
+    'files': ["bin/ChaNGa"],
+    'dirs': ["bin"]
+}
+
+moduleclass = 'phys'

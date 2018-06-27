@@ -1,0 +1,39 @@
+easyblock = "ConfigureMake"
+
+name = 'sphynx'
+version = '1.4'
+#commit = '61f03b0a02728f2540906aaa864f3f2bcc74bec8'
+
+homepage = 'https://astro.physik.unibas.ch/people/ruben-cabezon/sphynx.html'
+description = """SPHYNX: an accurate density-based SPH method for astrophysical
+applications"""
+
+toolchain = {'name': 'CrayIntel', 'version': '17.08'}
+source_urls = ['https://bitbucket.org/rcabezon/sphynx/get/']
+sources = ['v%(version)s.tar.bz2']
+patches = [ 'sphynx-1.4-evrard1M.patch' ]
+
+#dependencies = [
+#    ('cray-netcdf/4.4.1.1.3', EXTERNAL_MODULE),
+#]
+# EB does not support 'git clone' so we delete the contents and start from a clean folder
+#preconfigopts  = 'find . -mindepth 1 -delete && ' 
+#preconfigopts += 'git clone https://bitbucket.org/rcabezon/sphynx.git . && '
+#preconfigopts += 'git checkout -f %s && ' % commit
+
+skipsteps = ['configure']
+prebuildopts = 'export CRAYPE_LINK_TYPE=dynamic && '
+prebuildopts += 'cd compile && '
+#prebuildopts += 'cp /project/c16/sphynx/easybuild/evrard1M %(builddir)s && '
+prebuildopts += 'cp -a /project/c16/sphynx/easybuild/evrard1M .. && '
+buildopts = 'FC="ftn -c" LK="ftn -o evrard1M.exe" pathsim=../evrard1M/ '
+preinstallopts = 'cd compile && cp evrard1M.exe %(installdir)s && '
+#preinstallopts = 'cd compile && '
+#installopts = ' LIBDIR=%(installdir)s'
+
+sanity_check_paths={
+    'files': ['evrard1M.exe'],
+    'dirs': [],
+}
+
+moduleclass = 'lib'

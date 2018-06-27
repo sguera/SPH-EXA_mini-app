@@ -1,0 +1,31 @@
+diff -Naur rcabezon-sphynx-61f03b0a0272.ori/compile/makefile rcabezon-sphynx-61f03b0a0272/compile/makefile
+--- rcabezon-sphynx-61f03b0a0272.ori/compile/makefile	2018-03-05 17:58:02.000000000 +0100
++++ rcabezon-sphynx-61f03b0a0272/compile/makefile	2018-06-11 08:50:28.967768000 +0200
+@@ -281,10 +281,13 @@
+   parameters.o\
+   $(path)$(@:.o=.f90); $(FC) $(CF) $(path)$(@:.o=.f90)
+ 
++install:
++	@echo executable=$(executable)
++	@egrep ":nnl|:nmax|:nodes" $(pathsim)/parameters.f90
+ 
+ #cleaning
+ clean:
+ 	rm *.o *.mod
+ 
+ clena:
+-	rm *.o *.mod
+\ No newline at end of file
++	rm *.o *.mod
+diff -Naur rcabezon-sphynx-61f03b0a0272.ori/sphynx/init.f90 rcabezon-sphynx-61f03b0a0272/sphynx/init.f90
+--- rcabezon-sphynx-61f03b0a0272.ori/sphynx/init.f90	2018-03-05 17:58:02.000000000 +0100
++++ rcabezon-sphynx-61f03b0a0272/sphynx/init.f90	2018-06-11 08:51:41.550741000 +0200
+@@ -57,7 +57,7 @@
+          do i=1,n
+             call calculate_norm(indice(i),dim,pk(i),dpk(i))
+          enddo
+-         open(1,file='../sphynx/sinx_x.dat')
++         open(1,file='./sphynx/sinx_x.dat')
+          do i=1,20001
+             read(1,*) uk(i),fk(i),fdk1(i),fdk2(i)
+          enddo

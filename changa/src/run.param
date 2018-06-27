@@ -1,0 +1,62 @@
+##	
+bPeriodic       = 0
+bParaRead	= 0
+bParaWrite	= 0
+dTheta		= 0.55
+dTheta2		= 0.7
+nSteps          = 100
+achInFile	= squarecubegen.std
+achOutName	= squarecube
+dRedTo		= 0.0
+iCheckInterval  = 1
+bKDK		= 1
+dDelta          = 2.583473542636009e-06 ## 100 steps is 1 second.
+iMaxRung	= 13
+dEta            = 0.25
+bStandard	= 1
+bDoGravity      = 0
+#bDoSelfGravity	= 0
+bDoGas          = 1
+##bFastGas        = 1
+##dFracFastGas    = 0.3
+iOutInterval    = 1
+iLogInterval    = 1
+###iVerbosity	= 5
+bDoDensity      = 1
+dEtaCourant     = 0.2
+bGasCooling     = 0
+bGasIsothermal  = 0
+bEpsAccStep 	= 0
+bGravStep 	= 0
+bSphStep 	= 1
+dMsolUnit       = 5.027652086475616e-34
+dKpcUnit        = 3.2407557442395567e-22
+dConstGamma     = 7.
+dMeanMolWeight  = 10.     ### 1.2195121951219512 ### neutral gas, H mass frac =0.76,  meanmolweight=4.0 / (1 + 3 * HYDROGEN_MASSFRAC)
+dConstSoundSpeed =  13547651.803814592    ## 3500.cm/s
+bViscosityLimiter = 1
+bCannonical     = 1
+bGeometric      = 0
+nSmooth         = 32
+## dFracNoDomainDecomp = 0.1
+##bRestart        = 0
+# secret!
+#nBucket		= 16
+#dhMinOverSoft	= 0.4
+#dxPeriod        = 2000
+#dyPeriod        = 2000
+#dzPeriod        = 2000
+##bEwald          = 0
+#nReplicas       = 1
+bGasAdiabatic	= 1
+##bStarForm       = 0
+##bFeedBack       = 0
+##iBinaryOutput   = 1
+#######dTuFac		= .05   ###  u=.05  T=1   u = T * dTuFac
+dGasConst = 0.3333333333333333  ## =dTuFac *  (msr->param.dConstGamma - 1) * msr->param.dMeanMolWeight = .05 * 2./3. * 10. 
+#bGasFluxLimitedDiffusion = 0
+##bGasDiskDiffusion = 1
+#dEtaFLD		  = 0.01
+#######dMaxTemperature = 1.1e3
+#opacityTableFilename = ./rosseland.abpoll.p3p5.amax1mm-mod.dat
+

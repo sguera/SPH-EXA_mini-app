@@ -1,0 +1,74 @@
+usage: reframe [-h] [--prefix DIR] [-o DIR] [-s DIR] [--logdir DIR] [--keep-stage-files] [--save-log-files] [-c DIR|FILE] [-R]
+               [--ignore-check-conflicts] [-t TAGS] [-n NAME] [-x NAME] [-p PRGENV] [--gpu-only] [--cpu-only] [-l] [-r] [-A ACCOUNT] [-P PART]
+               [--reservation RES] [--nodelist NODELIST] [--exclude-nodes NODELIST] [--job-option OPT] [--force-local] [--skip-sanity-check]
+               [--skip-performance-check] [--strict] [--skip-system-check] [--skip-prgenv-check] [--exec-policy POLICY] [--mode MODE]
+               [--max-retries NUM] [-m MOD] [-M MAPPING] [--module-mappings FILE] [--nocolor] [--timestamp [TIMEFMT]] [--system SYSTEM]
+               [-C FILE] [-V]
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Options controlling regression directories:
+  --prefix DIR          Set regression prefix directory to DIR
+  -o DIR, --output DIR  Set regression output directory to DIR
+  -s DIR, --stage DIR   Set regression stage directory to DIR
+  --logdir DIR          Set regression log directory to DIR
+  --keep-stage-files    Keep stage directory even if check is successful
+  --save-log-files      Copy the log file from the work dir to the output dir at the end of the program
+
+Options for locating checks:
+  -c DIR|FILE, --checkpath DIR|FILE
+                        Search for checks in DIR or FILE
+  -R, --recursive       Load checks recursively
+  --ignore-check-conflicts
+                        Skip checks with conflicting names
+
+Options for selecting checks:
+  -t TAGS, --tag TAGS   Select checks matching TAG
+  -n NAME, --name NAME  Select checks with NAME
+  -x NAME, --exclude NAME
+                        Exclude checks with NAME
+  -p PRGENV, --prgenv PRGENV
+                        Select tests for PRGENV programming environment only
+  --gpu-only            Select only GPU tests
+  --cpu-only            Select only CPU tests
+
+Options controlling actions:
+  -l, --list            list matched regression checks
+  -r, --run             Run regression with the selected checks
+
+Options controlling execution of checks:
+  -A ACCOUNT, --account ACCOUNT
+                        Use ACCOUNT for submitting jobs
+  -P PART, --partition PART
+                        Use PART for submitting jobs
+  --reservation RES     Use RES for submitting jobs
+  --nodelist NODELIST   Run checks on the selected list of nodes
+  --exclude-nodes NODELIST
+                        Exclude the list of nodes from running checks
+  --job-option OPT      Pass OPT to job scheduler
+  --force-local         Force local execution of checks
+  --skip-sanity-check   Skip sanity checking
+  --skip-performance-check
+                        Skip performance checking
+  --strict              Force strict performance checking
+  --skip-system-check   Skip system check
+  --skip-prgenv-check   Skip prog. environment check
+  --exec-policy POLICY  Specify the execution policy for running the regression tests. Available policies: "serial" (default), "async"
+  --mode MODE           Execution mode to use
+  --max-retries NUM     Specify the maximum number of times a failed regression test may be retried (default: 0)
+
+Miscellaneous options:
+  -m MOD, --module MOD  Load module MOD before running the regression
+  -M MAPPING, --map-module MAPPING
+                        Apply a single module mapping
+  --module-mappings FILE
+                        Apply module mappings defined in FILE
+  --nocolor             Disable coloring of output
+  --timestamp [TIMEFMT]
+                        Append a timestamp component to the regression directories(default format "%FT%T")
+  --system SYSTEM       Load SYSTEM configuration explicitly
+  -C FILE, --config-file FILE
+                        Specify a custom config-file for the machine. (default:
+                        /apps/common/UES/jenkins/SLES12/easybuild/software/reframe/2.12/reframe/settings.py
+  -V, --version         show program's version number and exit
