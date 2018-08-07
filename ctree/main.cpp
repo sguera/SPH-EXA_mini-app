@@ -96,7 +96,6 @@ int main()
 	printf("CELLS: %d\n", tree.cellCount());
 	printf("BUILD TIME: %f\n", tbuild);
 
-	printf("%f\n", 2.0*h[30000]);
 	start = START;
 	#pragma omp parallel for schedule(runtime)
 	for(int i=0; i<n; i++)
