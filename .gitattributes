@@ -1,2 +1,4 @@
 bigfiles/ filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
+bigfiles/evrard_1M.bin filter=lfs diff=lfs merge=lfs -text
+bigfiles/squarepatch3D.bin filter=lfs diff=lfs merge=lfs -text

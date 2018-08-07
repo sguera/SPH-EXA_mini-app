@@ -52,8 +52,8 @@ void readfileSquarePatch(const char *filename, int n, double *x, double *y, doub
 
 int main()
 {
-	//int n = 1000000;
-	int n = 10077696;
+	int n = 1000000;
+	//int n = 10077696;
 	int ngmax = 550;
 
 	double *x = new double[n];
@@ -68,8 +68,8 @@ int main()
 	
 	double start, tbuild, tfind;
 
-	//readfileEvrard("../initialmodels/evrard_1M.bin", n, x, y, z, h);
-	readfileSquarePatch("../initialmodels/squarepatch3D.bin", n, x, y, z, h);
+	readfileEvrard("../bigfiles/evrard_1M.bin", n, x, y, z, h);
+	//readfileSquarePatch("../bigfiles/squarepatch3D.bin", n, x, y, z, h);
 
 	double xmin = 1000, xmax = -1000, ymin = 1000, ymax = -1000, zmin = 1000, zmax = -1000;
 	for(int i=0; i<n; i++)
