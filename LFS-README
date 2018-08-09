@@ -1,6 +1,7 @@
 1) install "git-lfs" on your machine
 2) in the repository folder, run:
 > git lfs install
+> git lfs pull
 
 NOTES:
 - lfs patterns are in the .gitattributes files
