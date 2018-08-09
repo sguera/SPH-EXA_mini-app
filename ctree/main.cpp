@@ -97,7 +97,7 @@ int main()
 	printf("BUILD TIME: %f\n", tbuild);
 
 	start = START;
-	#pragma omp parallel for schedule(runtime)
+	#pragma omp parallel for schedule(guided)
 	for(int i=0; i<n; i++)
 		tree.findNeighbors(i, x, y, z, 2.0*h[i], ngmax, &ng[(long)i*ngmax], nvi[i], false, false, true);
 	tfind = STOP;

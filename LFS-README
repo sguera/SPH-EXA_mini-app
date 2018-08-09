@@ -1,0 +1,19 @@
+1) install "git-lfs" on your machine
+2) in the repository folder, run:
+> git lfs install
+
+NOTES:
+- lfs patterns are in the .gitattributes files
+- files that match these patterns are handled by lfs
+- everything works as usual, but lfs files are not versioned
+
+Useful commands:
+
+Adding a folder to lfs:
+> git lfs track "folder/*"
+
+Checking lfs files before committing:
+> git lfs status
+
+List lfs files:
+> git lfs ls-files
