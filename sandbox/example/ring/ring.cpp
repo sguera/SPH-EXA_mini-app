@@ -18,6 +18,7 @@
 */
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 /*
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
@@ -212,13 +213,18 @@ int main(int argc, char** argv) {
         std::fill(sph_f1.begin(), sph_f1.end(), sph_v2);
         std::fill(sph_f2.begin(), sph_f2.end(), sph_v2);
 
+        // https://arbor.readthedocs.io/en/latest/profiler.html#marking-regions
+        PE(transform);
         for (auto i=0; i!=N_IT; ++i) {
             std::transform(sph_f1.begin(), sph_f1.end(), sph_f2.cbegin(), sph_f1.begin(),
                  [](auto const &thisValue, auto const &fieldValue)
                  {return thisValue - fieldValue;});
-        }
-        meters.checkpoint("sum3", context); // profiling
+        }    
+        PL();
+        meters.checkpoint("sum3", context); // profiling        
 
+        auto profile = arb::profile::profiler_summary();
+        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
