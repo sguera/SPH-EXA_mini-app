@@ -4,7 +4,7 @@
 #include <vector>
 
 
-namespace SPHExa
+namespace sphexa
 {
 
 constexpr int const MAXP = 64;
