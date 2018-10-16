@@ -1,4 +1,4 @@
-CXXFLAGS = -Wall -Wextra -O3 -march=native -msse -msse2 -msse3 -mfpmath=sse -std=c++14
+CXXFLAGS = -Wall -Wextra -O3 -march=native -march=native -msse -msse2 -msse3 -mfpmath=sse
 CXX=g++
 
 all:
