@@ -6,12 +6,12 @@
 
 using namespace std;
 
-inline double normalize(double d, double min, double max)
+inline double sphexa::Tree::normalize(double d, double min, double max)
 {
 	return (d-min)/(max-min);
 }
 
-inline double distance(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
+inline double sphexa::Tree::distance(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
 {
 	double xx = x1 - x2;
 	double yy = y1 - y2;
@@ -20,7 +20,7 @@ inline double distance(const double x1, const double y1, const double z1, const 
 	return sqrt(xx*xx + yy*yy + zz*zz);
 }
 
-inline void check_add_list(const vector<int> &list, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
+inline void sphexa::Tree::check_add_list(const vector<int> &list, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
 {
 	for(unsigned int i=0; i<list.size(); i++)
 	{
@@ -34,19 +34,19 @@ inline void check_add_list(const vector<int> &list, const double *x, const doubl
 	}
 }
 
-Tree::Tree()
+sphexa::Tree::Tree()
 {
 	_p = 0;
 	_list = 0;
 	init(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 }
 
-Tree::~Tree()
+sphexa::Tree::~Tree()
 {
 	clean();
 }
 
-void Tree::clean()
+void sphexa::Tree::clean()
 {
 	if(_p)
 	{
@@ -67,7 +67,7 @@ void Tree::clean()
 	}
 }
 
-void Tree::init(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz)
+void sphexa::Tree::init(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz)
 {
 	clean();
 	_minx = minx;
@@ -78,7 +78,7 @@ void Tree::init(const double minx, const double maxx, const double miny, const d
 	_maxz = maxz;
 }
 
-int Tree::cellCount()
+int sphexa::Tree::cellCount() const
 {
 	int cells = C*C*C;
 	for(int i=0; i<C*C*C; i++)
@@ -86,7 +86,7 @@ int Tree::cellCount()
 	return cells;
 }
 
-void Tree::build(const int n, const double *x, const double *y, const double *z)
+void sphexa::Tree::build(const int n, const double *x, const double *y, const double *z)
 {
 	vector<int> list(n);
 	for(int i=0; i<n; i++)
@@ -102,7 +102,7 @@ void Tree::build(const int n, const double *x, const double *y, const double *z)
 	}
 }
 
-void Tree::buildRec(const vector<int> &list, const double *x, const double *y, const double *z)
+void sphexa::Tree::buildRec(const vector<int> &list, const double *x, const double *y, const double *z)
 {
 	C = max((int)log(list.size()), 2);
 
@@ -168,8 +168,8 @@ void Tree::buildRec(const vector<int> &list, const double *x, const double *y, c
 	}
 }
 
-void Tree::findNeighbors(const int i, const double *x, const double *y, const double *z, const double r, const int ngmax, int *ng, int &nvi,
-	const bool PBCx, const bool PBCy, const bool PBCz)
+void sphexa::Tree::findNeighbors(const int i, const double *x, const double *y, const double *z, const double r, const int ngmax, int *ng, int &nvi,
+	const bool PBCx, const bool PBCy, const bool PBCz) const
 {
 	double xi = x[i];
 	double yi = y[i];
@@ -207,7 +207,7 @@ void Tree::findNeighbors(const int i, const double *x, const double *y, const do
 	}
 }
 
-void Tree::findNeighborsRec(const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
+void sphexa::Tree::findNeighborsRec(const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi) const
 {
 	int mix = max((int)(normalize(xi-r, _minx, _maxx)*C),0);
 	int miy = max((int)(normalize(yi-r, _miny, _maxy)*C),0);
