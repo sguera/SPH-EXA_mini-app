@@ -9,6 +9,7 @@
 #define START omp_get_wtime()
 #define STOP (double)(omp_get_wtime()-start)
 
+using namespace sphexa;
 using namespace std;
 
 void initUnitCube(int n, double *x, double *y, double *z, double &h)

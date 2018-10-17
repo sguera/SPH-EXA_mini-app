@@ -5,7 +5,7 @@
 
 #include "Tree.hpp"
 
-using namespace SPHExa;
+using namespace sphexa;
 
 #define START omp_get_wtime()
 #define STOP (double)(omp_get_wtime()-start)
