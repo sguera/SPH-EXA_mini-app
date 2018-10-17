@@ -72,7 +72,7 @@ int main()
   printf("BUILD TIME: %f\n", tbuild);
 
   start = START;
-  tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], true, true, true);
+  tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], false, false, false);
   tfind = STOP;
 
   printf("FIND TIME: %f\n", tfind);
