@@ -91,8 +91,8 @@ int main()
 	Tree tree;
 
 	start = START;
-	tree.init(xmin, xmax, ymin, ymax, zmin, zmax);
-	tree.build(n, x, y, z);
+	tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
+	tree.buildSort(n, x, y, z);
 	tbuild = STOP;
 
 	printf("CELLS: %d\n", tree.cellCount());
@@ -101,7 +101,7 @@ int main()
 	start = START;
 	#pragma omp parallel for schedule(guided)
 	for(int i=0; i<n; i++)
-		tree.findNeighbors(i, x, y, z, 2.0*h[i], ngmax, &ng[(long)i*ngmax], nvi[i], false, false, true);
+		tree.findNeighbors(x[i], y[i], z[i], 2.0*h[i], ngmax, &ng[(long)i*ngmax], nvi[i], false, false, false);
 	tfind = STOP;
 	
 	printf("FIND TIME: %f\n", tfind);

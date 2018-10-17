@@ -1,13 +1,14 @@
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
+#include <chrono>
 #include <omp.h>
 #include <iostream>
 #include "Tree.hpp"
 #include <cmath>
 
-#define START omp_get_wtime()
-#define STOP (double)(omp_get_wtime()-start)
+#define START chrono::high_resolution_clock::now(); //omp_get_wtime()
+#define STOP chrono::duration_cast<chrono::duration<double>>(chrono::high_resolution_clock::now()-start).count(); //(double)(omp_get_wtime()-start)
 
 using namespace sphexa;
 using namespace std;
@@ -38,21 +39,22 @@ int main()
   int *nvi = new int[n];
   int *ng = new int[(long)n*ngmax];
   for(int i=0; i<n; i++)
-    nvi[i] = 0;
+	nvi[i] = 0;
 
-  double start, tbuild, tfind;
+  double tbuild, tfind;
+  chrono::time_point<chrono::high_resolution_clock> start;
 
   initUnitCube(n, &x[0], &y[0], &z[0], h);
 
   double xmin = 1000, xmax = -1000, ymin = 1000, ymax = -1000, zmin = 1000, zmax = -1000;
   for(int i=0; i<n; i++)
   {
-    if(x[i] < xmin) xmin = x[i];
-    if(x[i] > xmax) xmax = x[i];
-    if(y[i] < ymin) ymin = y[i];
-    if(y[i] > ymax) ymax = y[i];
-    if(z[i] < zmin) zmin = z[i];
-    if(z[i] > zmax) zmax = z[i];
+	if(x[i] < xmin) xmin = x[i];
+	if(x[i] > xmax) xmax = x[i];
+	if(y[i] < ymin) ymin = y[i];
+	if(y[i] > ymax) ymax = y[i];
+	if(z[i] < zmin) zmin = z[i];
+	if(z[i] > zmax) zmax = z[i];
   }
 
   printf("Domain x[%f %f]\n", xmin, xmax);
@@ -62,15 +64,15 @@ int main()
   Tree tree;
 
   start = START;
-  tree.init(xmin, xmax, ymin, ymax, zmin, zmax);
-  tree.build(n, x, y, z);
+  tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
+  tree.buildSort(n, x, y, z);
   tbuild = STOP;
 
   printf("CELLS: %d\n", tree.cellCount());
   printf("BUILD TIME: %f\n", tbuild);
 
   start = START;
-  tree.findNeighbors(0, x, y, z, h, ngmax, &ng[0], nvi[0], true, true, true);
+  tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], true, true, true);
   tfind = STOP;
 
   printf("FIND TIME: %f\n", tfind);
@@ -78,13 +80,13 @@ int main()
   long int sum = 0;
   std::cout << "Particle 0's neighbors: ";
   for (int k=0; k<nvi[0]; k++)
-    std::cout << ng[k] << ",";
+	std::cout << ng[k] << ",";
   std::cout << std::endl;
   sum += nvi[0];
   printf("Total neighbors found: %lu\n", sum);
 
   if (sum != 4)
-    std::cout << "TEST FAILED! Origin of a unit cube should have exactly 4 neighbors inside a radius of size " << h << std::endl;
+	std::cout << "TEST FAILED! Origin of a unit cube should have exactly 4 neighbors inside a radius of size " << h << std::endl;
 
   tree.clean();
 
