@@ -6,6 +6,7 @@
 #include <iostream>
 #include "Tree.hpp"
 #include <cmath>
+#include <cassert>
 
 #define START chrono::high_resolution_clock::now(); //omp_get_wtime()
 #define STOP chrono::duration_cast<chrono::duration<double>>(chrono::high_resolution_clock::now()-start).count(); //(double)(omp_get_wtime()-start)
@@ -15,6 +16,7 @@ using namespace std;
 
 void initUnitCube(int n, double *x, double *y, double *z, double &h)
 {
+  assert(n == 8);
   x[0]=0.; y[0]=0.; z[0]=0.;
   x[1]=1.; y[1]=0.; z[1]=0.;
   x[2]=1.; y[2]=0.; z[2]=1.;
@@ -24,6 +26,42 @@ void initUnitCube(int n, double *x, double *y, double *z, double &h)
   x[6]=1.; y[6]=1.; z[6]=1.;
   x[7]=0.; y[7]=1.; z[7]=1.;
   h = 1.1;
+}
+
+void initUniquePosition(int n, double *x, double *y, double *z, double &h)
+{
+  for(int i=0; i<n; ++i)
+  {
+    x[i] = 1.;
+    y[i] = 0.;
+    z[i] = 0.;
+  }
+  h = 2.;
+}
+
+void computeBox(int n, double *x, double *y, double *z,
+                double &xmin, double &xmax, double &ymin, double &ymax, double &zmin, double &zmax)
+{
+  xmin = 1000; xmax = -1000; ymin = 1000; ymax = -1000; zmin = 1000; zmax = -1000;
+  for(int i=0; i<n; i++)
+  {
+        if(x[i] < xmin) xmin = x[i];
+        if(x[i] > xmax) xmax = x[i];
+        if(y[i] < ymin) ymin = y[i];
+        if(y[i] > ymax) ymax = y[i];
+        if(z[i] < zmin) zmin = z[i];
+        if(z[i] > zmax) zmax = z[i];
+  }
+
+  printf("Domain x[%f %f]\n", xmin, xmax);
+  printf("Domain y[%f %f]\n", ymin, ymax);
+  printf("Domain z[%f %f]\n", zmin, zmax);
+
+  // epsilion to avoid case where the box is null
+  auto boxEpsilon = [](auto const &mi, auto const &ma){ return mi == ma ? abs(ma)*0.001 : 0.;};
+  xmax += boxEpsilon(xmin, xmax);
+  ymax += boxEpsilon(ymin, ymax);
+  zmax += boxEpsilon(zmin, zmax);
 }
 
 int main()
@@ -39,56 +77,97 @@ int main()
   int *nvi = new int[n];
   int *ng = new int[(long)n*ngmax];
   for(int i=0; i<n; i++)
-	nvi[i] = 0;
+        nvi[i] = 0;
 
   double tbuild, tfind;
   chrono::time_point<chrono::high_resolution_clock> start;
 
-  initUnitCube(n, &x[0], &y[0], &z[0], h);
-
-  double xmin = 1000, xmax = -1000, ymin = 1000, ymax = -1000, zmin = 1000, zmax = -1000;
-  for(int i=0; i<n; i++)
+  // Unit cube
   {
-	if(x[i] < xmin) xmin = x[i];
-	if(x[i] > xmax) xmax = x[i];
-	if(y[i] < ymin) ymin = y[i];
-	if(y[i] > ymax) ymax = y[i];
-	if(z[i] < zmin) zmin = z[i];
-	if(z[i] > zmax) zmax = z[i];
+    cout << endl << "UNIT CUBE: " << endl;
+    initUnitCube(n, &x[0], &y[0], &z[0], h);
+
+    double xmin, xmax, ymin, ymax, zmin, zmax;
+    computeBox(n, &x[0], &y[0], &z[0], xmin, xmax, ymin, ymax, zmin, zmax);
+
+    Tree tree;
+
+    start = START;
+    tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
+    tree.buildSort(n, x, y, z);
+    tbuild = STOP;
+
+    printf("CELLS: %d\n", tree.cellCount());
+    printf("BUILD TIME: %f\n", tbuild);
+
+    start = START;
+    tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], false, false, false);
+    tfind = STOP;
+
+    printf("FIND TIME: %f\n", tfind);
+
+    long int sum = 0;
+    cout << "Particle 0's neighbors: ";
+    for (int k=0; k<nvi[0]; k++)
+      cout << ng[k] << ",";
+    cout << endl;
+    sum += nvi[0];
+    printf("Total neighbors found: %lu\n", sum);
+
+    tree.clean();
+
+    if (sum != 4)
+    {
+      cout << "TEST FAILED! Origin of a unit cube should have exactly 4 neighbors inside a radius of size " << h << endl;
+      return 1;
+    }
+    else
+      cout << "TEST PASSED!" << endl;
   }
 
-  printf("Domain x[%f %f]\n", xmin, xmax);
-  printf("Domain y[%f %f]\n", ymin, ymax);
-  printf("Domain z[%f %f]\n", zmin, zmax);
+  // Unique position
+  {
+    cout << endl << "UNIQUE POSITION: " << endl;
+    initUniquePosition(n, &x[0], &y[0], &z[0], h);
 
-  Tree tree;
+       double xmin, xmax, ymin, ymax, zmin, zmax;
+    computeBox(n, &x[0], &y[0], &z[0], xmin, xmax, ymin, ymax, zmin, zmax);
 
-  start = START;
-  tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
-  tree.buildSort(n, x, y, z);
-  tbuild = STOP;
+    Tree tree;
 
-  printf("CELLS: %d\n", tree.cellCount());
-  printf("BUILD TIME: %f\n", tbuild);
+    start = START;
+    tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
+    tree.buildSort(n, x, y, z);
+    tbuild = STOP;
 
-  start = START;
-  tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], false, false, false);
-  tfind = STOP;
+    printf("CELLS: %d\n", tree.cellCount());
+    printf("BUILD TIME: %f\n", tbuild);
 
-  printf("FIND TIME: %f\n", tfind);
+    start = START;
+    tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], false, false, false);
+    tfind = STOP;
 
-  long int sum = 0;
-  std::cout << "Particle 0's neighbors: ";
-  for (int k=0; k<nvi[0]; k++)
-	std::cout << ng[k] << ",";
-  std::cout << std::endl;
-  sum += nvi[0];
-  printf("Total neighbors found: %lu\n", sum);
+    printf("FIND TIME: %f\n", tfind);
 
-  if (sum != 4)
-	std::cout << "TEST FAILED! Origin of a unit cube should have exactly 4 neighbors inside a radius of size " << h << std::endl;
+    long int sum = 0;
+    cout << "Particle 0's neighbors: ";
+    for (int k=0; k<nvi[0]; k++)
+      cout << ng[k] << ",";
+    cout << endl;
+    sum += nvi[0];
+    printf("Total neighbors found: %lu\n", sum);
 
-  tree.clean();
+    tree.clean();
+
+    if (sum != n)
+    {
+      cout << "TEST FAILED! All particles on the same position {1,0,0} should work with h = " << h << endl;
+      return 1;
+    }
+    else
+      cout << "TEST PASSED!" << endl;
+  }
+
 
   delete[] x;
   delete[] y;
