@@ -6,11 +6,11 @@
 
 namespace sphexa
 {
-constexpr unsigned int MAXP = 8;
-constexpr double RATIO = 0.5;
-constexpr int TREE = 1;
-constexpr int BLOCK_SIZE = 32;
-constexpr int PLANCK = 1e-15;
+constexpr unsigned int const MAXP = 8;
+constexpr double const RATIO = 0.5;
+constexpr int const TREE = 1;
+constexpr int const BLOCK_SIZE = 32;
+constexpr int const PLANCK = 1e-15;
 
 class Tree
 {
@@ -20,15 +20,15 @@ public:
 
 	void clean();
 
-	int cellCount();
-	int bucketCount();
+	int cellCount() const;
+	int bucketCount() const;
 
 	void setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz);
 
 	void buildSort(const int n, const double *x, const double *y, const double *z, int **ordering = 0);
 	
 	void findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi, 
-		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false);
+		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const;
  
 private:
 	double _minx, _maxx;
@@ -48,7 +48,7 @@ private:
 
 	void buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, int it);
 	
-	void findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi);
+	void findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const;
 
 	static inline double normalize(double d, double min, double max);
 

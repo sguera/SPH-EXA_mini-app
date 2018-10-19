@@ -96,7 +96,7 @@ void sphexa::Tree::setBox(const double minx, const double maxx, const double min
 	_maxz = maxz;
 }
 
-int sphexa::Tree::cellCount()
+int sphexa::Tree::cellCount() const
 {
 	int cells = 1;//  C*C*C;
 	for(int i=0; i<C*C*C; i++)
@@ -104,7 +104,7 @@ int sphexa::Tree::cellCount()
 	return cells;
 }
 
-int sphexa::Tree::bucketCount()
+int sphexa::Tree::bucketCount() const
 {
 	int cells = C*C*C;
 	for(int i=0; i<C*C*C; i++)
@@ -301,7 +301,7 @@ void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const 
 }
 
 void sphexa::Tree::findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi,
-	const bool PBCx, const bool PBCy, const bool PBCz)
+	const bool PBCx, const bool PBCy, const bool PBCz) const
 {
 	if((PBCx && (xi-ri < _minx || xi+ri > _maxx)) || (PBCy && (yi-ri < _miny || yi+ri > _maxy)) || (PBCz && (zi-ri < _minz || zi+ri > _maxz)))
 	{
@@ -340,7 +340,7 @@ void sphexa::Tree::findNeighbors(const double xi, const double yi, const double 
 		findNeighborsRec(xi, yi, zi, ri, ngmax, ng, nvi);
 }
 
-void sphexa::Tree::findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi)
+void sphexa::Tree::findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const
 {
 	int mix = max((int)(normalize(xi-ri, _minx, _maxx)*C),0);
 	int miy = max((int)(normalize(yi-ri, _miny, _maxy)*C),0);
