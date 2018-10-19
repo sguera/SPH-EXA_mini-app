@@ -76,8 +76,6 @@ int main()
 
   int *nvi = new int[n];
   int *ng = new int[(long)n*ngmax];
-  for(int i=0; i<n; i++)
-        nvi[i] = 0;
 
   double tbuild, tfind;
   chrono::time_point<chrono::high_resolution_clock> start;
@@ -85,6 +83,10 @@ int main()
   // Unit cube
   {
     cout << endl << "UNIT CUBE: " << endl;
+
+    for(int i=0; i<n; i++)
+      nvi[i] = 0;
+
     initUnitCube(n, &x[0], &y[0], &z[0], h);
 
     double xmin, xmax, ymin, ymax, zmin, zmax;
@@ -130,7 +132,10 @@ int main()
     cout << endl << "UNIQUE POSITION: " << endl;
     initUniquePosition(n, &x[0], &y[0], &z[0], h);
 
-       double xmin, xmax, ymin, ymax, zmin, zmax;
+    for(int i=0; i<n; i++)
+        nvi[i] = 0;
+
+    double xmin, xmax, ymin, ymax, zmin, zmax;
     computeBox(n, &x[0], &y[0], &z[0], xmin, xmax, ymin, ymax, zmin, zmax);
 
     Tree tree;
