@@ -53,15 +53,15 @@ void computeBox(int n, double *x, double *y, double *z,
         if(z[i] > zmax) zmax = z[i];
   }
 
-  printf("Domain x[%f %f]\n", xmin, xmax);
-  printf("Domain y[%f %f]\n", ymin, ymax);
-  printf("Domain z[%f %f]\n", zmin, zmax);
-
   // epsilion to avoid case where the box is null
-  auto boxEpsilon = [](auto const &mi, auto const &ma){ return mi == ma ? abs(ma)*0.001 : 0.;};
+  auto boxEpsilon = [](auto const &mi, auto const &ma){ return mi == ma ? max(abs(ma)*0.001,0.000001) : 0.;};
   xmax += boxEpsilon(xmin, xmax);
   ymax += boxEpsilon(ymin, ymax);
   zmax += boxEpsilon(zmin, zmax);
+
+  printf("Domain x[%f %f]\n", xmin, xmax);
+  printf("Domain y[%f %f]\n", ymin, ymax);
+  printf("Domain z[%f %f]\n", zmin, zmax);
 }
 
 int main()
