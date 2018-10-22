@@ -9,8 +9,9 @@ class Evrard
             FILE *f = fopen(filename, "rb");
             if(f)
             {
-                fread(&n, sizeof(int), 1, f);
-
+                //fread(&n, sizeof(int), 1, f);
+                n = 1e6;
+                
                 x = new double[n];
                 y = new double[n];
                 z = new double[n];
