@@ -1,0 +1,547 @@
+#include <iostream>
+#include <functional>
+#include <fstream>
+#include <chrono>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <sstream>
+#include <cassert>
+
+#include "utils.hpp"
+#include "Tree.hpp"
+
+#include "Evrard.hpp"
+
+using namespace std;
+using namespace std::chrono;
+
+#define PI 3.141592653589793
+#define K53D 0.617013
+#define GAMMA (5.0/3.0)
+#define NV0 100
+
+
+typedef std::chrono::high_resolution_clock Clock;
+typedef std::chrono::time_point<Clock> TimePoint;
+typedef std::chrono::duration<float> Time;
+
+
+template <typename Callable>
+float task(Callable f)
+{
+    TimePoint start = Clock::now();
+    f();
+    TimePoint stop = Clock::now();
+    return duration_cast<duration<float>>(stop-start).count();
+}
+
+template <typename Callable>
+float task_loop(int n, Callable f)
+{
+    TimePoint start = Clock::now();
+    #pragma omp parallel for schedule(static)
+    for(int i=0; i<n; i++)
+        f(i);
+    TimePoint stop = Clock::now();
+    return duration_cast<duration<float>>(stop-start).count();
+}
+
+inline double compute_3d_k(double n)
+{
+    //b0, b1, b2 and b3 are defined in "SPHYNX: an accurate density-based SPH method for astrophysical applications", DOI: 10.1051/0004-6361/201630208
+    double b0 = 2.7012593e-2;
+    double b1 = 2.0410827e-2;
+    double b2 = 3.7451957e-3;
+    double b3 = 4.7013839e-2;
+
+    return b0 + b1 * sqrt(n) + b2 * n + b3 * sqrt(n*n*n);
+}
+
+inline double wharmonic(double v, double h, double K)
+{
+    double value = (PI/2.0) * v;
+    return K/(h*h*h) * pow((sin(value)/value), 5);
+}
+
+inline double wharmonic_derivative(double v, double h, double K)
+{
+    double value = (PI/2.0) * v;
+    // r_ih = v * h
+    // extra h at the bottom comes from the chain rule of the partial derivative
+    double kernel = wharmonic(v, h, K);
+
+    return 5.0 * (PI/2.0) * kernel / (h * h) / v * ((1.0 / tan(value)) - (1.0 / value));
+}
+
+inline void eos(double ro, double R, double u, double mui, double &pressure, double &temperature, double &soundspeed, double &cv)
+{
+    cv = (GAMMA - 1) * R / mui;
+    temperature = u / cv;
+    double tmp = u * (GAMMA - 1);
+    pressure = ro * tmp;
+    soundspeed = sqrt(tmp);
+}
+
+inline double artificial_viscosity(double ro_i, double ro_j, double h_i, double h_j, double c_i, double c_j, double rv, double r_square)
+{
+    double alpha = 1.0;
+    double beta = 2.0;
+    double epsilon = 0.01;
+
+    double ro_ij = (ro_i + ro_j) / 2.0;
+    double c_ij = (c_i + c_j) / 2.0;
+    double h_ij = (h_i + h_j) / 2.0;
+
+
+    //calculate viscosity_ij according to Monaghan & Gringold 1983
+    double viscosity_ij = 0.0;
+    if (rv < 0.0){
+        //calculate muij
+        double mu_ij = (h_ij * rv) / (r_square + epsilon * h_ij * h_ij);
+        viscosity_ij = (-alpha * c_ij * mu_ij + beta * mu_ij * mu_ij) / ro_ij;
+    }
+
+    return viscosity_ij;
+}
+
+
+/*
+    Momentum Equation according to SPH from Variational Principle, Rossweg 2009
+*/
+inline void computeMomentum(int i, Evrard &d)
+{
+    static const double gradh_i = 1.0;
+    static const double gradh_j = 1.0;
+    static const double K = compute_3d_k(5.0);
+    double ro_i = d.ro[i];
+    double p_i = d.p[i];
+    double x_i = d.x[i];
+    double y_i = d.y[i];
+    double z_i = d.z[i];
+    double vx_i = d.vx[i];
+    double vy_i = d.vy[i];
+    double vz_i = d.vz[i];
+    double h_i = d.h[i];
+    double momentum_x = 0.0;
+    double momentum_y = 0.0;
+    double momentum_z = 0.0;
+
+    for(int j=0; j<d.nvi[i]; j++)
+    {
+        // retrive the id of a neighbor
+        int neigh_id = d.ng[i*d.ngmax+j];
+        if(neigh_id == i) continue;
+
+        double ro_j = d.ro[neigh_id];
+        double p_j = d.p[neigh_id];
+        double x_j = d.x[neigh_id];
+        double y_j = d.y[neigh_id];
+        double z_j = d.z[neigh_id];
+        double h_j = d.h[neigh_id];
+
+        // calculate the scalar product rv = rij * vij
+        double r_ijx = (x_i - x_j);
+        double r_ijy = (y_i - y_j);
+        double r_ijz = (z_i - z_j);
+
+        double v_ijx = (vx_i - d.vx[neigh_id]);
+        double v_ijy = (vy_i - d.vy[neigh_id]);
+        double v_ijz = (vz_i - d.vz[neigh_id]);
+
+        double rv = r_ijx * v_ijx + r_ijy * v_ijy + r_ijz * v_ijz;
+
+        double r_square = (r_ijx * r_ijx) + (r_ijy * r_ijy) + (r_ijz * r_ijz);
+
+        double viscosity_ij = artificial_viscosity(ro_i, ro_j, d.h[i], d.h[neigh_id], d.c[i], d.c[neigh_id], rv, r_square);
+
+        double r_ij = sqrt(r_square);
+        double v_i = r_ij / h_i;
+        double v_j = r_ij / h_j;
+
+        double derivative_kernel_i = wharmonic_derivative(v_i, h_i, K);
+        double derivative_kernel_j = wharmonic_derivative(v_j, h_j, K);
+        
+        double grad_v_kernel_x_i = r_ijx * derivative_kernel_i;
+        double grad_v_kernel_x_j = r_ijx * derivative_kernel_j;
+        double grad_v_kernel_y_i = r_ijy * derivative_kernel_i;
+        double grad_v_kernel_y_j = r_ijy * derivative_kernel_j;
+        double grad_v_kernel_z_i = r_ijz * derivative_kernel_i;
+        double grad_v_kernel_z_j = r_ijz * derivative_kernel_j;
+
+
+        momentum_x +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_x_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_x_j) + viscosity_ij * (grad_v_kernel_x_i + grad_v_kernel_x_j)/2.0;
+        momentum_y +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_y_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_y_j) + viscosity_ij * (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0;
+        momentum_z +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_z_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_z_j) + viscosity_ij * (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0;
+
+
+    }
+
+    d.grad_P_x[i] = momentum_x * d.m[i];
+    d.grad_P_y[i] = momentum_y * d.m[i];
+    d.grad_P_z[i] = momentum_z * d.m[i];
+}
+
+
+
+inline void computeEnergy(int i, Evrard &d)
+{
+    // note that practically all these variables are already calculated in
+    // computeMomentum, so it would make sens to fuse momentum and energy
+    static const double gradh_i = 1.0;
+    static const double K = compute_3d_k(5.0);
+
+    double ro_i = d.ro[i];
+    double p_i = d.p[i];
+    double vx_i = d.vx[i];
+    double vy_i = d.vy[i];
+    double vz_i = d.vz[i];
+    double x_i = d.x[i];
+    double y_i = d.y[i];
+    double z_i = d.z[i];
+    double h_i = d.h[i];
+
+    double energy_x = 0.0;
+    double energy_y = 0.0;
+    double energy_z = 0.0;
+
+
+    for(int j=0; j<d.nvi[i]; j++)
+    {
+        // retrive the id of a neighbor
+        int neigh_id = d.ng[i*d.ngmax+j];
+        if(neigh_id == i) continue;
+
+        double ro_j = d.ro[neigh_id];
+        double m_j = d.m[neigh_id];
+        double x_j = d.x[neigh_id];
+        double y_j = d.y[neigh_id];
+        double z_j = d.z[neigh_id];
+
+        //calculate the velocity difference
+        double v_ijx = (vx_i - d.vx[neigh_id]);
+        double v_ijy = (vy_i - d.vy[neigh_id]);
+        double v_ijz = (vz_i - d.vz[neigh_id]);
+
+        double r_ijx = (x_i - x_j);
+        double r_ijy = (y_i - y_j);
+        double r_ijz = (z_i - z_j);
+
+        double rv = r_ijx * v_ijx + r_ijy * v_ijy + r_ijz * v_ijz;
+
+        double r_square = (r_ijx * r_ijx) + (r_ijy * r_ijy) + (r_ijz * r_ijz);
+
+        double viscosity_ij = artificial_viscosity(ro_i, ro_j, d.h[i], d.h[neigh_id], d.c[i], d.c[neigh_id], rv, r_square);
+
+        double r_ij = sqrt(r_square);
+        double v_i = r_ij / h_i;
+
+        double derivative_kernel_i = wharmonic_derivative(v_i, h_i, K);
+
+        double grad_v_kernel_x_i = r_ijx * derivative_kernel_i;
+        double grad_v_kernel_y_i = r_ijy * derivative_kernel_i;
+        double grad_v_kernel_z_i = r_ijz * derivative_kernel_i;
+
+        energy_x +=  m_j * (1 + 0.5 * viscosity_ij) * v_ijx * grad_v_kernel_x_i;
+        energy_y +=  m_j * (1 + 0.5 * viscosity_ij) * v_ijy * grad_v_kernel_y_i;
+        energy_z +=  m_j * (1 + 0.5 * viscosity_ij) * v_ijz * grad_v_kernel_z_i;
+    }
+
+    d.d_u_x[i] =  energy_x * (-p_i/(gradh_i * ro_i * ro_i));
+    d.d_u_y[i] =  energy_y * (-p_i/(gradh_i * ro_i * ro_i));
+    d.d_u_z[i] =  energy_z * (-p_i/(gradh_i * ro_i * ro_i));
+}
+
+inline void buildTree(Evrard &d, Tree &t)
+{
+    d.xmin = 1000, d.xmax = -1000, d.ymin = 1000, d.ymax = -1000, d.zmin = 1000, d.zmax = -1000;
+    for(int i=0; i<d.n; i++)
+    {
+        if(d.x[i] < d.xmin) d.xmin = d.x[i];
+        if(d.x[i] > d.xmax) d.xmax = d.x[i];
+        if(d.y[i] < d.ymin) d.ymin = d.y[i];
+        if(d.y[i] > d.ymax) d.ymax = d.y[i];
+        if(d.z[i] < d.zmin) d.zmin = d.z[i];
+        if(d.z[i] > d.zmax) d.zmax = d.z[i];
+    }
+
+    // printf("Domain x[%f %f]\n", d.xmin, d.xmax);
+    // printf("Domain y[%f %f]\n", d.ymin, d.ymax);
+    // printf("Domain z[%f %f]\n", d.zmin, d.zmax);
+ 
+    t.setBox(d.xmin, d.xmax, d.ymin, d.ymax, d.zmin, d.zmax);
+    t.buildSort(d.n, d.x, d.y, d.z);
+    // cout << "CELLS: " << t.cellCount() << endl;
+}
+
+inline void findNeighbors(int i, Evrard &d, Tree &t)
+{
+
+    t.findNeighbors(d.x[i], d.y[i], d.z[i], 2.0*d.h[i], d.ngmax, &d.ng[(long)i*d.ngmax], d.nvi[i], d.PBCx, d.PBCy, d.PBCz);
+}
+
+//templating it with the kernel to use would be an option
+inline void computeDensity(int i, Evrard &d)
+{
+    static const double K = compute_3d_k(5.0);
+
+    //double old = d.ro[i];
+    double roloc = 0.0;
+    d.ro[i] = 0.0;
+
+    for(int j=0; j<d.nvi[i]; j++)
+    {
+        // retrive the id of a neighbor
+        int neigh_id = d.ng[i*d.ngmax+j];
+        if(neigh_id == i) continue;
+
+        // later can be stores into an array per particle
+        double dist =  distance(d.x[i], d.y[i], d.z[i], d.x[neigh_id], d.y[neigh_id], d.z[neigh_id]); //store the distance from each neighbor
+
+        // calculate the v as ratio between the distance and the smoothing length
+        double vloc = dist / d.h[i];
+        
+        //assert(vloc<=2);
+        double value = wharmonic(vloc, d.h[i], K);
+        roloc += value * d.m[neigh_id];
+    }
+    d.ro[i] = roloc + d.m[i] * K/(d.h[i]*d.h[i]*d.h[i]);
+    //printf("ro[%d] = %f %f\n", i, old, d.ro[i]);
+}
+
+inline void computeEOS(int i, Evrard &d)
+{
+    static const double R = 8.317e7;
+
+    eos(d.ro[i], R, d.u[i], d.mui[i], d.p[i], d.temp[i], d.c[i], d.cv[i]);
+}
+
+//computes the timestep using the Courant condition
+inline void computeTimestep(int i, Evrard &d)
+{
+    static const double CHI = 0.2;
+
+    d.timestep[i] = CHI * (d.h[i]/d.c[i]);
+}
+
+
+//computes the smoothing lenght
+inline void computeH(int i, Evrard &d)
+{
+
+    static const double c0 = 7.0;
+    static const double exp = 1.0/3.0;//1.0/log(c0 + 1)
+
+    double ka = pow((1 + c0 * NV0 / d.nvi[i]), exp);
+
+    d.h[i] = d.h[i] * 0.5 * ka;
+}
+
+
+//updates the quantities
+inline void updateQuantities(int i, Evrard &d)
+{
+
+    double t_m1 = d.timestep_m1[i];
+    double t_0 = d.timestep[i];
+    double x = d.x[i];
+    double y = d.y[i];
+    double z = d.z[i];
+
+
+    // in case it is the first iteration we do something different
+    if(d.iteration == 0){
+
+        t_m1 = t_0;
+
+        d.d_u_x_m1[i] = d.d_u_x[i];
+        d.x_m1[i] = x - d.vx[i] * t_0;
+        d.d_u_y_m1[i] = d.d_u_y[i];
+        d.y_m1[i] = y - d.vy[i] * t_0;
+        d.d_u_z_m1[i] = d.d_u_z[i];
+        d.z_m1[i] = z - d.vz[i] * t_0;
+    }
+
+    // ADD COMPONENT DUE TO THE GRAVITY HERE
+    double ax = - (d.grad_P_x[i]); //-G * fx
+    double ay = - (d.grad_P_y[i]); //-G * fy
+    double az = - (d.grad_P_z[i]); //-G * fz
+
+
+
+    //update positions according to Press (2nd order)
+    double deltaA = t_0 + 0.5 * t_m1;
+    double deltaB = 0.5 * (t_0 + t_m1);
+    double valx = (x - d.x_m1[i]) / t_m1;
+    double valy = (y - d.y_m1[i]) / t_m1;
+    double valz = (z - d.z_m1[i]) / t_m1;
+
+    double vx = valx + ax * deltaA;
+    double vy = valy + ay * deltaA;
+    double vz = valz + az * deltaA;
+    d.vx[i] = vx;
+    d.vy[i] = vy;
+    d.vz[i] = vz;
+    
+    d.x[i] = x + deltaA * valx + (vx - valx) * t_0 * deltaB / deltaA;
+    d.x_m1[i] = x;
+
+    d.y[i] = y + deltaA * valy + (vy - valy) * t_0 * deltaB / deltaA;
+    d.y_m1[i] = y;
+
+    d.z[i] = z + deltaA * valz + (vz - valz) * t_0 * deltaB / deltaA;
+    d.z_m1[i] = z;
+
+    //update the energy according to Adams-Bashforth (2nd order)
+    deltaA = 0.5 * t_0 * t_0 / t_m1;
+    deltaB = t_0 + deltaA;
+
+    double d_u_x_local = d.d_u_x[i];
+    double d_u_y_local = d.d_u_y[i];
+    double d_u_z_local = d.d_u_z[i];
+    d.d_u_x[i] = d_u_x_local + 0.5 * d_u_x_local * deltaB - 0.5 * d.d_u_x_m1[i] * deltaA;
+    d.d_u_y[i] = d_u_z_local + 0.5 * d_u_z_local * deltaB - 0.5 * d.d_u_y_m1[i] * deltaA;
+    d.d_u_z[i] = d_u_z_local + 0.5 * d_u_z_local * deltaB - 0.5 * d.d_u_z_m1[i] * deltaA;
+
+    d.d_u_x_m1[i] = d_u_x_local;
+    d.d_u_y_m1[i] = d_u_y_local;
+    d.d_u_z_m1[i] = d_u_z_local;
+
+
+    //update positions
+    d.x_m1[i] = x;
+    d.y_m1[i] = y;
+    d.z_m1[i] = z;
+
+    d.timestep_m1[i] = t_0;
+
+}
+
+
+
+
+int main()
+{
+    // Domain (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
+    Evrard evrard("input/Evrard3D.bin");
+
+    // Tree structure
+    Tree tree;
+
+    for(int timeloop = 0; timeloop < 10; timeloop++){
+
+        cout << endl << "Building tree..." << endl;
+
+        float ms = task([&]()
+        {
+            buildTree(evrard, tree);
+        });
+
+        cout << "# Total Time (s) to build the tree : " << ms << endl;
+
+        cout << endl << "Finding neighbors..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            findNeighbors(i, evrard, tree);
+        });
+
+        cout << "# Total Time (s) to find the neighbors : " << ms << endl;
+
+        cout << endl << "Computing Density..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            computeDensity(i, evrard);
+        });
+
+        cout << "# Total Time (s) to compute the density : " << ms << endl;
+
+        cout << endl << "Computing EOS..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            computeEOS(i, evrard);
+        });
+
+        cout << "# Total Time (s) to compute the EOS : " << ms << endl;
+
+        cout << endl << "Computing Momentum..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            computeMomentum(i, evrard);
+        });
+
+        cout << "# Total Time (s) to compute the Momentum : " << ms << endl;
+
+        cout << endl << "Computing Energy..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            computeEnergy(i, evrard);
+        });
+
+        cout << "# Total Time (s) to compute the Energy : " << ms << endl;
+
+        cout << endl << "Computing Timestep..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            computeTimestep(i, evrard);
+        });
+        //find the minimum timestep between the ones of each particle and use that one as new timestep
+        TimePoint start1 = Clock::now();
+        auto it = std::min_element(evrard.timestep, evrard.timestep + evrard.n);
+        int index = std::distance(evrard.timestep, it);
+        double min = evrard.timestep[index];
+        // double min = 10.0;
+        //int minIndex = evrard.n + 1;
+        // for (int i = 0; i < evrard.n; ++i){
+        //     if (evrard.timestep[i] < min){
+        //         min = evrard.timestep[i];
+        // //        minIndex = i;
+        //     }
+        // }
+        std::fill_n(evrard.timestep, evrard.n, min);
+
+        //cout << "# Total Time (s) to compute the Timestep : " << ms << endl;
+        TimePoint stop1 = Clock::now();
+        cout << "# Total Time (s) to compute the Timestep : " << ms + duration_cast<duration<float>>(stop1-start1).count() << endl;
+
+        cout << endl << "Computing Smoothing Length..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            computeH(i, evrard);
+        });
+
+        cout << "# Total Time (s) to compute the Smoothing Length : " << ms << endl;
+
+        cout << endl << "Updating Quantities..." << endl;
+
+        ms = task_loop(evrard.n, [&](int i)
+        {
+            updateQuantities(i, evrard);
+        });
+        evrard.iteration += 1;
+
+        cout << "# Total Time (s) to update the Quantities : " << ms << endl;
+    // double rad = 0.0;
+    // ofstream outputFile;
+    // ostringstream oss;
+    // oss << "output" << timeloop << ".txt";
+
+    // outputFile.open(oss.str());
+    
+    // for(int i=0; i<evrard.n; i++)
+    // {
+    //     outputFile << evrard.x[i] << ' ' << evrard.y[i] << ' ' << evrard.z[i] << endl;
+    // }
+
+    // outputFile.close();
+    // cout << endl;
+    } //closes timeloop
+
+    return 0;
+}
