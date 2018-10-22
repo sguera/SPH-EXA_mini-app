@@ -1,0 +1,98 @@
+# -----------------------------------------------
+# core file size          (blocks, -c) unlimited
+# data seg size           (kbytes, -d) unlimited
+# scheduling priority             (-e) 0
+# file size               (blocks, -f) unlimited
+# pending signals                 (-i) 255785
+# max locked memory       (kbytes, -l) unlimited
+# max memory size         (kbytes, -m) 65986560
+# open files                      (-n) 51200
+# pipe size            (512 bytes, -p) 8
+# POSIX message queues     (bytes, -q) 819200
+# real-time priority              (-r) 0
+# stack size              (kbytes, -s) unlimited
+# cpu time               (seconds, -t) unlimited
+# max user processes              (-u) 255785
+# virtual memory          (kbytes, -v) unlimited
+# file locks                      (-x) unlimited
+# -----------------------------------------------
+# -----------------------------------------------
+# SLURM_JOB_NODELIST = nid00004
+# SLURM_JOB_NUM_NODES = 1
+# SLURM_JOB_ID = 861086
+# SLURM_JOBID = 861086
+# SLURM_NTASKS = 1 / -n --ntasks
+# SLURM_NTASKS_PER_NODE = 1 / -N --ntasks-per-node
+# SLURM_CPUS_PER_TASK = 1 / -d-c --cpus-per-task
+# OMP_NUM_THREADS = 1 / -d-c 
+# SLURM_NTASKS_PER_CORE = 1 / -j1 --ntasks-per-core
+# -----------------------------------------------
+# -----------------------------------------------
+# SLURM_CPUS_ON_NODE = 12
+# SLURM_LOCALID = 0
+# SLURM_NNODES = 1
+# SLURM_NODEID = 0
+# SLURM_PROCID = 0
+# SLURM_NPROCS = 1
+# SLURM_OVERCOMMIT = 
+# nodeid:0 taskid:0 localid:0
+# 
+# -----------------------------------------------
+Sun Oct 21 17:34:26 CEST 2018
+warning: no --cpu_bind=rank
++ echo CRAY_CUDA_MPS=
+CRAY_CUDA_MPS=
++ echo HUGETLB_DEFAULT_PAGE_SIZE=
+HUGETLB_DEFAULT_PAGE_SIZE=
++ echo HUGETLB_MORECORE=
+HUGETLB_MORECORE=
++ export TMPDIR=/tmp
++ TMPDIR=/tmp
++ echo TMPDIR=/tmp
+TMPDIR=/tmp
++ srun --unbuffered --ntasks=1 --ntasks-per-node=1 --cpus-per-task=1 --ntasks-per-core=1 --cpu_bind=verbose --hint=nomultithread ./vec3vec3add
+cpu-bind=MASK - nid00004, task  0  0 [19274]: mask 0x1 set
+
+ 3-Dimensional Vector/Vector Addition:
+   Blaze [MFlop/s]:
+     1           44.3088
+     10          44.3194
+     100         44.5019
+     1000        43.9482
+   Boost uBLAS [MFlop/s]:
+     1           12.9851
+     10          12.901
+     100         12.9555
+     1000        12.9068
+   N=3, number=1, steps=29545768
+     Blaze       = 1        (2.00045)
+     Boost uBLAS = 3.41228  (6.82607)
+   N=3, number=10, steps=29491557
+     Blaze       = 1        (1.9963)
+     Boost uBLAS = 3.43535  (6.85797)
+   N=3, number=100, steps=29586315
+     Blaze       = 1        (1.9945)
+     Boost uBLAS = 3.43499  (6.85108)
+   N=3, number=1000, steps=29332531
+     Blaze       = 1        (2.0023)
+     Boost uBLAS = 3.40504  (6.81792)
++ set +x
+ 
+Batch Job Summary Report for Job "GNU" (861086) on dom
+-----------------------------------------------------------------------------------------------------
+             Submit            Eligible               Start                 End    Elapsed  Timelimit 
+------------------- ------------------- ------------------- ------------------- ---------- ---------- 
+2018-10-21T17:30:58 2018-10-21T17:30:58 2018-10-21T17:34:24 2018-10-21T17:36:16   00:01:52   00:20:00 
+-----------------------------------------------------------------------------------------------------
+Username    Account     Partition   NNodes   Energy
+----------  ----------  ----------  ------  --------------
+piccinal    csstaff     normal           1   10.65K joules
+ 
+This job did not utilize any GPUs
+ 
+----------------------------------------------------------
+Scratch File System        Files       Quota
+--------------------  ----------  ----------
+/scratch/snx1600tds         4413     1000000
+/scratch/snx3000tds            3     1000000
+ 

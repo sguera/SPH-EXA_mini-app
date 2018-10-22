@@ -1,0 +1,134 @@
+# -----------------------------------------------
+# core file size          (blocks, -c) unlimited
+# data seg size           (kbytes, -d) unlimited
+# scheduling priority             (-e) 0
+# file size               (blocks, -f) unlimited
+# pending signals                 (-i) 255785
+# max locked memory       (kbytes, -l) unlimited
+# max memory size         (kbytes, -m) 65986560
+# open files                      (-n) 51200
+# pipe size            (512 bytes, -p) 8
+# POSIX message queues     (bytes, -q) 819200
+# real-time priority              (-r) 0
+# stack size              (kbytes, -s) unlimited
+# cpu time               (seconds, -t) unlimited
+# max user processes              (-u) 255785
+# virtual memory          (kbytes, -v) unlimited
+# file locks                      (-x) unlimited
+# -----------------------------------------------
+# -----------------------------------------------
+# SLURM_JOB_NODELIST = nid00004
+# SLURM_JOB_NUM_NODES = 1
+# SLURM_JOB_ID = 861066
+# SLURM_JOBID = 861066
+# SLURM_NTASKS = 1 / -n --ntasks
+# SLURM_NTASKS_PER_NODE = 1 / -N --ntasks-per-node
+# SLURM_CPUS_PER_TASK = 1 / -d-c --cpus-per-task
+# OMP_NUM_THREADS = 1 / -d-c 
+# SLURM_NTASKS_PER_CORE = 1 / -j1 --ntasks-per-core
+# -----------------------------------------------
+# -----------------------------------------------
+# SLURM_CPUS_ON_NODE = 12
+# SLURM_LOCALID = 0
+# SLURM_NNODES = 1
+# SLURM_NODEID = 0
+# SLURM_PROCID = 0
+# SLURM_NPROCS = 1
+# SLURM_OVERCOMMIT = 
+# nodeid:0 taskid:0 localid:0
+# 
+# -----------------------------------------------
+Sun Oct 21 17:30:56 CEST 2018
+warning: no --cpu_bind=rank
++ echo CRAY_CUDA_MPS=
+CRAY_CUDA_MPS=
++ echo HUGETLB_DEFAULT_PAGE_SIZE=
+HUGETLB_DEFAULT_PAGE_SIZE=
++ echo HUGETLB_MORECORE=
+HUGETLB_MORECORE=
++ export TMPDIR=/tmp
++ TMPDIR=/tmp
++ echo TMPDIR=/tmp
+TMPDIR=/tmp
++ srun --unbuffered --ntasks=1 --ntasks-per-node=1 --cpus-per-task=1 --ntasks-per-core=1 --cpu_bind=verbose --hint=nomultithread ./dvecdvecsub
+cpu-bind=MASK - nid00004, task  0  0 [17975]: mask 0x1 set
+
+ Dense Vector/Dense Vector Subtraction:
+   C-like implementation [MFlop/s]:
+     100         371.888
+     1000        381.804
+     10000       376.954
+     100000      375.752
+     1000000     375.66
+     10000000    362.737
+   Classic operator overloading [MFlop/s]:
+     100         97.7675
+     1000        106.187
+     10000       106.141
+     100000      106.209
+     1000000     106.086
+     10000000    105.314
+   Blaze [MFlop/s]:
+     100         85.7611
+     1000        92.0294
+     10000       89.9029
+     100000      89.6502
+     1000000     89.6672
+     10000000    85.8415
+   Boost uBLAS [MFlop/s]:
+     100         28.3015
+     1000        29.429
+     10000       29.5806
+     100000      29.5605
+     1000000     29.5576
+     10000000    29.5211
+   N=100, steps=1701919
+     C-like      = 1        (0.457643)
+     Classic     = 3.8038   (1.74078)
+     Blaze       = 4.33633  (1.98449)
+     Boost uBLAS = 13.1402  (6.01353)
+   N=1000, steps=183822
+     C-like      = 1        (0.481457)
+     Classic     = 3.59559  (1.73112)
+     Blaze       = 4.14871  (1.99743)
+     Boost uBLAS = 12.9737  (6.24628)
+   N=10000, steps=17980
+     C-like      = 1        (0.476982)
+     Classic     = 3.55143  (1.69397)
+     Blaze       = 4.19289  (1.99993)
+     Boost uBLAS = 12.7433  (6.07832)
+   N=100000, steps=1794
+     C-like      = 1        (0.477443)
+     Classic     = 3.53786  (1.68913)
+     Blaze       = 4.19131  (2.00111)
+     Boost uBLAS = 12.7113  (6.0689)
+   N=1000000, steps=179
+     C-like      = 1        (0.476495)
+     Classic     = 3.5411   (1.68731)
+     Blaze       = 4.18949  (1.99627)
+     Boost uBLAS = 12.7094  (6.05597)
+   N=10000000, steps=17
+     C-like      = 1        (0.468659)
+     Classic     = 3.44434  (1.61422)
+     Blaze       = 4.22566  (1.98039)
+     Boost uBLAS = 12.2874  (5.75859)
++ set +x
+ 
+Batch Job Summary Report for Job "GNU" (861066) on dom
+-----------------------------------------------------------------------------------------------------
+             Submit            Eligible               Start                 End    Elapsed  Timelimit 
+------------------- ------------------- ------------------- ------------------- ---------- ---------- 
+2018-10-21T17:30:54 2018-10-21T17:30:54 2018-10-21T17:30:54 2018-10-21T17:34:14   00:03:20   00:20:00 
+-----------------------------------------------------------------------------------------------------
+Username    Account     Partition   NNodes   Energy
+----------  ----------  ----------  ------  --------------
+piccinal    csstaff     normal           1   19.48K joules
+ 
+This job did not utilize any GPUs
+ 
+----------------------------------------------------------
+Scratch File System        Files       Quota
+--------------------  ----------  ----------
+/scratch/snx1600tds         4413     1000000
+/scratch/snx3000tds            3     1000000
+ 
