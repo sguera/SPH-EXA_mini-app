@@ -6,7 +6,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /// @brief Core of a contribution
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class CoreComputationStep : public IComputationStep
+class CoreContribution : public IContribution
 {
 public:
 
@@ -15,7 +15,7 @@ public:
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   /// @brief Constructor of CoreComputationStep
-  CoreComputationStep() = default;
+  CoreContribution() = default;
 
     /// @brief Destructor of CoreContribution
   virtual ~CoreContribution() = default;

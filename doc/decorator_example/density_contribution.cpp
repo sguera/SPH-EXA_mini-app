@@ -1,5 +1,6 @@
 #include "density_contribution.h"
 
+#include <iostream>
 
 void DensityContribution::preprocess()
 {
@@ -8,7 +9,8 @@ void DensityContribution::preprocess()
 
 void DensityContribution::compute(size_t const i)
 {
-  // TODO
+	m_contributionsPtr->compute(i);
+  	std::cout << "Density(" << i << ") " << *m_exampleNumberPtr << std::endl;
 }
 
 void DensityContribution::postprocess()

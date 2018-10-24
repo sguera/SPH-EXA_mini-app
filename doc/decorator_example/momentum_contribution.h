@@ -1,14 +1,11 @@
-#ifndef DENSITY_CONTRIBUTION_H
-#define DENSITY_CONTRIBUTION_H
+#ifndef MOMEMTUM_CONTRIBUTION_H
+#define MOMEMTUM_CONTRIBUTION_H
 
 #include <memory>
 
 #include "contribution_decorator_abstract.h"
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/// @brief Density contribution
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class DensityContribution : public AContributionDecorator
+class MomentumContribution : public AContributionDecorator
 {
 public:
 
@@ -19,13 +16,13 @@ public:
   /// @brief Constructor of DensityContribution
   /// @param[in] contributionsPtr: a pointer to the already attached contributions
   /// @param[in] exampleArg: a pointer to a number for the example
-  DensityContribution(std::unique_ptr<IContribution> contributionsPtr, // DO NOT REMOVE
+  MomentumContribution(std::unique_ptr<IContribution> contributionsPtr, // DO NOT REMOVE
                       std::shared_ptr<int> exampleArg)
     : AContributionDecorator(std::move(contributionsPtr)), // DO NOT REMOVE
     m_exampleNumberPtr(exampleArg) {} // copy the pointer to the number in DensityContribution attribtues so that it becomes accessible to DensityContribution during the whole simulation
 
   /// @brief Destructor of DensityContribution
-  virtual ~DensityContribution() = default;
+  virtual ~MomentumContribution() = default;
 
   /// @brief Preprocessing contribution (before the loop over each particle)
   virtual void preprocess() override;
@@ -45,4 +42,4 @@ public:
   std::shared_ptr<int> m_exampleNumberPtr;
 };
 
-#endif // DENSITY_CONTRIBUTION_H
+#endif // MOMEMTUM_CONTRIBUTION_H
