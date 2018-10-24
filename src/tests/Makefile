@@ -3,22 +3,22 @@ CXX=g++
 
 all: evrard sqpatch tiny-test
 
-evrardBroadTree:
+evrardBroadTree: ../tree/BroadTree.hpp evrard.cpp
 	$(CXX) $(CXXFLAGS) evrard.cpp -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
-evrardKdTree:
+evrardKdTree: ../tree/KdTree.hpp evrard.cpp
 	$(CXX) $(CXXFLAGS) evrard.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
-sqpatchBroadTree:
+sqpatchBroadTree: ../tree/BroadTree.hpp sqpatch.cpp
 	$(CXX) $(CXXFLAGS) sqpatch.cpp -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
-sqpatchKdTree:
+sqpatchKdTree: ../tree/KdTree.hpp sqpatch.cpp
 	$(CXX) $(CXXFLAGS) sqpatch.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
-tiny-testBroadTree:
+tiny-testBroadTree: ../tree/BroadTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
-tiny-testKdTree:
+tiny-testKdTree: ../tree/KdTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
 .PHONY: evrard sqpatch tiny-test

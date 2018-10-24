@@ -78,6 +78,7 @@ inline double BroadTree::distancesq(const double x1, const double y1, const doub
 
 inline void BroadTree::check_add_start(const int start, const int count, const int *ordering, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
 {
+	double dists[count];
 	for(int i=0; i<count; i++)
 	{
 		int id = start+i;
@@ -85,8 +86,13 @@ inline void BroadTree::check_add_start(const int start, const int count, const i
 		double yy = y[id];
 		double zz = z[id];
 
-		if(nvi < ngmax && distancesq(xi, yi, zi, xx, yy, zz) < r*r)
-			ng[nvi++] = ordering[id];
+		dists[i] = distancesq(xi, yi, zi, xx, yy, zz);
+	}
+
+	for(int i=0; i<count; i++)
+	{
+		if(nvi < ngmax && dists[i] < r*r)//distancesq(xi, yi, zi, xx, yy, zz) < r2)
+			ng[nvi++] = ordering[i];
 	}
 }
 

@@ -25,16 +25,6 @@ class KdTree
 		return xx*xx + yy*yy + zz*zz;
 	}
 
-	inline double distbnd(double x, double amin, double amax) const
-	{
-		if (x > amax)
-			return (x-amax); 
-		else if(x < amin)
-			return (amin-x);
-		else
-			return 0.0;
-	}
-
 	inline double sq(double a) const
 	{
 		return a*a;
@@ -50,6 +40,7 @@ public:
 		if(_z) delete[] _z;
 		if(_ordering) delete[] _ordering;
 		_x = _y = _z = NULL;
+		_ordering = NULL;
 		_left = _right = NULL;
 	}
 
@@ -100,7 +91,6 @@ public:
 	inline void buildRec(const int n, double *x, double *y, double *z, int *ordering, int depth = 0)
 	{
 		_k = 3;
-		_depth = depth;
 		_count = n;
 		_half = _count/2;
 
@@ -112,64 +102,60 @@ public:
 		computeBox();
 
 		_axis = 0;
-		double largestAx = _maxx-_minx;
-		if(_maxy-_miny > largestAx)
-		{
-			largestAx = _maxy-_miny;
-			_axis = 1;
-		}
-		if(_maxz-_minz > largestAx)
-		{
-			largestAx = _maxz-_minz;
-			_axis = 2;
-		}
-
-		const double *axisList[_k] = {_x, _y, _z};
-		const double *data = axisList[_axis];
-
-		vector<int> idx(n);
 		
-		iota(idx.begin(), idx.end(), 0);
-
-		std::vector<int>::iterator first = idx.begin();
-		std::vector<int>::iterator last = idx.end();
-		std::vector<int>::iterator middle = first+_half;
-		std::nth_element(first, first+_half, last, [&](size_t a, size_t b) {return data[a] < data[b];}); // can specify comparator as optional 4th arg
-
-		_median = data[*middle];
-
-		double *xt = new double[n], *yt = new double[n], *zt = new double[n];
-		int *ot = new int[n];
-
-		for(int i=0; i<_count; i++)
-		{
-			xt[i] = x[idx[i]];
-			yt[i] = y[idx[i]];
-			zt[i] = z[idx[i]];
-			ot[i] = ordering[idx[i]];
-		}
-
-		for(int i=0; i<_count; i++)
-		{
-			_x[i] = xt[i];
-			_y[i] = yt[i];
-			_z[i] = zt[i];
-			_ordering[i] = ot[i];
-		}
-
-		delete[] xt;
-		delete[] yt;
-		delete[] zt;
-		delete[] ot;
-
-		const double boxMin[_k] = {_minx, _miny, _minz};
-		const double boxMax[_k] = {_maxx, _maxy, _maxz};
-
-		_lower = boxMin[_axis];
-		_upper = boxMax[_axis];
-
-	    if(_count > BUCKET)
+		if(_count > BUCKET)
 	    {
+
+			double largestAx = _maxx-_minx;
+			if(_maxy-_miny > largestAx)
+			{
+				largestAx = _maxy-_miny;
+				_axis = 1;
+			}
+			if(_maxz-_minz > largestAx)
+			{
+				largestAx = _maxz-_minz;
+				_axis = 2;
+			}
+
+			const double *axisList[_k] = {_x, _y, _z};
+			const double *data = axisList[_axis];
+
+			vector<int> idx(n);
+			
+			iota(idx.begin(), idx.end(), 0);
+
+			std::vector<int>::iterator first = idx.begin();
+			std::vector<int>::iterator last = idx.end();
+			std::vector<int>::iterator middle = first+_half;
+			std::nth_element(first, first+_half, last, [&](size_t a, size_t b) {return data[a] < data[b];}); // can specify comparator as optional 4th arg
+
+			_median = data[*middle];
+
+			double *xt = new double[n], *yt = new double[n], *zt = new double[n];
+			int *ot = new int[n];
+
+			for(int i=0; i<_count; i++)
+			{
+				xt[i] = x[idx[i]];
+				yt[i] = y[idx[i]];
+				zt[i] = z[idx[i]];
+				ot[i] = ordering[idx[i]];
+			}
+
+			for(int i=0; i<_count; i++)
+			{
+				_x[i] = xt[i];
+				_y[i] = yt[i];
+				_z[i] = zt[i];
+				_ordering[i] = ot[i];
+			}
+
+			delete[] xt;
+			delete[] yt;
+			delete[] zt;
+			delete[] ot;
+
 	    	_left = new KdTree();
 	    	_right = new KdTree();
 
@@ -194,55 +180,59 @@ public:
 		}
 
 		buildRec(n, _x, _y, _z, _ordering);
-
-		printf("%f %f %f %f %f %f\n", _minx, _maxx, _miny, _maxy, _minz, _maxz);
 	}
 
 	//int cc = 0;
 	inline void check_add(const double xi, const double yi, const double zi, const double r2, const int ngmax, int *ng, int &nvi) const
 	{
+		double dists[_count];
+		for(int i=0; i<_count; i++)
+			dists[i] = distancesq(xi, yi, zi, _x[i], _y[i], _z[i]);
+
 		for(int i=0; i<_count; i++)
 		{
-			double xx = _x[i];
-			double yy = _y[i];
-			double zz = _z[i];
-
-			if(nvi < ngmax && distancesq(xi, yi, zi, xx, yy, zz) < r2)
+			if(nvi < ngmax && dists[i] < r2)//distancesq(xi, yi, zi, xx, yy, zz) < r2)
 				ng[nvi++] = _ordering[i];
 		}
 		//cc += count;
 	}
 
-	inline double inrange(const double xi, const double yi, const double zi, const double r2) const
+	inline double distbnd(double x, double amin, double amax) const
 	{
-		double d = 0;
-		printf("HERE:\n");
-		printf("%f\n", _median);
-		printf("%f %f %f %f %f %f\n", _minx, _maxx, _miny, _maxy, _minz, _maxz);
-		d += sq(distbnd(xi, _minx, _maxx));
-		d += sq(distbnd(yi, _miny, _maxy));
-		d += sq(distbnd(zi, _minz, _maxz));
-		return d < r2;
-	}
-
-	inline bool check(const double *particle, const double xi, const double yi, const double zi, const double r, const double r2, const int ngmax, int *ng, int &nvi) const
-	{
-		if(inrange(xi, yi, zi, r2))
-		{
-			if(_count <= BUCKET)
-				check_add(xi, yi, zi, r2, ngmax, ng, nvi);
-			else
-				findNeighborsRec(particle, xi, yi, zi, r, r2, ngmax, ng, nvi);
-			return true;
-		}
+		if (x > amax)
+			return (x-amax); 
+		else if(x < amin)
+			return (amin-x);
 		else
-			return false;
+			return 0.0;
 	}
 
-	inline void findNeighborsRec(const double *particle, const double xi, const double yi, const double zi, const double r, const double r2, const int ngmax, int *ng, int &nvi) const
+	inline double distsq(const double xi, const double yi, const double zi) const
 	{
-		_left->check(particle, xi, yi, zi, r, r2, ngmax, ng, nvi);
-		_right->check(particle, xi, yi, zi, r, r2, ngmax, ng, nvi);
+		return sq(distbnd(xi, _minx, _maxx)) + sq(distbnd(yi, _miny, _maxy)) + sq(distbnd(zi, _minz, _maxz));
+		//double dx = distbnd(xi, _minx, _maxx);
+		//double dy = distbnd(yi, _miny, _maxy);
+		//double dz = distbnd(zi, _minz, _maxz);
+		//return sq(dx) + sq(dy) + sq(dz);
+	}
+
+	inline void check(const double *particle, const double xi, const double yi, const double zi, const double r2, const int ngmax, int *ng, int &nvi) const
+	{
+		if(_count <= BUCKET)
+			check_add(xi, yi, zi, r2, ngmax, ng, nvi);
+		else
+			findNeighborsRec(particle, xi, yi, zi, r2, ngmax, ng, nvi);
+	}
+
+	inline void findNeighborsRec(const double *particle, const double xi, const double yi, const double zi, const double r2, const int ngmax, int *ng, int &nvi) const
+	{	
+		double distleftsq = r2 - _left->distsq(xi, yi, zi);
+		double distrightsq = r2 - _right->distsq(xi, yi, zi);
+
+		if(distleftsq > 0)
+			_left->check(particle, xi, yi, zi, r2, ngmax, ng, nvi);
+		if(distrightsq > 0)
+			_right->check(particle, xi, yi, zi, r2, ngmax, ng, nvi);
 	}
 
 	inline void findNeighbors(const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi, 
@@ -250,9 +240,9 @@ public:
 	{
 		const double particle[_k] = {xi, yi, zi};
 		if(_left && _right)
-			findNeighborsRec(particle, xi, yi, zi, r, r*r, ngmax, ng, nvi);
+			findNeighborsRec(particle, xi, yi, zi, r*r, ngmax, ng, nvi);
 		else
-			check(particle, xi, yi, zi, r, r*r, ngmax, ng, nvi);
+			check(particle, xi, yi, zi, r*r, ngmax, ng, nvi);
 	}
  
 public:
@@ -265,13 +255,11 @@ public:
 	double _miny, _maxy;
 	double _minz, _maxz;
 
-	double _lower, _upper;
-
 	double _median;
 
 	int *_ordering;
 
-	int _k, _depth, _axis, _count, _half;
+	int _k, _axis, _count, _half;
 };
 
 }

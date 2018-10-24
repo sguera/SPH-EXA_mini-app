@@ -89,6 +89,7 @@ int main()
 	#pragma omp parallel for schedule(guided)
 	for(int i=0; i<n; i++)
 		tree.findNeighbors(x[i], y[i], z[i], 2.0*h[i], ngmax, &ng[(long)i*ngmax], nvi[i], false, false, false);
+	//tree.findNeighbors(x[0], y[0], z[0], 2.0*h[0], ngmax, &ng[0], nvi[0], false, false, false);
 	tfind = STOP;
 	
 	printf("FIND TIME: %f\n", tfind);
