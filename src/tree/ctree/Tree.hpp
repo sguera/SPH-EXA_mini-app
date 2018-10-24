@@ -1,31 +1,82 @@
+#ifndef SPHEXA_TREE_HPP
+#define SPHEXA_TREE_HPP
+
+#include <vector>
 #include <cmath>
 #include <mutex>
 #include <stdio.h>
 #include <unistd.h>
-#include "Tree.hpp"
 
-using namespace std;
+namespace sphexa
+{
+constexpr unsigned int const MAXP = 8;
+constexpr double const RATIO = 0.5;
+constexpr int const TREE = 1;
+constexpr int const BLOCK_SIZE = 32;
+constexpr int const PLANCK = 1e-15;
 
-double *sphexa::Tree::_x = 0;
-double *sphexa::Tree::_y = 0;
-double *sphexa::Tree::_z = 0;
-int *sphexa::Tree::_ordering = 0;
+class BroadTree
+{
+public:
+	BroadTree();
+	BroadTree(double *x, double *y, double *z, int *ordering);
 
-inline double sphexa::Tree::normalize(double d, double min, double max)
+	~BroadTree();
+
+	void clean();
+
+	int cellCount() const;
+	int bucketCount() const;
+
+	void setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz);
+
+	void build(const int n, const double *x, const double *y, const double *z, int **ordering = 0);
+	
+	void findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi, 
+		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const;
+ 
+private:
+	double _minx, _maxx;
+	double _miny, _maxy;
+	double _minz, _maxz;
+
+	BroadTree **_p;
+	int B, C;
+
+	int *_start;
+	int *_count;
+
+	double *_x, *_y, *_z;
+	int *_ordering;
+
+	void cleanRec();
+
+	void buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, int it);
+	
+	void findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const;
+
+	static inline double normalize(double d, double min, double max);
+
+	static inline double distancesq(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2);
+
+	static inline void check_add_start(const int start, const int count, const int *ordering, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi);
+};
+
+inline double BroadTree::normalize(double d, double min, double max)
 {
 	return (d-min)/(max-min);
 }
 
-inline double sphexa::Tree::distance(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
+inline double BroadTree::distancesq(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
 {
 	double xx = x1 - x2;
 	double yy = y1 - y2;
 	double zz = z1 - z2;
 
-	return sqrt(xx*xx + yy*yy + zz*zz);
+	return xx*xx + yy*yy + zz*zz;
 }
 
-inline void sphexa::Tree::check_add_start(const int start, const int count, const int *ordering, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
+inline void BroadTree::check_add_start(const int start, const int count, const int *ordering, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
 {
 	for(int i=0; i<count; i++)
 	{
@@ -34,43 +85,61 @@ inline void sphexa::Tree::check_add_start(const int start, const int count, cons
 		double yy = y[id];
 		double zz = z[id];
 
-		if(nvi < ngmax && distance(xi, yi, zi, xx, yy, zz) < r)
+		if(nvi < ngmax && distancesq(xi, yi, zi, xx, yy, zz) < r*r)
 			ng[nvi++] = ordering[id];
 	}
 }
 
-sphexa::Tree::Tree()
+BroadTree::BroadTree()
 {
 	_p = 0;
 	_start = 0;
 	_count = 0;
+	_x = 0;
+	_y = 0;
+	_z = 0;
+	_ordering = 0;
 	setBox(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 }
 
-sphexa::Tree::~Tree()
+BroadTree::BroadTree(double *x, double *y, double *z, int *ordering)
+{
+	_p = 0;
+	_start = 0;
+	_count = 0;
+	_x = x;
+	_y = y;
+	_z = z;
+	_ordering = ordering;
+	setBox(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
+}
+
+BroadTree::~BroadTree()
 {
 	clean();
 }
 
-void sphexa::Tree::clean()
+void BroadTree::clean()
 {
 	cleanRec();
 	if(_x) delete[] _x;
 	if(_y) delete[] _y;
 	if(_z) delete[] _z;
-	_x = _y = _z = 0;
 	if(_ordering) delete[] _ordering;
+	_x = _y = _z = 0;
 	_ordering = 0;
 }
 
-void sphexa::Tree::cleanRec()
+void BroadTree::cleanRec()
 {
+	_x = _y = _z = 0;
+	_ordering = 0;
 	if(_p)
 	{
 		for(int i=0; i<C*C*C; i++)
 		{
 			if(_p[i])
-				_p[i]->clean();
+				_p[i]->cleanRec();
 			delete _p[i];
 			_p[i] = 0;
 		}
@@ -86,7 +155,7 @@ void sphexa::Tree::cleanRec()
 	}
 }
 
-void sphexa::Tree::setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz)
+void BroadTree::setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz)
 {
 	_minx = minx;
 	_maxx = maxx;
@@ -96,7 +165,7 @@ void sphexa::Tree::setBox(const double minx, const double maxx, const double min
 	_maxz = maxz;
 }
 
-int sphexa::Tree::cellCount() const
+int BroadTree::cellCount() const
 {
 	int cells = 1;//  C*C*C;
 	for(int i=0; i<C*C*C; i++)
@@ -104,7 +173,7 @@ int sphexa::Tree::cellCount() const
 	return cells;
 }
 
-int sphexa::Tree::bucketCount() const
+int BroadTree::bucketCount() const
 {
 	int cells = C*C*C;
 	for(int i=0; i<C*C*C; i++)
@@ -112,11 +181,11 @@ int sphexa::Tree::bucketCount() const
 	return cells;
 }
 
-void sphexa::Tree::buildSort(const int n, const double *x, const double *y, const double *z, int **ordering)
+void BroadTree::build(const int n, const double *x, const double *y, const double *z, int **ordering)
 {
 	clean();
 
-	vector<int> list(n);
+	std::vector<int> list(n);
 
 	_x = new double[n];
 	_y = new double[n];
@@ -127,7 +196,7 @@ void sphexa::Tree::buildSort(const int n, const double *x, const double *y, cons
 	if(ordering)
 		*ordering = _ordering;
 
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(int i=0; i<n; i++)
 		list[i] = i;
 
@@ -136,26 +205,26 @@ void sphexa::Tree::buildSort(const int n, const double *x, const double *y, cons
 	buildSortRec(list, x, y, z, 0);
 }
 
-void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const double *y, const double *z, int it)
+void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, int it)
 {
 	//#pragma omp task
 	{
 		if(TREE)
-			C = max((int)pow(list.size()/(float)MAXP,1.0/3.0), 2);
+			C = std::max((int)pow(list.size()/(float)MAXP,1.0/3.0), 2);
 		 	//C = max((int)(log(list.size())/log(DIVIDE)), 2);
 		else
 		 	C = 2;
 
 		int *padding = 0;
-		mutex *mtx = 0;
-		vector<int> *tmp = 0;
+		std::mutex *mtx = 0;
+		std::vector<int> *tmp = 0;
 
 		double ratio = 1.0;
 		while(1)
 		{
 			if(_p == 0)
 			{
-				_p = new Tree*[C*C*C];
+				_p = new BroadTree*[C*C*C];
 				for(int i=0; i<C*C*C; i++)
 					_p[i] = 0;
 			}
@@ -172,15 +241,15 @@ void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const 
 			}
 
 			padding = new int[C*C*C];
-			mtx = new mutex[C*C*C];
-			tmp = new vector<int>[C*C*C];
+			mtx = new std::mutex[C*C*C];
+			tmp = new std::vector<int>[C*C*C];
 
-			#pragma omp parallel for schedule(static)
+			//#pragma omp parallel for schedule(static)
 			for(unsigned int i=0; i<list.size(); i++)
 			{
-				double xx = max(min(x[list[i]],_maxx),_minx);
-				double yy = max(min(y[list[i]],_maxy),_miny);
-				double zz = max(min(z[list[i]],_maxz),_minz);
+				double xx = std::max(std::min(x[list[i]],_maxx),_minx);
+				double yy = std::max(std::min(y[list[i]],_maxy),_miny);
+				double zz = std::max(std::min(z[list[i]],_maxz),_minz);
 
 				double posx = normalize(xx, _minx, _maxx);
 				double posy = normalize(yy, _miny, _maxy);
@@ -190,9 +259,9 @@ void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const 
 				int hy = posy*C;
 				int hz = posz*C;
 
-				hx = min(hx,C-1);
-				hy = min(hy,C-1);
-				hz = min(hz,C-1);
+				hx = std::min(hx,C-1);
+				hy = std::min(hy,C-1);
+				hz = std::min(hz,C-1);
 
 				unsigned int l = hz*C*C+hy*C+hx;
 
@@ -204,9 +273,9 @@ void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const 
 			int full = 0;
 			int empty = 0;
 
-			int ppc = max((int)(list.size()/(C*C*C)), 1);
+			int ppc = std::max((int)(list.size()/(C*C*C)), 1);
 			int b3 = BLOCK_SIZE*BLOCK_SIZE*BLOCK_SIZE;
-			B = max((int)pow(b3/ppc, 1.0/3.0), 1);
+			B = std::max((int)pow(b3/ppc, 1.0/3.0), 1);
 
 			int pad = 0;
 			for(int bi=0; bi<C; bi += B)
@@ -250,8 +319,8 @@ void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const 
 					continue;
 				}
 			}
-	
-			#pragma omp parallel for collapse(3) schedule(static)
+
+			//#pragma omp parallel for collapse(3) schedule(static)
 			for(int hz=0; hz<C; hz++)
 			{
 				for(int hy=0; hy<C; hy++)
@@ -269,7 +338,7 @@ void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const 
 
 						if(tmp[l].size() > 4*MAXP && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
 						{
-							_p[l] = new Tree();
+							_p[l] = new BroadTree(_x, _y, _z, _ordering);
 							_p[l]->setBox(ax, bx, ay, by, az, bz);
 							_p[l]->buildSortRec(tmp[l], x, y, z, it+padding[l]);
 						}
@@ -300,7 +369,7 @@ void sphexa::Tree::buildSortRec(const vector<int> &list, const double *x, const 
 	}
 }
 
-void sphexa::Tree::findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi,
+void BroadTree::findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi,
 	const bool PBCx, const bool PBCy, const bool PBCz) const
 {
 	if((PBCx && (xi-ri < _minx || xi+ri > _maxx)) || (PBCy && (yi-ri < _miny || yi+ri > _maxy)) || (PBCz && (zi-ri < _minz || zi+ri > _maxz)))
@@ -340,14 +409,14 @@ void sphexa::Tree::findNeighbors(const double xi, const double yi, const double 
 		findNeighborsRec(xi, yi, zi, ri, ngmax, ng, nvi);
 }
 
-void sphexa::Tree::findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const
+void BroadTree::findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const
 {
-	int mix = max((int)(normalize(xi-ri, _minx, _maxx)*C),0);
-	int miy = max((int)(normalize(yi-ri, _miny, _maxy)*C),0);
-	int miz = max((int)(normalize(zi-ri, _minz, _maxz)*C),0);
-	int max = min((int)(normalize(xi+ri, _minx, _maxx)*C),C-1);
-	int may = min((int)(normalize(yi+ri, _miny, _maxy)*C),C-1);
-	int maz = min((int)(normalize(zi+ri, _minz, _maxz)*C),C-1);
+	int mix = std::max((int)(normalize(xi-ri, _minx, _maxx)*C),0);
+	int miy = std::max((int)(normalize(yi-ri, _miny, _maxy)*C),0);
+	int miz = std::max((int)(normalize(zi-ri, _minz, _maxz)*C),0);
+	int max = std::min((int)(normalize(xi+ri, _minx, _maxx)*C),C-1);
+	int may = std::min((int)(normalize(yi+ri, _miny, _maxy)*C),C-1);
+	int maz = std::min((int)(normalize(zi+ri, _minz, _maxz)*C),C-1);
 
 	for(int hz=miz; hz<=maz; hz++)
 	{
@@ -365,3 +434,7 @@ void sphexa::Tree::findNeighborsRec(const double xi, const double yi, const doub
 		}
 	}
 }
+
+}
+
+#endif // SPHEXA_TREE_HPP

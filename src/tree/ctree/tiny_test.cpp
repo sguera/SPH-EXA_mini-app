@@ -96,7 +96,7 @@ int main()
 
     start = START;
     tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
-    tree.buildSort(n, x, y, z);
+    tree.build(n, x, y, z);
     tbuild = STOP;
 
     printf("CELLS: %d\n", tree.cellCount());
@@ -142,7 +142,7 @@ int main()
 
     start = START;
     tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
-    tree.buildSort(n, x, y, z);
+    tree.build(n, x, y, z);
     tbuild = STOP;
 
     printf("CELLS: %d\n", tree.cellCount());

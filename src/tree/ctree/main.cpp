@@ -49,14 +49,17 @@ void readfileSquarePatch(const char *filename, int n, double *x, double *y, doub
 		fclose(f);
 	}
 	else
+	{
 		printf("Error opening file.\n");
+		exit(1);
+	}
 }
 
 int main()
 {
 	int n = 1000000;
 	//int n = 10077696;
-	int ngmax = 550;
+	int ngmax = 150;
 
 	double *x = new double[n];
 	double *y = new double[n];
@@ -70,7 +73,7 @@ int main()
 	
 	double start, tbuild, tfind;
 
-	readfileEvrard("../bigfiles/evrard_1M.bin", n, x, y, z, h);
+	readfileEvrard("../../../bigfiles/evrard_1M.bin", n, x, y, z, h);
 	//readfileSquarePatch("../bigfiles/squarepatch3D.bin", n, x, y, z, h);
 
 	double xmin = 1000, xmax = -1000, ymin = 1000, ymax = -1000, zmin = 1000, zmax = -1000;
@@ -92,7 +95,7 @@ int main()
 
 	start = START;
 	tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
-	tree.buildSort(n, x, y, z);
+	tree.build(n, x, y, z);
 	tbuild = STOP;
 
 	printf("CELLS: %d\n", tree.cellCount());
