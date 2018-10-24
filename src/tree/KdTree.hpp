@@ -246,7 +246,7 @@ public:
 	}
 
 	inline void findNeighbors(const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi, 
-		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const
+		const bool /*PBCx*/ = false, const bool /*PBCy*/ = false, const bool /*PBCz*/ = false) const
 	{
 		const double particle[_k] = {xi, yi, zi};
 		if(_left && _right)
