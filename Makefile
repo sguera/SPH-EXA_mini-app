@@ -6,7 +6,8 @@ BINDIR := bin
 TARGET := runner
  
 SRCEXT := cpp
-SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+#SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+SOURCES := $(wildcard $(SRCDIR)/*.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 CFLAGS := -g -std=c++14 -O2 -fopenmp -march=native -mtune=native# -Wall
 LIB := #-L #lib #-lpthread #-lboost_thread-mt -lboost_filesystem-mt -lboost_system-mt
@@ -23,6 +24,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 	@mkdir -p $(BUILDDIR)
 	$(info Compiling the object files:)
 	$(CC) $(CFLAGS)  $(LIB) $(INC) -c $< -o $@
+
 
 clean:
 	$(info )

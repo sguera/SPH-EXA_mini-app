@@ -1,5 +1,5 @@
-#ifndef SPHEXA_TREE_HPP
-#define SPHEXA_TREE_HPP
+#ifndef SPHEXA_BROADTREE_HPP
+#define SPHEXA_BROADTREE_HPP
 
 #include <vector>
 #include <cmath>
