@@ -49,7 +49,7 @@ private:
 	double *_x, *_y, *_z;
 	int *_ordering;
 
-	void cleanRec();
+	void cleanRec(bool zero = true);
 
 	void buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, int it);
 	
@@ -127,19 +127,22 @@ BroadTree::~BroadTree()
 
 void BroadTree::clean()
 {
-	cleanRec();
 	if(_x) delete[] _x;
 	if(_y) delete[] _y;
 	if(_z) delete[] _z;
 	if(_ordering) delete[] _ordering;
 	_x = _y = _z = 0;
 	_ordering = 0;
+	cleanRec();
 }
 
-void BroadTree::cleanRec()
+void BroadTree::cleanRec(bool zero)
 {
-	_x = _y = _z = 0;
-	_ordering = 0;
+	if(zero)
+	{
+		_x = _y = _z = 0;
+		_ordering = 0;
+	}
 	if(_p)
 	{
 		for(int i=0; i<C*C*C; i++)
@@ -317,7 +320,7 @@ void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, cons
 			{
 				if(C/2 > 2)
 				{
-					cleanRec();
+					cleanRec(false);
 					delete[] padding;
 					delete[] mtx;
 					delete[] tmp;

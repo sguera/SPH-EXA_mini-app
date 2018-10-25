@@ -13,7 +13,6 @@ using namespace sphexa;
 #define STOP (double)(omp_get_wtime()-start)
 
 using namespace std;
-using namespace nanoflann;
 
 void computeBox(double &xmin, double &xmax, double &ymin, double &ymax, double &zmin, double &zmax, const double *x, const double *y, const double *z, const int n)
 {
