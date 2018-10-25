@@ -9,9 +9,9 @@
 
 namespace sphexa
 {
-constexpr unsigned int const MAXP = 8;
-constexpr double const RATIO = 0.5;
-constexpr int const TREE = 1;
+constexpr unsigned int const BUCKETSIZE = 128;
+//constexpr double const RATIO = 0.5;
+//constexpr int const TREE = 1;
 constexpr int const BLOCK_SIZE = 32;
 constexpr int const PLANCK = 1e-15;
 
@@ -30,7 +30,7 @@ public:
 
 	void setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz);
 
-	void build(const int n, const double *x, const double *y, const double *z, int **ordering = 0);
+	void build(const int n, const double *x, const double *y, const double *z, const double *h, int **ordering = 0);
 	
 	void findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi, 
 		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const;
@@ -41,7 +41,8 @@ private:
 	double _minz, _maxz;
 
 	BroadTree **_p;
-	int B, C;
+	int B;//, C;
+	int ncells, nX, nY, nZ;
 
 	int *_start;
 	int *_count;
@@ -51,7 +52,7 @@ private:
 
 	void cleanRec(bool zero = true);
 
-	void buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, int it);
+	void buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, const double *h, int it);
 	
 	void findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const;
 
@@ -145,7 +146,7 @@ void BroadTree::cleanRec(bool zero)
 	}
 	if(_p)
 	{
-		for(int i=0; i<C*C*C; i++)
+		for(int i=0; i<ncells; i++)
 		{
 			if(_p[i])
 				_p[i]->cleanRec();
@@ -177,20 +178,20 @@ void BroadTree::setBox(const double minx, const double maxx, const double miny, 
 int BroadTree::cellCount() const
 {
 	int cells = 1;//  C*C*C;
-	for(int i=0; i<C*C*C; i++)
+	for(int i=0; i<ncells; i++)
 		if(_p[i]) cells += _p[i]->cellCount();
 	return cells;
 }
 
 int BroadTree::bucketCount() const
 {
-	int cells = C*C*C;
-	for(int i=0; i<C*C*C; i++)
+	int cells = ncells;
+	for(int i=0; i<ncells; i++)
 		if(_p[i]) cells += _p[i]->bucketCount();
 	return cells;
 }
 
-void BroadTree::build(const int n, const double *x, const double *y, const double *z, int **ordering)
+void BroadTree::build(const int n, const double *x, const double *y, const double *z, const double *h, int **ordering)
 {
 	clean();
 
@@ -211,171 +212,179 @@ void BroadTree::build(const int n, const double *x, const double *y, const doubl
 
 	//#pragma omp parallel
 	//#pragma omp single
-	buildSortRec(list, x, y, z, 0);
+	buildSortRec(list, x, y, z, h, 0);
 }
 
-void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, int it)
+inline double findMaxH(const std::vector<int> &list, const double *h)
 {
-	//#pragma omp task
+	double hmax = 0.0;
+	for(unsigned int i=0; i<list.size(); i++)
 	{
-		if(TREE)
-			C = std::max((int)pow(list.size()/(float)MAXP,1.0/3.0), 2);
-		 	//C = max((int)(log(list.size())/log(DIVIDE)), 2);
-		else
-		 	C = 2;
-
-		int *padding = 0;
-		std::mutex *mtx = 0;
-		std::vector<int> *tmp = 0;
-
-		double ratio = 1.0;
-		while(1)
-		{
-			if(_p == 0)
-			{
-				_p = new BroadTree*[C*C*C];
-				for(int i=0; i<C*C*C; i++)
-					_p[i] = 0;
-			}
-
-			if(_start == 0)
-			{
-				_start = new int[C*C*C];
-				_count = new int[C*C*C];
-				for(int i=0; i<C*C*C; i++)
-				{
-					_start[i] = 0;
-					_count[i] = 0;
-				}
-			}
-
-			padding = new int[C*C*C];
-			mtx = new std::mutex[C*C*C];
-			tmp = new std::vector<int>[C*C*C];
-
-			//#pragma omp parallel for schedule(static)
-			for(unsigned int i=0; i<list.size(); i++)
-			{
-				double xx = std::max(std::min(x[list[i]],_maxx),_minx);
-				double yy = std::max(std::min(y[list[i]],_maxy),_miny);
-				double zz = std::max(std::min(z[list[i]],_maxz),_minz);
-
-				double posx = normalize(xx, _minx, _maxx);
-				double posy = normalize(yy, _miny, _maxy);
-				double posz = normalize(zz, _minz, _maxz);
-
-				int hx = posx*C;
-				int hy = posy*C;
-				int hz = posz*C;
-
-				hx = std::min(hx,C-1);
-				hy = std::min(hy,C-1);
-				hz = std::min(hz,C-1);
-
-				unsigned int l = hz*C*C+hy*C+hx;
-
-				mtx[l].lock();
-				tmp[l].push_back(list[i]);
-				mtx[l].unlock();
-			}
-
-			int full = 0;
-			int empty = 0;
-
-			int ppc = std::max((int)(list.size()/(C*C*C)), 1);
-			int b3 = BLOCK_SIZE*BLOCK_SIZE*BLOCK_SIZE;
-			B = std::max((int)pow(b3/ppc, 1.0/3.0), 1);
-
-			int pad = 0;
-			for(int bi=0; bi<C; bi += B)
-	        {
-	            for(int bj=0; bj<C; bj += B)
-	            {
-	                for(int bk=0; bk<C; bk += B)
-	                {
-	                	int hzmax = std::min(bi+B,C);
-	                    for(int hz=bi; hz<hzmax; ++hz)
-	                    {
-	                        int hymax = std::min(bj+B,C);
-	                        for(int hy=bj; hy<hymax; ++hy)
-	                        { 
-	                            int hxmax = std::min(bk+B,C);
-	                            for(int hx=bk; hx<hxmax; ++hx)
-	                            {
-									unsigned int l = hz*C*C+hy*C+hx;
-									padding[l] = pad;
-									pad += tmp[l].size();
-
-									if(tmp[l].size() > 4*MAXP) full++;
-									else if(tmp[l].size() < MAXP/4) empty++;
-								}
-							}
-						}
-					}
-				}
-			}
-
-			ratio = empty/(float)(C*C*C);
-			if(ratio > RATIO)
-			{
-				if(C/2 > 2)
-				{
-					cleanRec(false);
-					delete[] padding;
-					delete[] mtx;
-					delete[] tmp;
-					C = C/2;
-					continue;
-				}
-			}
-
-			//#pragma omp parallel for collapse(3) schedule(static)
-			for(int hz=0; hz<C; hz++)
-			{
-				for(int hy=0; hy<C; hy++)
-				{
-					for(int hx=0; hx<C; hx++)
-					{
-						double ax = _minx + hx*(_maxx-_minx)/C;
-						double bx = _minx + (hx+1)*(_maxx-_minx)/C;
-						double ay = _miny + hy*(_maxy-_miny)/C;
-						double by = _miny + (hy+1)*(_maxy-_miny)/C;
-						double az = _minz + hz*(_maxz-_minz)/C;
-						double bz = _minz + (hz+1)*(_maxz-_minz)/C;
-
-						unsigned int l = hz*C*C+hy*C+hx;
-
-						if(tmp[l].size() > 4*MAXP && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
-						{
-							_p[l] = new BroadTree(_x, _y, _z, _ordering);
-							_p[l]->setBox(ax, bx, ay, by, az, bz);
-							_p[l]->buildSortRec(tmp[l], x, y, z, it+padding[l]);
-						}
-						else
-						{	
-							_start[l] = it+padding[l];
-							_count[l] = tmp[l].size();
-
-							for(int i=0; i<_count[l]; i++)
-							{
-								int id = tmp[l][i];
-								*(_ordering+it+padding[l]+i) = id;
-								*(_x+it+padding[l]+i) = x[id];
-								*(_y+it+padding[l]+i) = y[id];
-								*(_z+it+padding[l]+i) = z[id];
-							}
-						}
-					}
-				}
-			}
-
-			break;
-		}
-
-		delete[] padding;
-		delete[] mtx;
-		delete[] tmp;
+		if(h[list[i]] > hmax)
+			hmax = h[list[i]];
 	}
+	return hmax;
+}
+
+void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, const double *h, int it)
+{
+	// Find smallest h
+	double hmax = findMaxH(list, h);
+
+	// Find how many cuts are needed in each dimension of the box
+	nX = std::max((_maxx-_minx) / hmax, 2.0);
+	nY = std::max((_maxy-_miny) / hmax, 2.0);
+	nZ = std::max((_maxz-_minz) / hmax, 2.0);
+
+	// Find total number of cells
+	ncells = nX*nY*nZ;
+
+	printf("%d %d %d = %d\n", nX, nY, nZ, ncells);
+	// Since we have used minimum h the cell size will be small to be "final"
+	// No need to cut again the remaining boxes
+	// However we may have too many cells!
+	// Compute estimated number of particles per cells (ppc)
+
+	//double minppc = list.size() / (double)ncells;
+
+	//bool final = false;
+	//printf("%f %d %lu\n", minppc, ncells, list.size());
+	// If ppc is too small, the next level is standard Octree or Kd-tree cut
+	// if(minppc < 16.0)
+	// {
+	// 	// Octree cut
+	// 	nX = nY = nZ = 4;
+	// 	ncells = nX*nY*nZ;
+	// }
+	// else
+	// {
+	// 	final = true;
+	// 	printf("FINAL: ppc = %f, ncells = %d (%d %d %d)\n", minppc, ncells, nX, nY, nZ);
+	// }
+
+	if(_p == 0)
+	{
+		_p = new BroadTree*[ncells];
+		for(int i=0; i<ncells; i++)
+			_p[i] = 0;
+	}
+
+	if(_start == 0)
+	{
+		_start = new int[ncells];
+		_count = new int[ncells];
+		for(int i=0; i<ncells; i++)
+		{
+			_start[i] = 0;
+			_count[i] = 0;
+		}
+	}
+
+	int *padding = new int[ncells];
+	//std::mutex *mtx = new std::mutex[ncells];
+	std::vector<int> *tmp = new std::vector<int>[ncells];
+
+	//#pragma omp parallel for schedule(static)
+	for(unsigned int i=0; i<list.size(); i++)
+	{
+		double xx = std::max(std::min(x[list[i]],_maxx),_minx);
+		double yy = std::max(std::min(y[list[i]],_maxy),_miny);
+		double zz = std::max(std::min(z[list[i]],_maxz),_minz);
+
+		double posx = normalize(xx, _minx, _maxx);
+		double posy = normalize(yy, _miny, _maxy);
+		double posz = normalize(zz, _minz, _maxz);
+
+		int hx = posx*nX;
+		int hy = posy*nY;
+		int hz = posz*nZ;
+
+		hx = std::min(hx,nX-1);
+		hy = std::min(hy,nY-1);
+		hz = std::min(hz,nZ-1);
+
+		unsigned int l = hz*nX*nY+hy*nX+hx;
+
+		//mtx[l].lock();
+		tmp[l].push_back(list[i]);
+		//mtx[l].unlock();
+	}
+
+	// BLOCK PARTITIONING (SIMILAR TO MM-multiplication)
+	int mppc = std::max((int)(list.size()/(ncells)), 1);
+	int b3 = BLOCK_SIZE*BLOCK_SIZE*BLOCK_SIZE;
+	B = std::max((int)pow(b3/mppc, 1.0/3.0), 1);
+
+	int pad = 0;
+	for(int bi=0; bi<nZ; bi += B)
+    {
+        for(int bj=0; bj<nY; bj += B)
+        {
+            for(int bk=0; bk<nX; bk += B)
+            {
+            	int hzmax = std::min(bi+B,nZ);
+                for(int hz=bi; hz<hzmax; ++hz)
+                {
+                    int hymax = std::min(bj+B,nY);
+                    for(int hy=bj; hy<hymax; ++hy)
+                    { 
+                        int hxmax = std::min(bk+B,nX);
+                        for(int hx=bk; hx<hxmax; ++hx)
+                        {
+							unsigned int l = hz*nX*nY+hy*nX+hx;
+							padding[l] = pad;
+							pad += tmp[l].size();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//#pragma omp parallel for collapse(3) schedule(static)
+	for(int hz=0; hz<nZ; hz++)
+	{
+		for(int hy=0; hy<nY; hy++)
+		{
+			for(int hx=0; hx<nX; hx++)
+			{
+				double ax = _minx + hx*(_maxx-_minx)/nX;
+				double bx = _minx + (hx+1)*(_maxx-_minx)/nX;
+				double ay = _miny + hy*(_maxy-_miny)/nY;
+				double by = _miny + (hy+1)*(_maxy-_miny)/nY;
+				double az = _minz + hz*(_maxz-_minz)/nZ;
+				double bz = _minz + (hz+1)*(_maxz-_minz)/nZ;
+
+				unsigned int l = hz*nX*nY+hy*nX+hx;
+
+				// 
+				if(tmp[l].size() > BUCKETSIZE && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
+				{
+					_p[l] = new BroadTree(_x, _y, _z, _ordering);
+					_p[l]->setBox(ax, bx, ay, by, az, bz);
+					_p[l]->buildSortRec(tmp[l], x, y, z, h, it+padding[l]);
+				}
+				else
+				{	
+					_start[l] = it+padding[l];
+					_count[l] = tmp[l].size();
+
+					for(int i=0; i<_count[l]; i++)
+					{
+						int id = tmp[l][i];
+						*(_ordering+it+padding[l]+i) = id;
+						*(_x+it+padding[l]+i) = x[id];
+						*(_y+it+padding[l]+i) = y[id];
+						*(_z+it+padding[l]+i) = z[id];
+					}
+				}
+			}
+		}
+	}
+
+	delete[] padding;
+	//delete[] mtx;
+	delete[] tmp;
 }
 
 void BroadTree::findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi,
@@ -383,12 +392,12 @@ void BroadTree::findNeighbors(const double xi, const double yi, const double zi,
 {
 	if((PBCx && (xi-ri < _minx || xi+ri > _maxx)) || (PBCy && (yi-ri < _miny || yi+ri > _maxy)) || (PBCz && (zi-ri < _minz || zi+ri > _maxz)))
 	{
-		int mix = (int)floor(normalize(xi-ri, _minx, _maxx)*C) % C;
-		int miy = (int)floor(normalize(yi-ri, _miny, _maxy)*C) % C;
-		int miz = (int)floor(normalize(zi-ri, _minz, _maxz)*C) % C;
-		int max = (int)floor(normalize(xi+ri, _minx, _maxx)*C) % C;
-		int may = (int)floor(normalize(yi+ri, _miny, _maxy)*C) % C;
-		int maz = (int)floor(normalize(zi+ri, _minz, _maxz)*C) % C;
+		int mix = (int)floor(normalize(xi-ri, _minx, _maxx)*nX) % nX;
+		int miy = (int)floor(normalize(yi-ri, _miny, _maxy)*nY) % nY;
+		int miz = (int)floor(normalize(zi-ri, _minz, _maxz)*nZ) % nZ;
+		int max = (int)floor(normalize(xi+ri, _minx, _maxx)*nX) % nX;
+		int may = (int)floor(normalize(yi+ri, _miny, _maxy)*nY) % nY;
+		int maz = (int)floor(normalize(zi+ri, _minz, _maxz)*nZ) % nZ;
 
 		for(int hz=miz; hz<=maz; hz++)
 		{
@@ -396,15 +405,15 @@ void BroadTree::findNeighbors(const double xi, const double yi, const double zi,
 			{
 				for(int hx=mix; hx<=max; hx++)
 				{
-					double displz = PBCz? ((hz < 0) - (hz >= C)) * (_maxz-_minz) : 0;
-		 			double disply = PBCy? ((hy < 0) - (hy >= C)) * (_maxy-_miny) : 0;
-		 			double displx = PBCx? ((hx < 0) - (hx >= C)) * (_maxx-_minx) : 0;
+					double displz = PBCz? ((hz < 0) - (hz >= nZ)) * (_maxz-_minz) : 0;
+		 			double disply = PBCy? ((hy < 0) - (hy >= nY)) * (_maxy-_miny) : 0;
+		 			double displx = PBCx? ((hx < 0) - (hx >= nX)) * (_maxx-_minx) : 0;
 
-					int hzz = (hz + C) % C;
-		 			int hyy = (hy + C) % C;
-					int hxx = (hx + C) % C;
+					int hzz = (hz + nZ) % nZ;
+		 			int hyy = (hy + nY) % nY;
+					int hxx = (hx + nX) % nX;
 
-					unsigned int l = hzz*C*C+hyy*C+hxx;
+					unsigned int l = hzz*nY*nX+hyy*nX+hxx;
 
 					if(_p[l])
 		 				_p[l]->findNeighborsRec(xi+displx, yi+disply, zi+displz, ri, ngmax, ng, nvi);
@@ -420,12 +429,12 @@ void BroadTree::findNeighbors(const double xi, const double yi, const double zi,
 
 void BroadTree::findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const
 {
-	int mix = std::max((int)(normalize(xi-ri, _minx, _maxx)*C),0);
-	int miy = std::max((int)(normalize(yi-ri, _miny, _maxy)*C),0);
-	int miz = std::max((int)(normalize(zi-ri, _minz, _maxz)*C),0);
-	int max = std::min((int)(normalize(xi+ri, _minx, _maxx)*C),C-1);
-	int may = std::min((int)(normalize(yi+ri, _miny, _maxy)*C),C-1);
-	int maz = std::min((int)(normalize(zi+ri, _minz, _maxz)*C),C-1);
+	int mix = std::max((int)(normalize(xi-ri, _minx, _maxx)*nX),0);
+	int miy = std::max((int)(normalize(yi-ri, _miny, _maxy)*nY),0);
+	int miz = std::max((int)(normalize(zi-ri, _minz, _maxz)*nZ),0);
+	int max = std::min((int)(normalize(xi+ri, _minx, _maxx)*nX),nX-1);
+	int may = std::min((int)(normalize(yi+ri, _miny, _maxy)*nY),nY-1);
+	int maz = std::min((int)(normalize(zi+ri, _minz, _maxz)*nZ),nZ-1);
 
 	for(int hz=miz; hz<=maz; hz++)
 	{
@@ -433,7 +442,7 @@ void BroadTree::findNeighborsRec(const double xi, const double yi, const double 
 		{
 			for(int hx=mix; hx<=max; hx++)
 			{
-				unsigned int l = hz*C*C+hy*C+hx;
+				unsigned int l = hz*nX*nY+hy*nX+hx;
 
 				if(_p[l])
 					_p[l]->findNeighborsRec(xi, yi, zi, ri, ngmax, ng, nvi);
