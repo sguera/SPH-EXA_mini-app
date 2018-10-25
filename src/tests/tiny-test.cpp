@@ -9,6 +9,7 @@
 
 #include "../tree/BroadTree.hpp"
 #include "../tree/KdTree.hpp"
+#include "../tree/NNFTree.hpp"
 
 #define START chrono::high_resolution_clock::now(); //omp_get_wtime()
 #define STOP chrono::duration_cast<chrono::duration<double>>(chrono::high_resolution_clock::now()-start).count(); //(double)(omp_get_wtime()-start)

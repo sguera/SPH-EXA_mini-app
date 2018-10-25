@@ -4,6 +4,8 @@
 #include <omp.h>
 
 #include "../tree/BroadTree.hpp"
+#include "../tree/KdTree.hpp"
+#include "../tree/NNFTree.hpp"
 
 using namespace sphexa;
 

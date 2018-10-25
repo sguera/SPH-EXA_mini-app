@@ -5,6 +5,7 @@
 
 #include "../tree/BroadTree.hpp"
 #include "../tree/KdTree.hpp"
+#include "../tree/NNFTree.hpp"
 
 using namespace sphexa;
 
@@ -12,6 +13,7 @@ using namespace sphexa;
 #define STOP (double)(omp_get_wtime()-start)
 
 using namespace std;
+using namespace nanoflann;
 
 void computeBox(double &xmin, double &xmax, double &ymin, double &ymax, double &zmin, double &zmax, const double *x, const double *y, const double *z, const int n)
 {
@@ -74,7 +76,7 @@ int main()
 	printf("Domain x[%f %f]\n", xmin, xmax);
 	printf("Domain y[%f %f]\n", ymin, ymax);
 	printf("Domain z[%f %f]\n", zmin, zmax);
-
+	
 	TREEINTERFACE tree;
 
 	start = START;

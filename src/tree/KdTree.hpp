@@ -239,10 +239,7 @@ public:
 		const bool /*PBCx*/ = false, const bool /*PBCy*/ = false, const bool /*PBCz*/ = false) const
 	{
 		const double particle[_k] = {xi, yi, zi};
-		if(_left && _right)
-			findNeighborsRec(particle, xi, yi, zi, r*r, ngmax, ng, nvi);
-		else
-			check(particle, xi, yi, zi, r*r, ngmax, ng, nvi);
+		check(particle, xi, yi, zi, r*r, ngmax, ng, nvi);
 	}
  
 public:
