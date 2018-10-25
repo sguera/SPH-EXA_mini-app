@@ -17,7 +17,7 @@
 using namespace sphexa;
 using namespace std;
 
-void initUnitCube(int n, double *x, double *y, double *z, double &h)
+void initUnitCube(int n, double *x, double *y, double *z, double *h)
 {
 	assert(n == 8);
 	x[0]=0.; y[0]=0.; z[0]=0.;
@@ -28,18 +28,19 @@ void initUnitCube(int n, double *x, double *y, double *z, double &h)
 	x[5]=1.; y[5]=1.; z[5]=0.;
 	x[6]=1.; y[6]=1.; z[6]=1.;
 	x[7]=0.; y[7]=1.; z[7]=1.;
-	h = 1.1;
+	for(int i=0; i<8; i++)
+		h[i] = 1.1;
 }
 
-void initUniquePosition(int n, double *x, double *y, double *z, double &h)
+void initUniquePosition(int n, double *x, double *y, double *z, double *h)
 {
 	for(int i=0; i<n; ++i)
 	{
 		x[i] = 1.;
 		y[i] = 0.;
 		z[i] = 0.;
+		h[i] = 2.;
 	}
-	h = 2.;
 }
 
 void computeBox(int n, double *x, double *y, double *z,
@@ -75,7 +76,7 @@ int main()
 	double *x = new double[n];
 	double *y = new double[n];
 	double *z = new double[n];
-	double h;
+	double *h = new double[n];
 
 	int *nvi = new int[n];
 	int *ng = new int[(long)n*ngmax];
@@ -90,7 +91,7 @@ int main()
 		for(int i=0; i<n; i++)
 			nvi[i] = 0;
 
-		initUnitCube(n, &x[0], &y[0], &z[0], h);
+		initUnitCube(n, x, y, z, h);
 
 		double xmin, xmax, ymin, ymax, zmin, zmax;
 		computeBox(n, &x[0], &y[0], &z[0], xmin, xmax, ymin, ymax, zmin, zmax);
@@ -99,14 +100,18 @@ int main()
 
 		start = START;
 		tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
-		tree.build(n, x, y, z);
+		#ifdef USE_H
+			tree.build(n, x, y, z, h);
+		#else
+			tree.build(n, x, y, z);
+		#endif
 		tbuild = STOP;
 
 		//printf("CELLS: %d\n", tree.cellCount());
 		printf("BUILD TIME: %f\n", tbuild);
 
 		start = START;
-		tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], false, false, false);
+		tree.findNeighbors(x[0], y[0], z[0], h[0], ngmax, &ng[0], nvi[0], false, false, false);
 		tfind = STOP;
 
 		printf("FIND TIME: %f\n", tfind);
@@ -133,7 +138,7 @@ int main()
   	// Unique position
 	{
 		cout << endl << "UNIQUE POSITION: " << endl;
-		initUniquePosition(n, &x[0], &y[0], &z[0], h);
+		initUniquePosition(n, x, y, z, h);
 
 		for(int i=0; i<n; i++)
 			nvi[i] = 0;
@@ -145,14 +150,18 @@ int main()
 
 		start = START;
 		tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
-		tree.build(n, x, y, z);
+		#ifdef USE_H
+			tree.build(n, x, y, z, h);
+		#else
+			tree.build(n, x, y, z);
+		#endif
 		tbuild = STOP;
 
 		//printf("CELLS: %d\n", tree.cellCount());
 		printf("BUILD TIME: %f\n", tbuild);
 
 		start = START;
-		tree.findNeighbors(x[0], y[0], z[0], h, ngmax, &ng[0], nvi[0], false, false, false);
+		tree.findNeighbors(x[0], y[0], z[0], h[0], ngmax, &ng[0], nvi[0], false, false, false);
 		tfind = STOP;
 
 		printf("FIND TIME: %f\n", tfind);

@@ -80,11 +80,15 @@ int main()
 
 	start = START;
 	tree.setBox(xmin, xmax, ymin, ymax, zmin, zmax);
-	tree.build(n, x, y, z, h);
+	#ifdef USE_H
+		tree.build(n, x, y, z, h);
+	#else
+		tree.build(n, x, y, z);
+	#endif
 	tbuild = STOP;
 
-	printf("CELLS: %d\n", tree.cellCount());
-	printf("BUCKETS: %d\n", tree.bucketCount());
+	//printf("CELLS: %d\n", tree.cellCount());
+	//printf("BUCKETS: %d\n", tree.bucketCount());
 	printf("BUILD TIME: %f\n", tbuild);
 
 	start = START;

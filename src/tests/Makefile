@@ -4,7 +4,7 @@ CXX=g++
 all: evrard sqpatch tiny-test
 
 evrardBroadTree: ../tree/BroadTree.hpp evrard.cpp
-	$(CXX) $(CXXFLAGS) evrard.cpp -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
+	$(CXX) $(CXXFLAGS) evrard.cpp -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
 evrardKdTree: ../tree/KdTree.hpp evrard.cpp
 	$(CXX) $(CXXFLAGS) evrard.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
@@ -13,7 +13,7 @@ evrardNNFTree: ../tree/NNFTree.hpp evrard.cpp
 	$(CXX) $(CXXFLAGS) evrard.cpp -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
 
 sqpatchBroadTree: ../tree/BroadTree.hpp sqpatch.cpp
-	$(CXX) $(CXXFLAGS) sqpatch.cpp -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
+	$(CXX) $(CXXFLAGS) sqpatch.cpp -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
 sqpatchKdTree: ../tree/KdTree.hpp sqpatch.cpp
 	$(CXX) $(CXXFLAGS) sqpatch.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
@@ -22,7 +22,7 @@ sqpatchNNFTree: ../tree/NNFTree.hpp sqpatch.cpp
 	$(CXX) $(CXXFLAGS) sqpatch.cpp -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
 
 tiny-testBroadTree: ../tree/BroadTree.hpp tiny-test.cpp
-	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
+	$(CXX) $(CXXFLAGS) tiny-test.cpp -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
 tiny-testKdTree: ../tree/KdTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
