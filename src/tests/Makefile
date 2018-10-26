@@ -1,25 +1,7 @@
 CXXFLAGS = -Wall -Wextra -O3 -march=native -msse -msse2 -msse3 -mfpmath=sse -std=c++14
 CXX=g++
 
-all: evrard sqpatch tiny-test
-
-evrardBroadTree: ../tree/BroadTree.hpp evrard.cpp
-	$(CXX) $(CXXFLAGS) evrard.cpp -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
-
-evrardKdTree: ../tree/KdTree.hpp evrard.cpp
-	$(CXX) $(CXXFLAGS) evrard.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
-
-evrardNNFTree: ../tree/NNFTree.hpp evrard.cpp
-	$(CXX) $(CXXFLAGS) evrard.cpp -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
-
-sqpatchBroadTree: ../tree/BroadTree.hpp sqpatch.cpp
-	$(CXX) $(CXXFLAGS) sqpatch.cpp -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
-
-sqpatchKdTree: ../tree/KdTree.hpp sqpatch.cpp
-	$(CXX) $(CXXFLAGS) sqpatch.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
-
-sqpatchNNFTree: ../tree/NNFTree.hpp sqpatch.cpp
-	$(CXX) $(CXXFLAGS) sqpatch.cpp -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
+all: tiny-test treeTest treePerf
 
 tiny-testBroadTree: ../tree/BroadTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
@@ -27,16 +9,48 @@ tiny-testBroadTree: ../tree/BroadTree.hpp tiny-test.cpp
 tiny-testKdTree: ../tree/KdTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
+tiny-testOctree: ../tree/Octree.hpp tiny-test.cpp
+	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=Octree -g -fopenmp -o $@
+
 tiny-testNNFTree: ../tree/NNFTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
+	
+TESTCASE=EVRARD
+treeTestBroadTree: treeTest.cpp ../tree/BroadTree.hpp
+	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
-.PHONY: evrard sqpatch tiny-test
+treeTestKdTree: treeTest.cpp ../tree/KdTree.hpp 
+	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
-evrard: evrardBroadTree evrardKdTree evrardNNFTree
+treeTestOctree: treeTest.cpp ../tree/Octree.hpp 
+	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D TREEINTERFACE=Octree -g -fopenmp -o $@
 
-sqpatch: sqpatchBroadTree sqpatchKdTree sqpatchNNFTree
+treeTestNNFTree: treeTest.cpp ../tree/NNFTree.hpp 
+	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
 
-tiny-test: tiny-testBroadTree tiny-testKdTree sqpatchNNFTree
+REPEAT=100
+treePerfBroadTree: treePerf.cpp ../tree/BroadTree.hpp
+	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
+
+treePerfKdTree: treePerf.cpp ../tree/KdTree.hpp 
+	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D TREEINTERFACE=KdTree -g -fopenmp -o $@
+
+treePerfOctree: treePerf.cpp ../tree/Octree.hpp 
+	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D TREEINTERFACE=Octree -g -fopenmp -o $@
+
+treePerfNNFTree: treePerf.cpp ../tree/NNFTree.hpp 
+	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
+
+.PHONY: tiny-test treeTest treePerf
+
+tiny-test: tiny-testBroadTree tiny-testKdTree tiny-testNNFTree tiny-testOctree
+
+treeTest: treeTestBroadTree treeTestKdTree treeTestNNFTree treeTestOctree
+
+treePerf: treePerfBroadTree treePerfKdTree treePerfNNFTree treePerfOctree
 
 clean:
-	rm -f *.o evrardBroadTree evrardKdTree evrardNNFTree sqpatchBroadTree sqpatchKdTree sqpatchNNFTree tiny-testBroadTree tiny-testKdTree tiny-testNNFTree
+	rm -f *.o 
+	rm -f tiny-testBroadTree tiny-testKdTree tiny-testNNFTree tiny-testOctree
+	rm -f treeTestBroadTree treeTestKdTree treeTestNNFTree treeTestOctree
+	rm -f treePerfBroadTree treePerfKdTree treePerfNNFTree treePerfOctree

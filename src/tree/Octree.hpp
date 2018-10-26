@@ -1,5 +1,5 @@
-#ifndef SPHEXA_BROADTREE_HPP
-#define SPHEXA_BROADTREE_HPP
+#ifndef SPHEXA_OCTREE_HPP
+#define SPHEXA_OCTREE_HPP
 
 #include <vector>
 #include <cmath>
@@ -9,19 +9,19 @@
 
 namespace sphexa
 {
-constexpr unsigned int const BUCKETSIZE = 128;
+//constexpr unsigned int const BUCKETSIZE = 128;
 //constexpr double const RATIO = 0.5;
 //constexpr int const TREE = 1;
-constexpr int const BLOCK_SIZE = 32;
-constexpr int const PLANCK = 1e-15;
+//constexpr int const BLOCK_SIZE = 32;
+//constexpr int const PLANCK = 1e-15;
 
-class BroadTree
+class Octree
 {
 public:
-	BroadTree();
-	BroadTree(double *x, double *y, double *z, int *ordering);
+	Octree();
+	Octree(double *x, double *y, double *z, int *ordering);
 
-	~BroadTree();
+	~Octree();
 
 	void clean();
 
@@ -30,7 +30,7 @@ public:
 
 	void setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz);
 
-	void build(const int n, const double *x, const double *y, const double *z, const double *h, int **ordering = 0);
+	void build(const int n, const double *x, const double *y, const double *z, int **ordering = 0);
 	
 	void findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi, 
 		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const;
@@ -40,7 +40,7 @@ private:
 	double _miny, _maxy;
 	double _minz, _maxz;
 
-	BroadTree **_p;
+	Octree **_p;
 	int B;//, C;
 	int ncells, nX, nY, nZ;
 
@@ -52,7 +52,7 @@ private:
 
 	void cleanRec(bool zero = true);
 
-	void buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, const double *h, int it);
+	void buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, int it);
 	
 	void findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const;
 
@@ -63,12 +63,12 @@ private:
 	static inline void check_add_start(const int start, const int count, const int *ordering, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi);
 };
 
-inline double BroadTree::normalize(double d, double min, double max)
+inline double Octree::normalize(double d, double min, double max)
 {
 	return (d-min)/(max-min);
 }
 
-inline double BroadTree::distancesq(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
+inline double Octree::distancesq(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2)
 {
 	double xx = x1 - x2;
 	double yy = y1 - y2;
@@ -77,7 +77,7 @@ inline double BroadTree::distancesq(const double x1, const double y1, const doub
 	return xx*xx + yy*yy + zz*zz;
 }
 
-inline void BroadTree::check_add_start(const int start, const int count, const int *ordering, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
+inline void Octree::check_add_start(const int start, const int count, const int *ordering, const double *x, const double *y, const double *z, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi)
 {
 	double dists[count];
 	for(int i=0; i<count; i++)
@@ -97,7 +97,7 @@ inline void BroadTree::check_add_start(const int start, const int count, const i
 	}
 }
 
-BroadTree::BroadTree()
+Octree::Octree()
 {
 	_p = 0;
 	_start = 0;
@@ -109,7 +109,7 @@ BroadTree::BroadTree()
 	setBox(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 }
 
-BroadTree::BroadTree(double *x, double *y, double *z, int *ordering)
+Octree::Octree(double *x, double *y, double *z, int *ordering)
 {
 	_p = 0;
 	_start = 0;
@@ -121,12 +121,12 @@ BroadTree::BroadTree(double *x, double *y, double *z, int *ordering)
 	setBox(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 }
 
-BroadTree::~BroadTree()
+Octree::~Octree()
 {
 	clean();
 }
 
-void BroadTree::clean()
+void Octree::clean()
 {
 	if(_x) delete[] _x;
 	if(_y) delete[] _y;
@@ -137,7 +137,7 @@ void BroadTree::clean()
 	cleanRec();
 }
 
-void BroadTree::cleanRec(bool zero)
+void Octree::cleanRec(bool zero)
 {
 	if(zero)
 	{
@@ -165,7 +165,7 @@ void BroadTree::cleanRec(bool zero)
 	}
 }
 
-void BroadTree::setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz)
+void Octree::setBox(const double minx, const double maxx, const double miny, const double maxy, const double minz, const double maxz)
 {
 	_minx = minx;
 	_maxx = maxx;
@@ -175,7 +175,7 @@ void BroadTree::setBox(const double minx, const double maxx, const double miny, 
 	_maxz = maxz;
 }
 
-int BroadTree::cellCount() const
+int Octree::cellCount() const
 {
 	int cells = 1;//  C*C*C;
 	for(int i=0; i<ncells; i++)
@@ -183,7 +183,7 @@ int BroadTree::cellCount() const
 	return cells;
 }
 
-int BroadTree::bucketCount() const
+int Octree::bucketCount() const
 {
 	int cells = ncells;
 	for(int i=0; i<ncells; i++)
@@ -191,7 +191,7 @@ int BroadTree::bucketCount() const
 	return cells;
 }
 
-void BroadTree::build(const int n, const double *x, const double *y, const double *z, const double *h, int **ordering)
+void Octree::build(const int n, const double *x, const double *y, const double *z, int **ordering)
 {
 	clean();
 
@@ -212,36 +212,48 @@ void BroadTree::build(const int n, const double *x, const double *y, const doubl
 
 	//#pragma omp parallel
 	//#pragma omp single
-	buildSortRec(list, x, y, z, h, 0);
+	buildSortRec(list, x, y, z, 0);
 }
 
-inline double findMaxH(const std::vector<int> &list, const double *h)
+void Octree::buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z,  int it)
 {
-	double hmax = 0.0;
-	for(unsigned int i=0; i<list.size(); i++)
-	{
-		if(h[list[i]] > hmax)
-			hmax = h[list[i]];
-	}
-	return hmax;
-}
-
-void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, const double *y, const double *z, const double *h, int it)
-{
-	// Find maximum h
-	double hmax = findMaxH(list, h);
+	// Find smallest h
+	//double hmax = findMaxH(list, h);
 
 	// Find how many cuts are needed in each dimension of the box
-	nX = std::max((_maxx-_minx) / hmax, 2.0);
-	nY = std::max((_maxy-_miny) / hmax, 2.0);
-	nZ = std::max((_maxz-_minz) / hmax, 2.0);
+	nX = 2;//std::max((_maxx-_minx) / hmax, 2.0);
+	nY = 2;//std::max((_maxy-_miny) / hmax, 2.0);
+	nZ = 2;//std::max((_maxz-_minz) / hmax, 2.0);
 
 	// Find total number of cells
 	ncells = nX*nY*nZ;
 
+	//printf("%d %d %d = %d\n", nX, nY, nZ, ncells);
+	// Since we have used minimum h the cell size will be small to be "final"
+	// No need to cut again the remaining boxes
+	// However we may have too many cells!
+	// Compute estimated number of particles per cells (ppc)
+
+	//double minppc = list.size() / (double)ncells;
+
+	//bool final = false;
+	//printf("%f %d %lu\n", minppc, ncells, list.size());
+	// If ppc is too small, the next level is standard Octree or Kd-tree cut
+	// if(minppc < 16.0)
+	// {
+	// 	// Octree cut
+	// 	nX = nY = nZ = 4;
+	// 	ncells = nX*nY*nZ;
+	// }
+	// else
+	// {
+	// 	final = true;
+	// 	printf("FINAL: ppc = %f, ncells = %d (%d %d %d)\n", minppc, ncells, nX, nY, nZ);
+	// }
+
 	if(_p == 0)
 	{
-		_p = new BroadTree*[ncells];
+		_p = new Octree*[ncells];
 		for(int i=0; i<ncells; i++)
 			_p[i] = 0;
 	}
@@ -337,9 +349,9 @@ void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, cons
 				// 
 				if(tmp[l].size() > BUCKETSIZE && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
 				{
-					_p[l] = new BroadTree(_x, _y, _z, _ordering);
+					_p[l] = new Octree(_x, _y, _z, _ordering);
 					_p[l]->setBox(ax, bx, ay, by, az, bz);
-					_p[l]->buildSortRec(tmp[l], x, y, z, h, it+padding[l]);
+					_p[l]->buildSortRec(tmp[l], x, y, z, it+padding[l]);
 				}
 				else
 				{	
@@ -364,7 +376,7 @@ void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, cons
 	delete[] tmp;
 }
 
-void BroadTree::findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi,
+void Octree::findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi,
 	const bool PBCx, const bool PBCy, const bool PBCz) const
 {
 	if((PBCx && (xi-ri < _minx || xi+ri > _maxx)) || (PBCy && (yi-ri < _miny || yi+ri > _maxy)) || (PBCz && (zi-ri < _minz || zi+ri > _maxz)))
@@ -404,7 +416,7 @@ void BroadTree::findNeighbors(const double xi, const double yi, const double zi,
 		findNeighborsRec(xi, yi, zi, ri, ngmax, ng, nvi);
 }
 
-void BroadTree::findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const
+void Octree::findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const
 {
 	int mix = std::max((int)(normalize(xi-ri, _minx, _maxx)*nX),0);
 	int miy = std::max((int)(normalize(yi-ri, _miny, _maxy)*nY),0);

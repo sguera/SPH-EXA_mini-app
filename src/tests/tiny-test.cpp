@@ -9,6 +9,7 @@
 
 #include "../tree/BroadTree.hpp"
 #include "../tree/KdTree.hpp"
+#include "../tree/Octree.hpp"
 #include "../tree/NNFTree.hpp"
 
 #define START chrono::high_resolution_clock::now(); //omp_get_wtime()

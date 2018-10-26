@@ -5,6 +5,7 @@
 
 #include "../tree/BroadTree.hpp"
 #include "../tree/KdTree.hpp"
+#include "../tree/Octree.hpp"
 #include "../tree/NNFTree.hpp"
 
 using namespace sphexa;
@@ -32,11 +33,23 @@ void computeBox(double &xmin, double &xmax, double &ymin, double &ymax, double &
 		if(z[i] > zmax) zmax = z[i];
 	}
 }
-void readfileEvrard(const char *filename, int n, double *x, double *y, double *z, double *h)
+
+void readfileEvrard(const char *filename, int &n, int &ngmax, double *&x, double *&y, double *&z, double *&h, int *&ng, int *&nvi)
 {
+	n = 1000000;
+	ngmax = 1510;
+	
 	FILE *f = fopen(filename, "rb");
 	if(f)
 	{
+		x = new double[n];
+		y = new double[n];
+		z = new double[n];
+		h = new double[n];
+
+		nvi = new int[n]; 
+		ng = new int[(long)n*ngmax];
+
 		fread(x, sizeof(double), n, f);
 		fread(y, sizeof(double), n, f);
 		fread(z, sizeof(double), n, f);
@@ -50,25 +63,58 @@ void readfileEvrard(const char *filename, int n, double *x, double *y, double *z
 	}
 }
 
+void readfileSquarePatch(const char *filename, int &n, int &ngmax, double *&x, double *&y, double *&z, double *&h, int *&ng, int *&nvi)
+{
+	n = 10077696;
+	ngmax = 550;
+
+	FILE *f = fopen(filename, "rb");
+	if(f)
+	{
+		x = new double[n];
+		y = new double[n];
+		z = new double[n];
+		h = new double[n];
+
+		nvi = new int[n]; 
+		ng = new int[(long)n*ngmax];
+
+		int u1;
+		double gm, gh, gd;
+		fread(&u1, sizeof(int), 1, f);
+		fread(&gm, sizeof(double), 1, f);
+		fread(&gh, sizeof(double), 1, f);
+		fread(&gd, sizeof(double), 1, f);
+
+		fread(x, sizeof(double), n, f);
+		fread(y, sizeof(double), n, f);
+		fread(z, sizeof(double), n, f);
+
+		for(int i=0; i<n; i++)
+			h[i] = gh*1.5916455;
+
+		fclose(f);
+	}
+	else
+	{
+		printf("Error opening file.\n");
+		exit(1);
+	}
+}
+
 int main()
 {
-	int n = 1000000;
-	int ngmax = 150;
+	int n = 0, ngmax = 0;
+	double *x = NULL, *y = NULL, *z = NULL, *h = NULL;
+	int *ng = NULL, *nvi = NULL;
 
-	double *x = new double[n];
-	double *y = new double[n];
-	double *z = new double[n];
-	double *h = new double[n];
-
-	int *nvi = new int[n]; 
-	int *ng = new int[(long)n*ngmax];
-	for(int i=0; i<n; i++)
-		nvi[i] = 0;
+	#ifdef EVRARD
+		readfileEvrard("../../bigfiles/evrard_1M.bin", n, ngmax, x, y, z, h, ng, nvi);
+	#elif SQPATCH
+		readfileSquarePatch("../../bigfiles/squarepatch3D.bin", n, ngmax, x, y, z, h, ng, nvi);
+	#endif
 	
 	double start, tbuild, tfind;
-
-	readfileEvrard("../../bigfiles/evrard_1M.bin", n, x, y, z, h);
-
 	double xmin, xmax, ymin, ymax, zmin, zmax;
 	computeBox(xmin, xmax, ymin, ymax, zmin, zmax, x, y, z, n);
 
@@ -76,6 +122,9 @@ int main()
 	printf("Domain y[%f %f]\n", ymin, ymax);
 	printf("Domain z[%f %f]\n", zmin, zmax);
 	
+	for(int i=0; i<n; i++)
+		nvi[i] = 0;
+
 	TREEINTERFACE tree;
 
 	start = START;
