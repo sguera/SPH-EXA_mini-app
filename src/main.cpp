@@ -9,12 +9,13 @@
 #include <cassert>
 
 #include "utils.hpp"
-#include "Tree.hpp"
+#include "tree/BroadTree.hpp"
 
 #include "Evrard.hpp"
 
 using namespace std;
 using namespace std::chrono;
+using namespace sphexa;
 
 #define PI 3.141592653589793
 #define K53D 0.617013
@@ -252,7 +253,7 @@ inline void computeEnergy(int i, Evrard &d)
     d.d_u_z[i] =  energy_z * (-p_i/(gradh_i * ro_i * ro_i));
 }
 
-inline void buildTree(Evrard &d, Tree &t)
+inline void buildTree(Evrard &d, BroadTree &t)
 {
     d.xmin = 1000, d.xmax = -1000, d.ymin = 1000, d.ymax = -1000, d.zmin = 1000, d.zmax = -1000;
     for(int i=0; i<d.n; i++)
@@ -270,11 +271,11 @@ inline void buildTree(Evrard &d, Tree &t)
     // printf("Domain z[%f %f]\n", d.zmin, d.zmax);
  
     t.setBox(d.xmin, d.xmax, d.ymin, d.ymax, d.zmin, d.zmax);
-    t.buildSort(d.n, d.x, d.y, d.z);
+    t.build(d.n, d.x, d.y, d.z, d.h);
     // cout << "CELLS: " << t.cellCount() << endl;
 }
 
-inline void findNeighbors(int i, Evrard &d, Tree &t)
+inline void findNeighbors(int i, Evrard &d, BroadTree &t)
 {
 
     t.findNeighbors(d.x[i], d.y[i], d.z[i], 2.0*d.h[i], d.ngmax, &d.ng[(long)i*d.ngmax], d.nvi[i], d.PBCx, d.PBCy, d.PBCz);
@@ -423,10 +424,10 @@ inline void updateQuantities(int i, Evrard &d)
 int main()
 {
     // Domain (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
-    Evrard evrard("input/Evrard3D.bin");
+    Evrard evrard("bigfiles/Evrard3D.bin");
 
     // Tree structure
-    Tree tree;
+    BroadTree tree;
 
     for(int timeloop = 0; timeloop < 10; timeloop++){
 

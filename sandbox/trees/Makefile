@@ -3,42 +3,42 @@ CXX=g++
 
 all: tiny-test treeTest treePerf
 
-tiny-testBroadTree: ../tree/BroadTree.hpp tiny-test.cpp
+tiny-testBroadTree: ../../src/tree/BroadTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
-tiny-testKdTree: ../tree/KdTree.hpp tiny-test.cpp
+tiny-testKdTree: ../../src/tree/KdTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
-tiny-testOctree: ../tree/Octree.hpp tiny-test.cpp
+tiny-testOctree: ../../src/tree/Octree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=Octree -g -fopenmp -o $@
 
-tiny-testNNFTree: ../tree/NNFTree.hpp tiny-test.cpp
+tiny-testNNFTree: ../../src/tree/NNFTree.hpp tiny-test.cpp
 	$(CXX) $(CXXFLAGS) tiny-test.cpp -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
 	
 TESTCASE=EVRARD
-treeTestBroadTree: treeTest.cpp ../tree/BroadTree.hpp
+treeTestBroadTree: treeTest.cpp ../../src/tree/BroadTree.hpp
 	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
-treeTestKdTree: treeTest.cpp ../tree/KdTree.hpp 
+treeTestKdTree: treeTest.cpp ../../src/tree/KdTree.hpp 
 	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
-treeTestOctree: treeTest.cpp ../tree/Octree.hpp 
+treeTestOctree: treeTest.cpp ../../src/tree/Octree.hpp 
 	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D TREEINTERFACE=Octree -g -fopenmp -o $@
 
-treeTestNNFTree: treeTest.cpp ../tree/NNFTree.hpp 
+treeTestNNFTree: treeTest.cpp ../../src/tree/NNFTree.hpp 
 	$(CXX) $(CXXFLAGS) treeTest.cpp -D $(TESTCASE) -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
 
 REPEAT=100
-treePerfBroadTree: treePerf.cpp ../tree/BroadTree.hpp
+treePerfBroadTree: treePerf.cpp ../../src/tree/BroadTree.hpp
 	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D USE_H -D TREEINTERFACE=BroadTree -g -fopenmp -o $@
 
-treePerfKdTree: treePerf.cpp ../tree/KdTree.hpp 
+treePerfKdTree: treePerf.cpp ../../src/tree/KdTree.hpp 
 	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D TREEINTERFACE=KdTree -g -fopenmp -o $@
 
-treePerfOctree: treePerf.cpp ../tree/Octree.hpp 
+treePerfOctree: treePerf.cpp ../../src/tree/Octree.hpp 
 	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D TREEINTERFACE=Octree -g -fopenmp -o $@
 
-treePerfNNFTree: treePerf.cpp ../tree/NNFTree.hpp 
+treePerfNNFTree: treePerf.cpp ../../src/tree/NNFTree.hpp 
 	$(CXX) $(CXXFLAGS) treePerf.cpp -D REPEAT=$(REPEAT) -D $(TESTCASE) -D TREEINTERFACE=NNFTree -g -fopenmp -o $@
 
 .PHONY: tiny-test treeTest treePerf
