@@ -7,10 +7,7 @@
 #include <cmath>
 #include <cassert>
 
-#include "../../src/tree/BroadTree.hpp"
-#include "../../src/tree/KdTree.hpp"
-#include "../../src/tree/Octree.hpp"
-#include "../../src/tree/NNFTree.hpp"
+#include "common.hpp"
 
 #define START chrono::high_resolution_clock::now(); //omp_get_wtime()
 #define STOP chrono::duration_cast<chrono::duration<double>>(chrono::high_resolution_clock::now()-start).count(); //(double)(omp_get_wtime()-start)
@@ -44,31 +41,6 @@ void initUniquePosition(int n, double *x, double *y, double *z, double *h)
 	}
 }
 
-void computeBox(int n, double *x, double *y, double *z,
-	double &xmin, double &xmax, double &ymin, double &ymax, double &zmin, double &zmax)
-{
-	xmin = 1000; xmax = -1000; ymin = 1000; ymax = -1000; zmin = 1000; zmax = -1000;
-	for(int i=0; i<n; i++)
-	{
-		if(x[i] < xmin) xmin = x[i];
-		if(x[i] > xmax) xmax = x[i];
-		if(y[i] < ymin) ymin = y[i];
-		if(y[i] > ymax) ymax = y[i];
-		if(z[i] < zmin) zmin = z[i];
-		if(z[i] > zmax) zmax = z[i];
-	}
-
-  	// epsilion to avoid case where the box is null
-	auto boxEpsilon = [](auto const &mi, auto const &ma){ return mi == ma ? max(abs(ma)*0.001,0.000001) : 0.;};
-	xmax += boxEpsilon(xmin, xmax);
-	ymax += boxEpsilon(ymin, ymax);
-	zmax += boxEpsilon(zmin, zmax);
-
-	printf("Domain x[%f %f]\n", xmin, xmax);
-	printf("Domain y[%f %f]\n", ymin, ymax);
-	printf("Domain z[%f %f]\n", zmin, zmax);
-}
-
 int main()
 {
 	int n = 8;
@@ -95,7 +67,7 @@ int main()
 		initUnitCube(n, x, y, z, h);
 
 		double xmin, xmax, ymin, ymax, zmin, zmax;
-		computeBox(n, &x[0], &y[0], &z[0], xmin, xmax, ymin, ymax, zmin, zmax);
+		computeBox(xmin, xmax, ymin, ymax, zmin, zmax, x, y, z, n);
 
 		TREEINTERFACE tree;
 
@@ -145,7 +117,7 @@ int main()
 			nvi[i] = 0;
 
 		double xmin, xmax, ymin, ymax, zmin, zmax;
-		computeBox(n, &x[0], &y[0], &z[0], xmin, xmax, ymin, ymax, zmin, zmax);
+		computeBox(xmin, xmax, ymin, ymax, zmin, zmax, x, y, z, n);
 
 		TREEINTERFACE tree;
 
