@@ -109,7 +109,7 @@ int main()
 	int *ng = NULL, *nvi = NULL;
 
 	#ifdef EVRARD
-		readfileEvrard("../../bigfiles/evrard_1M.bin", n, ngmax, x, y, z, h, ng, nvi);
+		readfileEvrard("../../bigfiles/Evrard3D.bin", n, ngmax, x, y, z, h, ng, nvi);
 	#elif SQPATCH
 		readfileSquarePatch("../../bigfiles/squarepatch3D.bin", n, ngmax, x, y, z, h, ng, nvi);
 	#endif
