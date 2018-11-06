@@ -1,0 +1,2 @@
+treeTest.cpp is used for testing (useful print, one run) one of the four tree with one of the two test-cases
+treePerf.cpp is used for benchmarking (only print execution times, 100 runs) one of the four tree with one of the two test cases
