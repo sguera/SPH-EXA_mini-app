@@ -10,6 +10,23 @@ using namespace sphexa;
 #define START omp_get_wtime()
 #define STOP (double)(omp_get_wtime()-start)
 
+// giving some context:
+#define TO_STR2(x) #x
+#define TO_STR(x) TO_STR2(x)
+#define CURRENT_TREEINTERFACE (TO_STR(TREEINTERFACE))
+
+#ifdef EVRARD
+#define CURRENT_TESTCASE "EVRARD"
+#endif
+
+#ifdef SQPATCH
+#define CURRENT_TESTCASE "SQPATCH"
+#endif
+
+#ifndef CURRENT_TESTCASE
+#define CURRENT_TESTCASE "SQPATCH"
+#endif
+
 using namespace std;
 
 int main()
@@ -23,6 +40,8 @@ int main()
 	#elif SQPATCH
 		readfileSquarePatch("../../bigfiles/squarepatch3D.bin", n, ngmax, x, y, z, h, ng, nvi);
 	#endif
+    cout << "CURRENT_TESTCASE:" << CURRENT_TESTCASE << endl;
+    cout << "CURRENT_TREEINTERFACE:" << CURRENT_TREEINTERFACE << endl;
 	
 	double start, tbuild, tfind;
 	double xmin, xmax, ymin, ymax, zmin, zmax;

@@ -118,7 +118,15 @@ public:
 				_axis = 2;
 			}
 
+#ifdef __PGI
+			double *axisList[_k];
+			axisList[0] = _x;
+			axisList[1] = _y;
+			axisList[2] = _z;
+#else
 			const double *axisList[_k] = {_x, _y, _z};
+#endif
+
 			const double *data = axisList[_axis];
 
 			vector<int> idx(n);
@@ -238,7 +246,16 @@ public:
 	inline void findNeighbors(const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi, 
 		const bool /*PBCx*/ = false, const bool /*PBCy*/ = false, const bool /*PBCz*/ = false) const
 	{
+
+#ifdef __PGI
+		double particle[_k];
+        particle[0] = xi;
+        particle[1] = yi;
+        particle[2] = zi;
+#else
 		const double particle[_k] = {xi, yi, zi};
+#endif
+
 		check(particle, xi, yi, zi, r*r, ngmax, ng, nvi);
 	}
  

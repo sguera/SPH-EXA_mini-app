@@ -12,6 +12,11 @@
 #define START chrono::high_resolution_clock::now(); //omp_get_wtime()
 #define STOP chrono::duration_cast<chrono::duration<double>>(chrono::high_resolution_clock::now()-start).count(); //(double)(omp_get_wtime()-start)
 
+// giving some context:
+#define TO_STR2(x) #x
+#define TO_STR(x) TO_STR2(x)
+#define CURRENT_TREEINTERFACE (TO_STR(TREEINTERFACE))
+
 using namespace sphexa;
 using namespace std;
 
@@ -59,7 +64,7 @@ int main()
 
   	// Unit cube
 	{
-		cout << endl << "UNIT CUBE: " << endl;
+		cout << endl << "UNIT CUBE: " << CURRENT_TREEINTERFACE << endl;
 
 		for(int i=0; i<n; i++)
 			nvi[i] = 0;
@@ -110,7 +115,7 @@ int main()
 
   	// Unique position
 	{
-		cout << endl << "UNIQUE POSITION: " << endl;
+		cout << endl << "UNIQUE POSITION: " << CURRENT_TREEINTERFACE << endl;
 		initUniquePosition(n, x, y, z, h);
 
 		for(int i=0; i<n; i++)
