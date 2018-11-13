@@ -12,7 +12,7 @@
 #define START chrono::high_resolution_clock::now(); //omp_get_wtime()
 #define STOP chrono::duration_cast<chrono::duration<double>>(chrono::high_resolution_clock::now()-start).count(); //(double)(omp_get_wtime()-start)
 
-// TREEINTERFACE information
+// giving some context:
 #define TO_STR2(x) #x
 #define TO_STR(x) TO_STR2(x)
 #define CURRENT_TREEINTERFACE (TO_STR(TREEINTERFACE))

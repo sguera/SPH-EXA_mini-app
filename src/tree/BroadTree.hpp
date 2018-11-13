@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <iostream>
+using namespace std;
+
 namespace sphexa
 {
 constexpr unsigned int const BUCKETSIZE = 128;
@@ -283,6 +286,16 @@ void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, cons
 		unsigned int l = hz*nX*nY+hy*nX+hx;
 
 		//mtx[l].lock();
+		#ifdef _DEBUG
+        std::cout << "l=" << l 
+                  << " hz=" << hz
+                  << " nX=" << nX
+                  << " nY=" << nY
+                  << " hy=" << hy
+                  << " nX=" << nX
+                  << " hx=" << hx
+                  << std::endl;
+        #endif
 		tmp[l].push_back(list[i]);
 		//mtx[l].unlock();
 	}
