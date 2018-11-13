@@ -2036,4 +2036,5 @@ public:
 /** @} */ // end of grouping
 } // namespace nanoflann
 
-#endif /* NANOFLANN_HPP_ */
+#endif 
+/* NANOFLANN_HPP_ */

@@ -69,3 +69,4 @@ void readfileEvrard(const char *filename, int &n, int &ngmax, double *&x, double
 		exit(1);
 	}
 }
+
