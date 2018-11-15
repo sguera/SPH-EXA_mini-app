@@ -123,6 +123,10 @@ int main()
 
 		double xmin, xmax, ymin, ymax, zmin, zmax;
 		computeBox(xmin, xmax, ymin, ymax, zmin, zmax, x, y, z, n);
+		// The box cannot be point
+		xmax = xmin+1;
+		ymax = ymin+1;
+		zmax = zmin+1;
 
 		TREEINTERFACE tree;
 

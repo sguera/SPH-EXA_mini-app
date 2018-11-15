@@ -16,7 +16,7 @@ constexpr unsigned int const BUCKETSIZE = 128;
 //constexpr double const RATIO = 0.5;
 //constexpr int const TREE = 1;
 constexpr int const BLOCK_SIZE = 32;
-constexpr int const PLANCK = 1e-15;
+constexpr double const PLANCK = 1e-15;
 
 class BroadTree
 {
@@ -294,6 +294,8 @@ void BroadTree::buildSortRec(const std::vector<int> &list, const double *x, cons
                   << " hy=" << hy
                   << " nX=" << nX
                   << " hx=" << hx
+                  << " minx=" << _minx
+                  << " maxx=" << _maxx
                   << std::endl;
         #endif
 		tmp[l].push_back(list[i]);

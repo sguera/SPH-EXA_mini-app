@@ -30,7 +30,7 @@ endif
 
 ifeq ($(CXX),clang++)
 	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
-	CXXFLAGS += -std=c++14 -g
+	CXXFLAGS += -std=c++14 -g -fopenmp=libomp
 	PE_ENV = CLANG
 endif
 
