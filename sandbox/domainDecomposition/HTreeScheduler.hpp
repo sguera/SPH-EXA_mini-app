@@ -227,6 +227,7 @@ public:
 					needed -= count;
 				}
 			}
+
 			MPI_Barrier(comm);
 		}
 	}
@@ -341,8 +342,6 @@ public:
 		if(comm_rank == 0) printf("(%d/%d,%s) Exchanging particles...\n", comm_rank, comm_size, processor_name);
 
 		exchangeParticles(count, cellList, globalCellCount, assignedRanks);
-
-		MPI_Barrier(comm);
 		
 		// Discard extra
 		//printf("\t(%d) Count: %d, Discarding %zu and resizing to %d\n", comm_rank, dataset.getCount(), discardList.size(), rankLoad[comm_rank]);
@@ -376,8 +375,6 @@ public:
 		if(comm_rank == 0) printf("(%d/%d,%s) Exchanging ghost cells...\n", comm_rank, comm_size, processor_name);
 
 		exchangeGhosts(assignedRanks, cellList, globalCellCount, localWanted, globalWanted);
-
-		MPI_Barrier(comm);
 	}
 };
 
