@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 
+#include "BBox.hpp"
 // TODO
 // Make assign rank recursive to assign load more finely:
 // If a cell cannot be assigned, call build recursively (else stop)
@@ -12,24 +13,15 @@
 namespace sphexa
 {
 
-class BBox
-{
-public:
-	BBox(double xmin = -1, double xmax = 1, double ymin = -1, double ymax = 1, double zmin = -1, double zmax = 1) : 
-		xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), zmin(zmin), zmax(zmax) {}
-
-	double xmin, xmax, ymin, ymax, zmin, zmax;
-};
-
 struct HTreeParams
 {
-	HTreeParams(int bucketSize = 64) :
+	HTreeParams(unsigned int bucketSize = 128) :
 		bucketSize(bucketSize) {}
-	int bucketSize = 64;
+	unsigned int bucketSize;
 };
 
 template<class DatasetAdaptor>
-class Cell
+class HTree
 {
 public:
 	DatasetAdaptor &dataset;
@@ -41,56 +33,89 @@ public:
 	int ncells;
 	int nX, nY, nZ;
 
-	std::vector<std::shared_ptr<Cell>> cells;
+	std::vector<std::shared_ptr<HTree>> cells;
 
-	int comm_size, comm_rank, name_len;
-	char processor_name[MPI_MAX_PROCESSOR_NAME];
+	std::vector<int> start, count;
+	std::shared_ptr<std::vector<int>> ordering;
+	std::shared_ptr<std::vector<double>> x, y, z;
 
-	Cell() = delete;
+	HTree() = delete;
 	
-	~Cell() = default;
+	~HTree() = default;
 
-	Cell(DatasetAdaptor &dataset) : 
+	HTree(DatasetAdaptor &dataset) : 
 		dataset(dataset) {}
 
-	inline double normalize(double d, double min, double max)
+	int cellCount() const
+	{
+		int c = 1;//  C*C*C;
+		for(int i=0; i<ncells; i++)
+			if(cells[i] != nullptr) c += cells[i]->cellCount();
+		return c;
+	}
+
+	int bucketCount() const
+	{
+		int c = ncells;
+		for(int i=0; i<ncells; i++)
+			if(cells[i] != nullptr) c += cells[i]->bucketCount();
+		return c;
+	}
+
+	inline double normalize(double d, double min, double max) const
 	{
 		return (d-min)/(max-min);
 	}
 
-	inline double computeMaxH(const std::vector<int> &list)
+	inline double distancesq(const double x1, const double y1, const double z1, const double x2, const double y2, const double z2) const
+	{
+		double xx = x1 - x2;
+		double yy = y1 - y2;
+		double zz = z1 - z2;
+
+		return xx*xx + yy*yy + zz*zz;
+	}
+
+	inline void check_add_start(const int start, const int count, const double xi, const double yi, const double zi, const double r, const int ngmax, int *ng, int &nvi) const
+	{
+		double dists[count];
+		for(int i=0; i<count; i++)
+		{
+			int id = start+i;
+			double xx = (*x)[id];
+			double yy = (*y)[id];
+			double zz = (*z)[id];
+
+			dists[i] = distancesq(xi, yi, zi, xx, yy, zz);
+		}
+
+		for(int i=0; i<count; i++)
+		{
+			if(nvi < ngmax && dists[i] < r*r)//distancesq(xi, yi, zi, xx, yy, zz) < r2)
+				ng[nvi++] = (*ordering)[i];
+		}
+
+	}
+
+	inline double computeMaxH()
 	{
 		double hmax = 0.0;
-		for(unsigned int i=0; i<list.size(); i++)
+		for(unsigned int i=0; i<dataset.getCount(); i++)
 		{
-			double h = dataset.getH(list[i]);
+			double h = dataset.getH(i);
 			if(h > hmax)
 				hmax = h;
 		}
 		return hmax;
 	}
 
-	inline double computeGlobalMaxH(const std::vector<int> &list)
+	inline void distributeParticles(const std::vector<int> &list, std::vector<std::vector<int>> &cellList)
 	{
-		double hmax = computeMaxH(list);
-
-	   	MPI_Allreduce(MPI_IN_PLACE, &hmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-
-	   	return hmax;
-	}
-
-	inline void distributeParticles(const std::vector<int> &list, std::vector<std::vector<int>> &cellList, std::vector<int> &globalCellCount)
-	{
-		cellList.resize(ncells);
-		globalCellCount.resize(ncells);
-
-		std::vector<int> localCount(ncells);
-
 		for(unsigned int i=0; i<list.size(); i++)
 		{
-			double xx = std::max(std::min(dataset.getX(i),bbox.xmax),bbox.xmin);
-			double yy = std::max(std::min(dataset.getY(i),bbox.ymax),bbox.ymin);
-			double zz = std::max(std::min(dataset.getZ(i),bbox.zmax),bbox.zmin);
+			double xx = std::max(std::min(dataset.getX(list[i]),bbox.xmax),bbox.xmin);
+			double yy = std::max(std::min(dataset.getY(list[i]),bbox.ymax),bbox.ymin);
+			double zz = std::max(std::min(dataset.getZ(list[i]),bbox.zmax),bbox.zmin);
 
 			double posx = normalize(xx, bbox.xmin, bbox.xmax);
 			double posy = normalize(yy, bbox.ymin, bbox.ymax);
@@ -107,39 +132,10 @@ public:
 			unsigned int l = hz*nX*nY+hy*nX+hx;
 
 			cellList[l].push_back(list[i]);
-			localCount[l] = cellList[l].size();
 		}
-
-		MPI_Allreduce(&localCount[0], &globalCellCount[0], ncells, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 	}
 
-	inline void assignRanks(const std::vector<int> &globalCellCount, std::vector<int> &assignedRanks, std::vector<int> &rankLoad)
-	{
-		assignedRanks.resize(ncells);
-
-		int rank = 0;
-		int work = 0;
-		int procSize = dataset.getProcSize();
-
-		// Assign rank to each cell
-		for(int i=0; i<ncells; i++)
-		{
-			work += globalCellCount[i];
-			assignedRanks[i] = rank;
-
-			if(work >= procSize)
-			{
-			 	rankLoad.push_back(work);
-			 	work = 0;
-			 	rank++;
-			}
-		}
-
-		if(work > 0)
-			rankLoad.push_back(work);
-	}
-
-	inline void computeBBoxes(std::vector<BBox> &cellBBox)
+	inline void computeBBoxes(const BBox &bbox, std::vector<BBox> &cellBBox)
 	{
 		for(int hz=0; hz<nZ; hz++)
 		{
@@ -162,229 +158,156 @@ public:
 		}
 	}
 
-	inline void computeDiscardList(const std::vector<std::vector<int>> &cellList, const std::vector<int> &assignedRanks, std::vector<int> &discardList)
+	inline void computePadding(const std::vector<std::vector<int>> &cellList, std::vector<int> &padding)
 	{
-		for(int i=0; i<ncells; i++)
+		int pad = 0;
+		for(int hz=0; hz<nZ; hz++)
 		{
-			if(assignedRanks[i] != comm_rank)
+			for(int hy=0; hy<nY; hy++)
 			{
-				for(unsigned j=0; j<cellList[i].size(); j++)
-					discardList.push_back(cellList[i][j]);
-			}
-		}
-	}
-
-	inline void exchangeParticles(int count, const std::vector<std::vector<int>> &cellList, const std::vector<int> &globalCellCount, const std::vector<int> &assignedRanks)
-	{
-		for(int i=0; i<ncells; i++)
-		{
-			if(assignedRanks[i] != comm_rank && cellList[i].size() > 0)
-				dataset.send(cellList[i], assignedRanks[i], i*100);
-			else if(assignedRanks[i] == comm_rank)
-			{
-				int needed = globalCellCount[i] - cellList[i].size();
-				if(needed > 0)
+				for(int hx=0; hx<nX; hx++)
 				{
-					dataset.recv(count, needed, MPI_ANY_SOURCE, i*100);
-					count += needed;
-				}
-			}
-
-			//MPI_Barrier(MPI_COMM_WORLD);
-		}
-	}
-
-	inline void tagGhostCells(const std::vector<int> &assignedRanks, const std::vector<BBox> &cellBBox, const std::vector<int> &globalCellCount, std::vector<int> &localWanted, std::vector<int> &globalWanted)
-	{
-		for(int i=0; i<ncells; i++)
-			globalWanted[i] = 0;
-
-		for(int i=0; i<ncells; i++)
-		{
-			if(assignedRanks[i] != comm_rank)
-			{
-				// maxH is an overrapproximation
-				if(	overlap(cellBBox[i].xmin, cellBBox[i].xmax, dataset.bbox.xmin-maxH, dataset.bbox.xmax+maxH) &&
-					overlap(cellBBox[i].ymin, cellBBox[i].ymax, dataset.bbox.ymin-maxH, dataset.bbox.ymax+maxH) &&
-					overlap(cellBBox[i].zmin, cellBBox[i].zmax, dataset.bbox.zmin-maxH, dataset.bbox.zmax+maxH))
-				{
-					if(globalCellCount[i] > 0)
-					{
-						globalWanted[i] = 1;
-						localWanted[i] = 1;
-					}
+					unsigned int l = hz*nX*nY+hy*nX+hx;
+					padding[l] = pad;
+					pad += cellList[l].size();
 				}
 			}
 		}
-
-		MPI_Allreduce(&localWanted[0], &globalWanted[0], ncells, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 	}
 
-	inline void exchangeGhosts(const std::vector<int> &assignedRanks, const std::vector<std::vector<int>> &cellList, const std::vector<int> &globalCellCount, const std::vector<int> &localWanted, const std::vector<int> &globalWanted)
-	{
-		for(int i=0; i<ncells; i++)
-		{
-			if(assignedRanks[i] == comm_rank && globalWanted[i] > 0)
-			{
-				std::vector<int> ranks(globalWanted[i]);
-				for(int j=0; j<globalWanted[i]; j++)
-				{
-					MPI_Status status;
-					int rank;
-					MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, i*100, MPI_COMM_WORLD, &status);
-					dataset.send(cellList[i], rank, i*100);
-				}
-			}
-			else if(assignedRanks[i] != comm_rank && localWanted[i] > 0)
-			{
-				MPI_Send(&comm_rank, 1, MPI_INT, assignedRanks[i], i*100, MPI_COMM_WORLD);
-				int count = dataset.getCount();
-				dataset.resize(count+globalCellCount[i]);
-				dataset.recv(count, globalCellCount[i], assignedRanks[i], i*100);
-			}
-
-			//MPI_Barrier(MPI_COMM_WORLD);
-		}
-	}
-
-	inline bool overlap(double leftA, double rightA, double leftB, double rightB)
-	{
-		return leftA < rightB && rightA > leftB;
-	}
-
- 	void build(const BBox &newBbox, std::vector<int> &computeList)
+ 	void buildRec(const std::vector<int> &list, const BBox &localBBox, const HTreeParams &params, int ptr)
 	{	
-	    MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
-	    MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-	    MPI_Get_processor_name(processor_name, &name_len);
+		bbox = localBBox;
+	   	maxH = computeMaxH();
 
-	    bbox = newBbox;
-
-	   	maxH = computeGlobalMaxH(computeList);
-
-	   	//if(comm_rank == 0) printf("(%d/%d,%s) Global max H = %f\n", comm_rank, comm_size, processor_name, maxH);
-		
 		nX = std::max((bbox.xmax-bbox.xmin) / maxH, 2.0);
 		nY = std::max((bbox.ymax-bbox.ymin) / maxH, 2.0);
 		nZ = std::max((bbox.zmax-bbox.zmin) / maxH, 2.0);
 		ncells = nX*nY*nZ;
 
-		if(comm_rank == 0) printf("(%d/%d,%s) Distributing particles...\n", comm_rank, comm_size, processor_name);
+		std::vector<std::vector<int>> cellList(ncells);
+		distributeParticles(list, cellList);
 
-		std::vector<int> globalCellCount;
-		std::vector<std::vector<int>> cellList;
-		distributeParticles(computeList, cellList, globalCellCount);
-
-		if(comm_rank == 0) printf("(%d/%d,%s) Assigning work load...\n", comm_rank, comm_size, processor_name);
-
-		std::vector<int> rankLoad;
-		std::vector<int> assignedRanks;
-		assignRanks(globalCellCount, assignedRanks, rankLoad);
-
-		// if(comm_rank == 0) 
-		// {
-		// 	int totalLoad = 0;
-		// 	for(int i=0; i<comm_size; i++)
-		// 	{
-		// 		totalLoad += rankLoad[i];
-		// 		printf("\t(%d) has load: %d\n", i, rankLoad[i]);
-		// 	}
-		// 	printf("\tTotal load: %d\n", totalLoad);
-		// }
-
-		//if(comm_rank == 0) printf("(%d/%d,%s) Computing discard list...\n", comm_rank, comm_size, processor_name);
-
-		std::vector<int> discardList;
-		computeDiscardList(cellList, assignedRanks, discardList);
-
-		int count = dataset.getCount();
-		dataset.resize(rankLoad[comm_rank]+discardList.size());
-
-		//printf("\t(%d) Has: %zu Missing: %zu\n", comm_rank, rankLoad[comm_rank]-discardList.size(), discardList.size());
-
-		if(comm_rank == 0) printf("(%d/%d,%s) Exchanging particles...\n", comm_rank, comm_size, processor_name);
-
-		exchangeParticles(count, cellList, globalCellCount, assignedRanks);
-
-		MPI_Barrier(MPI_COMM_WORLD);
-
-		// Discard extra
-		//printf("\t(%d) Count: %d, Discarding %zu and resizing to %d\n", comm_rank, dataset.getCount(), discardList.size(), rankLoad[comm_rank]);
-
-		dataset.discard(discardList);
-		dataset.resize(rankLoad[comm_rank]);
-
-		//if(comm_rank == 0) printf("(%d/%d,%s) Computing cells bboxes...\n", comm_rank, comm_size, processor_name);
-
-		// Compute cell boxes using globalBBox
 		std::vector<BBox> cellBBox(ncells);
-		computeBBoxes(cellBBox);
+		computeBBoxes(bbox, cellBBox);
 
-		computeList.resize(dataset.getCount());
-		for(unsigned int i=0; i<computeList.size(); i++)
-			computeList[i] = i;
+		std::vector<int> padding(ncells);
+		computePadding(cellList, padding);
 
-		if(comm_rank == 0) printf("(%d/%d,%s) Redistributing particles...\n", comm_rank, comm_size, processor_name);
+		cells.resize(ncells);
+		start.resize(ncells);
+		count.resize(ncells);
+		for(int i=0; i<ncells; i++)
+		{
+			if(cellList[i].size() > params.bucketSize)// && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
+			{
+				cells[i] = std::make_shared<HTree>(dataset);
+				cells[i]->x = x;
+				cells[i]->y = y;
+				cells[i]->z = z;
+				cells[i]->ordering = ordering;
+				cells[i]->buildRec(cellList[i], cellBBox[i], params, ptr+padding[i]);
+			}
+			else
+			{
+				start[i] = ptr+padding[i];
+				count[i] = cellList[i].size();
 
-		cellList.clear();
-		globalCellCount.clear();
-		distributeParticles(computeList, cellList, globalCellCount);
-
-		// Only now we are allowed to recompute the dataset BBox
-		dataset.computeBoundingBox();
-
-		//if(comm_rank == 0) printf("(%d/%d,%s) Finding ghost cells...\n", comm_rank, comm_size, processor_name);
-
-		std::vector<int> localWanted(ncells), globalWanted(ncells);
-		tagGhostCells(assignedRanks, cellBBox, globalCellCount, localWanted, globalWanted);
-
-		if(comm_rank == 0) printf("(%d/%d,%s) Exchanging ghost cells...\n", comm_rank, comm_size, processor_name);
-
-		exchangeGhosts(assignedRanks, cellList, globalCellCount, localWanted, globalWanted);
-
-		MPI_Barrier(MPI_COMM_WORLD);
-
-		// dataset.computeBoundingBox();
-
-		// if(comm_rank == 3)
-		// {
-		// 	printf("(%d/%d,%s) Domain x[%f %f]\n", comm_rank, comm_size, processor_name, dataset.bbox.xmin, dataset.bbox.xmax);
-		// 	printf("(%d/%d,%s) Domain y[%f %f]\n", comm_rank, comm_size, processor_name, dataset.bbox.ymin, dataset.bbox.ymax);
-		// 	printf("(%d/%d,%s) Domain z[%f %f]\n", comm_rank, comm_size, processor_name, dataset.bbox.zmin, dataset.bbox.zmax);
-		// }
+				for(int j=0; j<count[i]; j++)
+				{
+					int id = cellList[i][j];
+					(*ordering)[ptr+padding[i]+j] = id;
+					(*x)[ptr+padding[i]+j] = dataset.getX(id);
+					(*y)[ptr+padding[i]+j] = dataset.getY(id);
+					(*z)[ptr+padding[i]+j] = dataset.getZ(id);
+				}
+			}
+		}
 	}
-};
 
-template<class DatasetAdaptor>
-class HTree
-{
-public:
-	DatasetAdaptor &dataset;
+	void build(const BBox &localBBox, const HTreeParams &params = HTreeParams())
+	{
+		int count = dataset.getCount();
 
-	BBox bbox;
+		x = std::make_shared<std::vector<double>>(count);
+		y = std::make_shared<std::vector<double>>(count);
+		z = std::make_shared<std::vector<double>>(count);
 
-	Cell<DatasetAdaptor> root;
+		ordering = std::make_shared<std::vector<int>>(count);
 
-	HTree() = delete;
-	
-	~HTree() = default;
+		std::vector<int> list(count);
 
-	HTree(DatasetAdaptor &dataset) : 
-		dataset(dataset), root(dataset) {}
+		for(int i=0; i<count; i++)
+			list[i] = i;
 
-	void build(std::vector<int> &computeList /*const HTreeParams params = HTreeParams()*/)
- 	{
-		bbox = dataset.getBBox();
+		buildRec(list, localBBox, params, 0);
+	}
 
-		MPI_Allreduce(MPI_IN_PLACE, &bbox.xmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-		MPI_Allreduce(MPI_IN_PLACE, &bbox.ymin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-		MPI_Allreduce(MPI_IN_PLACE, &bbox.zmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-		MPI_Allreduce(MPI_IN_PLACE, &bbox.xmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		MPI_Allreduce(MPI_IN_PLACE, &bbox.ymax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-		MPI_Allreduce(MPI_IN_PLACE, &bbox.zmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+	void findNeighborsRec(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi) const
+	{
+		int mix = std::max((int)(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX),0);
+		int miy = std::max((int)(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY),0);
+		int miz = std::max((int)(normalize(zi-ri, bbox.zmin, bbox.zmax)*nZ),0);
+		int max = std::min((int)(normalize(xi+ri, bbox.xmin, bbox.xmax)*nX),nX-1);
+		int may = std::min((int)(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY),nY-1);
+		int maz = std::min((int)(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ),nZ-1);
 
-		root.build(bbox, computeList);
- 	}
+		for(int hz=miz; hz<=maz; hz++)
+		{
+			for(int hy=miy; hy<=may; hy++)
+			{
+				for(int hx=mix; hx<=max; hx++)
+				{
+					unsigned int l = hz*nX*nY+hy*nX+hx;
+
+					if(cells[l] != nullptr)
+		 				cells[l]->findNeighborsRec(xi, yi, zi, ri, ngmax, ng, nvi);
+		 			else
+		 				check_add_start(start[l], count[l], xi, yi, zi, ri, ngmax, ng, nvi);
+				}
+			}
+		}
+	}
+
+	void findNeighbors(const double xi, const double yi, const double zi, const double ri, const int ngmax, int *ng, int &nvi,
+		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const
+	{
+		if((PBCx && (xi-ri < bbox.xmin || xi+ri > bbox.xmax)) || (PBCy && (yi-ri < bbox.ymin || yi+ri > bbox.ymax)) || (PBCz && (zi-ri < bbox.zmin || zi+ri > bbox.zmax)))
+		{
+			int mix = (int)floor(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX) % nX;
+			int miy = (int)floor(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY) % nY;
+			int miz = (int)floor(normalize(zi-ri, bbox.zmin, bbox.zmax)*nZ) % nZ;
+			int max = (int)floor(normalize(xi+ri, bbox.xmin, bbox.xmax)*nX) % nX;
+			int may = (int)floor(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY) % nY;
+			int maz = (int)floor(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ) % nZ;
+
+			for(int hz=miz; hz<=maz; hz++)
+			{
+				for(int hy=miy; hy<=may; hy++)
+				{
+					for(int hx=mix; hx<=max; hx++)
+					{
+						double displz = PBCz? ((hz < 0) - (hz >= nZ)) * (bbox.zmax-bbox.zmin) : 0;
+			 			double disply = PBCy? ((hy < 0) - (hy >= nY)) * (bbox.ymax-bbox.ymin) : 0;
+			 			double displx = PBCx? ((hx < 0) - (hx >= nX)) * (bbox.xmax-bbox.xmin) : 0;
+
+						int hzz = (hz + nZ) % nZ;
+			 			int hyy = (hy + nY) % nY;
+						int hxx = (hx + nX) % nX;
+
+						unsigned int l = hzz*nY*nX+hyy*nX+hxx;
+
+						if(cells[l] != nullptr)
+			 				cells[l]->findNeighborsRec(xi+displx, yi+disply, zi+displz, ri, ngmax, ng, nvi);
+			 			else
+			 				check_add_start(start[l], count[l], xi+displx, yi+disply, zi+displz, ri, ngmax, ng, nvi);
+			 		}
+				}
+			}
+		}
+		else
+			findNeighborsRec(xi, yi, zi, ri, ngmax, ng, nvi);
+	}
 };
 
 }

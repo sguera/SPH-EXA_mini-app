@@ -6,7 +6,9 @@
 #include <cmath>
 #include <algorithm>
 
+#include "BBox.hpp"
 #include "HTree.hpp"
+#include "HTreeScheduler.hpp"
 
 using namespace std;
 using namespace sphexa;
@@ -27,29 +29,6 @@ public:
 		procSize(procSize) { resize(procSize); }
 
 	~EvrardAdaptor() = default;
-
-	// DatasetAdaptor Implementaion
-	void computeBoundingBox()
-	{
-		double xmin = INFINITY;
-		double xmax = -INFINITY;
-		double ymin = INFINITY;
-		double ymax = -INFINITY;
-		double zmin = INFINITY;
-		double zmax = -INFINITY;
-
-		for(unsigned int i=0; i<x.size(); i++)
-		{
-			if(x[i] < xmin) xmin = x[i];
-			if(x[i] > xmax) xmax = x[i];
-			if(y[i] < ymin) ymin = y[i];
-			if(y[i] > ymax) ymax = y[i];
-			if(z[i] < zmin) zmin = z[i];
-			if(z[i] > zmax) zmax = z[i];
-		}
-
-		bbox = BBox(xmin, xmax, ymin, ymax, zmin, zmax);
-	}
 
 	// Modifiers
 	inline void resize(unsigned int n)
@@ -100,26 +79,12 @@ public:
 
 	inline void recv(int start, int count, int rank, int tag)
 	{
-		int recvedTotal[4];
-		for(int i=0; i<4; i++)
-			recvedTotal[i] = 0;
+		MPI_Status status[4];
 
-		while(recvedTotal[0] < count)
-		{
-			MPI_Status status[4];
-
-			MPI_Recv(&x[start+recvedTotal[0]], count, MPI_DOUBLE, rank, tag, MPI_COMM_WORLD, &status[0]);
-			MPI_Recv(&y[start+recvedTotal[1]], count, MPI_DOUBLE, rank, tag+1, MPI_COMM_WORLD, &status[1]);
-			MPI_Recv(&z[start+recvedTotal[2]], count, MPI_DOUBLE, rank, tag+2, MPI_COMM_WORLD, &status[2]);
-			MPI_Recv(&h[start+recvedTotal[3]], count, MPI_DOUBLE, rank, tag+3, MPI_COMM_WORLD, &status[3]);
-
-			int recved[4];
-			for(int i=0; i<4; i++)
-			{
-				MPI_Get_count(&status[i], MPI_DOUBLE, &recved[i]);
-				recvedTotal[i] += recved[i];
-			}
-		}
+		MPI_Recv(&x[start], count, MPI_DOUBLE, rank, tag, MPI_COMM_WORLD, &status[0]);
+		MPI_Recv(&y[start], count, MPI_DOUBLE, rank, tag+1, MPI_COMM_WORLD, &status[1]);
+		MPI_Recv(&z[start], count, MPI_DOUBLE, rank, tag+2, MPI_COMM_WORLD, &status[2]);
+		MPI_Recv(&h[start], count, MPI_DOUBLE, rank, tag+3, MPI_COMM_WORLD, &status[3]);
 	}
 
 	template<typename T>
@@ -181,6 +146,13 @@ void loadFile(const char *filename, int n, double *x, double *y, double *z, doub
 	}
 }
 
+void printBBox(const BBox &bbox, int comm_rank, int comm_size, const char *processor_name)
+{
+	printf("(%d/%d,%s) \tx[%f %f]\n", comm_rank, comm_size, processor_name, bbox.xmin, bbox.xmax);
+	printf("(%d/%d,%s) \ty[%f %f]\n", comm_rank, comm_size, processor_name, bbox.ymin, bbox.ymax);
+	printf("(%d/%d,%s) \tz[%f %f]\n", comm_rank, comm_size, processor_name, bbox.zmin, bbox.zmax);
+}
+
 int main()
 {
     MPI_Init(NULL, NULL);
@@ -198,8 +170,11 @@ int main()
     int n = 1e6;
     int proc_size = n/comm_size;
 
+    double start = 0;
+
 	EvrardAdaptor dataset(proc_size);
 
+	start = START;
 	// Load file on root node, then scatter data
 	{
 		double *xt = NULL, *yt = NULL, *zt = NULL, *ht = NULL;
@@ -229,18 +204,10 @@ int main()
 
 		printf("(%d/%d,%s) Processing %d / %d particles\n", comm_rank, comm_size, processor_name, proc_size, n);
 	}
+	printf("LOADING AND SCATTERING TIME: %f\n", STOP);
 
-	// Compute global domain bounding box
-	{
-		dataset.computeBoundingBox();
-
-		if(comm_rank == 0)
-		{
-			printf("(%d/%d,%s) Domain x[%f %f]\n", comm_rank, comm_size, processor_name, dataset.bbox.xmin, dataset.bbox.xmax);
-			printf("(%d/%d,%s) Domain y[%f %f]\n", comm_rank, comm_size, processor_name, dataset.bbox.ymin, dataset.bbox.ymax);
-			printf("(%d/%d,%s) Domain z[%f %f]\n", comm_rank, comm_size, processor_name, dataset.bbox.zmin, dataset.bbox.zmax);
-		}
-	}
+	std::vector<int> nvi;
+	std::vector<int> ng;
 
 	// Build global distributed tree
 	{
@@ -250,15 +217,70 @@ int main()
 			computeList[i] = i;
 
 		HTree<EvrardAdaptor> tree(dataset);
-		tree.build(computeList);
-		tree.build(computeList);
-		tree.build(computeList);
-		tree.build(computeList);
-		tree.build(computeList);
-		tree.build(computeList);
-		tree.build(computeList);
-		tree.build(computeList);
-		// NEED TO MAINTAIN COMPUTE LIST
+		HTreeScheduler<EvrardAdaptor> scheduler(MPI_COMM_WORLD, dataset);
+
+		start = START;
+		scheduler.balance(computeList);
+		printf("LOAD BALANCE TIME: %f\n", STOP);
+
+		int count = computeList.size();
+
+		printf("computeList.size: %d, dataset.size: %d\n", count, dataset.getCount());
+
+		start = START;
+		tree.build(scheduler.globalBBox);
+		printf("BUILD TIME: %f\n", STOP);
+
+		int ngmax = 150;
+		nvi.resize(count);
+		ng.resize(count*150);
+
+		for(int i=0; i<count; i++)
+			nvi[i] = 0;
+
+		int totalLoad = count;
+		MPI_Allreduce(MPI_IN_PLACE, &totalLoad, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+		start = START;
+		#pragma omp parallel for schedule(guided)
+		for(int i=0; i<count; i++)
+		{
+			int id = computeList[i];
+			double xi = dataset.x[id];
+			double yi = dataset.y[id];
+			double zi = dataset.z[id];
+			double hi = dataset.h[id];
+
+			tree.findNeighbors(xi, yi, zi, 2*hi, ngmax, &ng[(long)id*ngmax], nvi[id]);
+		}
+		printf("FIND TIME: %f\n", STOP);
+
+		int totalNeighbors = 0;
+		for(int i=0; i<count; i++)
+			totalNeighbors += nvi[i];
+
+		MPI_Allreduce(MPI_IN_PLACE, &totalNeighbors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+		printf("Total neighbors found: %d\n", totalNeighbors);
+		printf("Total cells: %d\n", tree.cellCount());
+		printf("Total buckets: %d\n", tree.bucketCount());
+
+		if(comm_rank == 0)
+		{
+			printf("Local domain:\n");
+			printBBox(scheduler.localBBox, comm_rank, comm_size, processor_name);
+			printf("Global domain:\n");
+			printBBox(scheduler.globalBBox, comm_rank, comm_size, processor_name);
+		}
+
+		// scheduler.balance(computeList);
+		// if(comm_rank == 0)
+		// {
+		// 	printf("Local domain:\n");
+		// 	printBBox(scheduler.localBBox, comm_rank, comm_size, processor_name);
+		// 	printf("Global domain:\n");
+		// 	printBBox(scheduler.globalBBox, comm_rank, comm_size, processor_name);
+		// }
 	}
 
     MPI_Finalize();

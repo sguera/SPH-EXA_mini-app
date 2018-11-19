@@ -83,6 +83,8 @@ int main()
 		sum += nvi[i];
 
 	printf("Total neighbors found: %lu\n", sum);
+	printf("Total cells: %d\n", tree.cellCount());
+	printf("Total buckets: %d\n", tree.bucketCount());
 
 	tree.clean();
 
