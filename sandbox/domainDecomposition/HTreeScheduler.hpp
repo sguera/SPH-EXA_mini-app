@@ -206,7 +206,6 @@ public:
 			if(assignedRanks[i] != comm_rank && cellList[i].size() > 0)
 			{
 				int count = cellList[i].size();
-				//printf("%d cell %d send %zu to %d\n", comm_rank, i, cellList[i].size(), assignedRanks[i]);
 				MPI_Send(&comm_rank, 1, MPI_INT, assignedRanks[i], i*100, comm);
 				MPI_Send(&count, 1, MPI_INT, assignedRanks[i], i*100, comm);
 				dataset.send(cellList[i], assignedRanks[i], i*100);
@@ -220,15 +219,13 @@ public:
 					int rank, count;
 					MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, i*100, comm, &status);
 					MPI_Recv(&count, 1, MPI_INT, rank, i*100, comm, &status);
-					//printf("%d cell %d recv %d\n", comm_rank, i, needed);
 					dataset.recv(end, count, rank, i*100);
-					//printf("%d cell %d recv done\n", comm_size, i);
 					end += count;
 					needed -= count;
 				}
 			}
 
-			MPI_Barrier(comm);
+			//MPI_Barrier(comm);
 		}
 	}
 
@@ -281,7 +278,7 @@ public:
 				dataset.recv(count, globalCellCount[i], assignedRanks[i], i*100);
 			}
 
-			MPI_Barrier(comm);
+			//MPI_Barrier(comm);
 		}
 	}
 
@@ -306,13 +303,13 @@ public:
 		nZ = std::max((globalBBox.zmax-globalBBox.zmin) / globalMaxH, 2.0);
 		ncells = nX*nY*nZ;
 
-		if(comm_rank == 0) printf("(%d/%d,%s) Distributing particles...\n", comm_rank, comm_size, processor_name);
+		//if(comm_rank == 0) printf("(%d/%d,%s) Distributing particles...\n", comm_rank, comm_size, processor_name);
 
 		std::vector<int> globalCellCount;
 		std::vector<std::vector<int>> cellList;
 		distributeParticles(computeList, globalBBox, cellList, globalCellCount);
 
-		if(comm_rank == 0) printf("(%d/%d,%s) Assigning work load...\n", comm_rank, comm_size, processor_name);
+		//if(comm_rank == 0) printf("(%d/%d,%s) Assigning work load...\n", comm_rank, comm_size, processor_name);
 
 		std::vector<int> rankLoad;
 		std::vector<int> assignedRanks;
@@ -339,7 +336,7 @@ public:
 
 		//printf("\t(%d) Has: %zu Missing: %zu\n", comm_rank, rankLoad[comm_rank]-discardList.size(), discardList.size());
 
-		if(comm_rank == 0) printf("(%d/%d,%s) Exchanging particles...\n", comm_rank, comm_size, processor_name);
+		//if(comm_rank == 0) printf("(%d/%d,%s) Exchanging particles...\n", comm_rank, comm_size, processor_name);
 
 		exchangeParticles(count, cellList, globalCellCount, assignedRanks);
 		
@@ -359,7 +356,7 @@ public:
 		for(unsigned int i=0; i<computeList.size(); i++)
 			computeList[i] = i;
 
-		if(comm_rank == 0) printf("(%d/%d,%s) Redistributing particles...\n", comm_rank, comm_size, processor_name);
+		//if(comm_rank == 0) printf("(%d/%d,%s) Redistributing particles...\n", comm_rank, comm_size, processor_name);
 
 		cellList.clear();
 		globalCellCount.clear();
@@ -372,7 +369,7 @@ public:
 		std::vector<int> localWanted(ncells), globalWanted(ncells);
 		tagGhostCells(assignedRanks, cellBBox, localBBox, globalCellCount, localWanted, globalWanted);
 
-		if(comm_rank == 0) printf("(%d/%d,%s) Exchanging ghost cells...\n", comm_rank, comm_size, processor_name);
+		//if(comm_rank == 0) printf("(%d/%d,%s) Exchanging ghost cells...\n", comm_rank, comm_size, processor_name);
 
 		exchangeGhosts(assignedRanks, cellList, globalCellCount, localWanted, globalWanted);
 	}

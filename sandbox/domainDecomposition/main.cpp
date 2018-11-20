@@ -170,7 +170,7 @@ int main()
     int n = 1e6;
     int proc_size = n/comm_size;
 
-    double start = 0;
+    double start = 0, stop = 0;
 
 	EvrardAdaptor dataset(proc_size);
 
@@ -204,7 +204,8 @@ int main()
 
 		printf("(%d/%d,%s) Processing %d / %d particles\n", comm_rank, comm_size, processor_name, proc_size, n);
 	}
-	printf("LOADING AND SCATTERING TIME: %f\n", STOP);
+	stop = STOP;
+	printf("(%d/%d,%s) LOADING AND SCATTERING TIME: %f\n", comm_rank, comm_size, processor_name, stop);
 
 	std::vector<int> nvi;
 	std::vector<int> ng;
@@ -221,15 +222,17 @@ int main()
 
 		start = START;
 		scheduler.balance(computeList);
-		printf("LOAD BALANCE TIME: %f\n", STOP);
+		stop = STOP;
+		printf("(%d/%d,%s) LOAD BALANCE TIME: %f\n", comm_rank, comm_size, processor_name, stop);
 
 		int count = computeList.size();
 
-		printf("computeList.size: %d, dataset.size: %d\n", count, dataset.getCount());
+		printf("(%d/%d,%s) computeList.size: %d, dataset.size: %d\n", comm_rank, comm_size, processor_name, count, dataset.getCount());
 
 		start = START;
 		tree.build(scheduler.globalBBox);
-		printf("BUILD TIME: %f\n", STOP);
+		stop = STOP;
+		printf("(%d/%d,%s) BUILD TIME: %f\n", comm_rank, comm_size, processor_name, stop);
 
 		int ngmax = 150;
 		nvi.resize(count);
@@ -253,7 +256,8 @@ int main()
 
 			tree.findNeighbors(xi, yi, zi, 2*hi, ngmax, &ng[(long)id*ngmax], nvi[id]);
 		}
-		printf("FIND TIME: %f\n", STOP);
+		stop = STOP;
+		printf("(%d/%d,%s) FIND TIME: %f\n", comm_rank, comm_size, processor_name, stop);
 
 		int totalNeighbors = 0;
 		for(int i=0; i<count; i++)
@@ -261,17 +265,17 @@ int main()
 
 		MPI_Allreduce(MPI_IN_PLACE, &totalNeighbors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-		printf("Total neighbors found: %d\n", totalNeighbors);
-		printf("Total cells: %d\n", tree.cellCount());
-		printf("Total buckets: %d\n", tree.bucketCount());
+		if(comm_rank == 0) printf("(%d/%d,%s) Total neighbors found: %d\n", comm_rank, comm_size, processor_name, totalNeighbors);
+		//printf("(%d/%d,%s) Total cells: %d\n", tree.cellCount());
+		//printf("(%d/%d,%s) Total buckets: %d\n", tree.bucketCount());
 
-		if(comm_rank == 0)
-		{
-			printf("Local domain:\n");
-			printBBox(scheduler.localBBox, comm_rank, comm_size, processor_name);
-			printf("Global domain:\n");
-			printBBox(scheduler.globalBBox, comm_rank, comm_size, processor_name);
-		}
+		// if(comm_rank == 0)
+		// {
+		// 	printf("Local domain:\n");
+		// 	printBBox(scheduler.localBBox, comm_rank, comm_size, processor_name);
+		// 	printf("Global domain:\n");
+		// 	printBBox(scheduler.globalBBox, comm_rank, comm_size, processor_name);
+		// }
 
 		// scheduler.balance(computeList);
 		// if(comm_rank == 0)
