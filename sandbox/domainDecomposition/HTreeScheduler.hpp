@@ -321,8 +321,6 @@ public:
 				dataset.resize(count+globalCellCount[i]);
 				dataset.recv(count, globalCellCount[i], assignedRanks[i], i*100);
 			}
-
-			//MPI_Barrier(comm);
 		}
 	}
 
@@ -358,17 +356,6 @@ public:
 		std::vector<int> rankLoad;
 		std::vector<int> assignedRanks;
 		assignRanks(globalCellCount, assignedRanks, rankLoad);
-
-		// if(comm_rank == 0) 
-		// {
-		// 	int totalLoad = 0;
-		// 	for(int i=0; i<comm_size; i++)
-		// 	{
-		// 		totalLoad += rankLoad[i];
-		// 		printf("\t(%d) has load: %d\n", i, rankLoad[i]);
-		// 	}
-		// 	printf("\tTotal load: %d\n", totalLoad);
-		// }
 
 		//if(comm_rank == 0) printf("(%d/%d,%s) Computing discard list...\n", comm_rank, comm_size, processor_name);
 
