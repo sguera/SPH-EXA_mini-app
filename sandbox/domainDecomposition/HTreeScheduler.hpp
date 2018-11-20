@@ -111,6 +111,7 @@ public:
 
 		std::vector<int> localCount(ncells);
 
+		printf("%d list size: %zu\n", comm_rank, list.size());
 		for(unsigned int i=0; i<list.size(); i++)
 		{
 			double xx = std::max(std::min(dataset.getX(list[i]),globalBBox.xmax),globalBBox.xmin);
@@ -201,32 +202,75 @@ public:
 
 	inline void exchangeParticles(int end, const std::vector<std::vector<int>> &cellList, const std::vector<int> &globalCellCount, const std::vector<int> &assignedRanks)
 	{
+		std::vector<int> toSend[comm_size];
+		std::vector<std::vector<double>> xbuff, ybuff, zbuff, hbuff;
+
+		int needed = 0;
+
 		for(int i=0; i<ncells; i++)
 		{
-			if(assignedRanks[i] != comm_rank && cellList[i].size() > 0)
-			{
-				int count = cellList[i].size();
-				MPI_Send(&comm_rank, 1, MPI_INT, assignedRanks[i], i*100, comm);
-				MPI_Send(&count, 1, MPI_INT, assignedRanks[i], i*100, comm);
-				dataset.send(cellList[i], assignedRanks[i], i*100);
-			}
-			else if(assignedRanks[i] == comm_rank)
-			{
-				int needed = globalCellCount[i] - cellList[i].size();
-				while(needed > 0)
-				{
-					MPI_Status status;
-					int rank, count;
-					MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, i*100, comm, &status);
-					MPI_Recv(&count, 1, MPI_INT, rank, i*100, comm, &status);
-					dataset.recv(end, count, rank, i*100);
-					end += count;
-					needed -= count;
-				}
-			}
-
-			//MPI_Barrier(comm);
+			int rank = assignedRanks[i];
+			if(rank != comm_rank && cellList[i].size() > 0)
+				toSend[rank].insert(toSend[rank].end(), cellList[i].begin(), cellList[i].end());
+			else if(rank == comm_rank)
+				needed += globalCellCount[i] - cellList[i].size();
 		}
+
+		std::vector<MPI_Request> requests;
+		for(int rank=0; rank<comm_size; rank++)
+		{
+			if(toSend[rank].size() > 0)
+			{
+				int rcount = requests.size();
+				int bcount = xbuff.size();
+				int count = toSend[rank].size();
+
+				requests.resize(rcount+6);
+				xbuff.resize(bcount+1);
+				ybuff.resize(bcount+1);
+				zbuff.resize(bcount+1);
+				hbuff.resize(bcount+1);
+
+				xbuff[bcount].resize(count);
+				ybuff[bcount].resize(count);
+				zbuff[bcount].resize(count);
+				hbuff[bcount].resize(count);
+
+				for(int j=0; j<count; j++)
+				{
+					xbuff[bcount][j] = dataset.x[toSend[rank][j]];
+					ybuff[bcount][j] = dataset.y[toSend[rank][j]];
+					zbuff[bcount][j] = dataset.z[toSend[rank][j]];
+					hbuff[bcount][j] = dataset.h[toSend[rank][j]];
+				}
+
+				MPI_Isend(&comm_rank, 1, MPI_INT, rank, 0, comm, &requests[rcount]);
+				MPI_Isend(&count, 1, MPI_INT, rank, 1, comm, &requests[rcount+1]);
+				MPI_Isend(&xbuff[bcount][0], count, MPI_DOUBLE, rank, 2, comm, &requests[rcount+2]);
+				MPI_Isend(&ybuff[bcount][0], count, MPI_DOUBLE, rank, 3, comm, &requests[rcount+3]);
+				MPI_Isend(&zbuff[bcount][0], count, MPI_DOUBLE, rank, 4, comm, &requests[rcount+4]);
+				MPI_Isend(&hbuff[bcount][0], count, MPI_DOUBLE, rank, 5, comm, &requests[rcount+5]);
+			}
+		}
+
+		while(needed > 0)
+		{
+			MPI_Status status[6];
+
+			int rank, count;
+			MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, 0, comm, &status[0]);
+			MPI_Recv(&count, 1, MPI_INT, rank, 1, comm, &status[1]);
+			MPI_Recv(&dataset.x[end], count, MPI_DOUBLE, rank, 2, comm, &status[2]);
+			MPI_Recv(&dataset.y[end], count, MPI_DOUBLE, rank, 3, comm, &status[3]);
+			MPI_Recv(&dataset.z[end], count, MPI_DOUBLE, rank, 4, comm, &status[4]);
+			MPI_Recv(&dataset.h[end], count, MPI_DOUBLE, rank, 5, comm, &status[5]);
+
+			end += count;
+			needed -= count;
+		}
+
+		MPI_Status status[requests.size()];
+		MPI_Waitall(requests.size(), &requests[0], status);
 	}
 
 	inline void tagGhostCells(const std::vector<int> &assignedRanks, const std::vector<BBox> &cellBBox, const BBox &localBBox, const std::vector<int> &globalCellCount, std::vector<int> &localWanted, std::vector<int> &globalWanted)
