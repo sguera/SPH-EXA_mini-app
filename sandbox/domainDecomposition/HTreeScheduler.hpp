@@ -1,6 +1,8 @@
 #pragma once
 
+#include <vector>
 #include <cmath>
+#include <map>
 
 #include "BBox.hpp"
 
@@ -21,7 +23,13 @@ public:
 
 	DatasetAdaptor &dataset;
 
+	std::vector<int> assignedRanks;
+
 	BBox localBBox, globalBBox;
+
+	std::map<int,std::vector<int>> sendGhostList;
+	std::map<int,int> recvGhostList;
+	int ghostCount;
 
 	double localMaxH, globalMaxH;
 
@@ -41,6 +49,11 @@ public:
 	inline double normalize(double d, double min, double max)
 	{
 		return (d-min)/(max-min);
+	}
+
+	inline bool overlap(double leftA, double rightA, double leftB, double rightB)
+	{
+		return leftA < rightB && rightA > leftB;
 	}
 
 	inline BBox computeBoundingBox(const std::vector<int> &computeList)
@@ -111,7 +124,6 @@ public:
 
 		std::vector<int> localCount(ncells);
 
-		printf("%d list size: %zu\n", comm_rank, list.size());
 		for(unsigned int i=0; i<list.size(); i++)
 		{
 			double xx = std::max(std::min(dataset.getX(list[i]),globalBBox.xmax),globalBBox.xmin);
@@ -139,7 +151,7 @@ public:
 		MPI_Allreduce(&localCount[0], &globalCellCount[0], ncells, MPI_INT, MPI_SUM, comm);
 	}
 
-	inline void assignRanks(const std::vector<int> &globalCellCount, std::vector<int> &assignedRanks, std::vector<int> &rankLoad)
+	inline void assignRanks(const std::vector<int> &globalCellCount, std::vector<int> &rankLoad)
 	{
 		assignedRanks.resize(ncells);
 
@@ -188,7 +200,7 @@ public:
 		}
 	}
 
-	inline void computeDiscardList(const std::vector<std::vector<int>> &cellList, const std::vector<int> &assignedRanks, std::vector<int> &discardList)
+	inline void computeDiscardList(const std::vector<std::vector<int>> &cellList, std::vector<int> &discardList)
 	{
 		for(int i=0; i<ncells; i++)
 		{
@@ -200,7 +212,7 @@ public:
 		}
 	}
 
-	inline void exchangeParticles(int end, const std::vector<std::vector<int>> &cellList, const std::vector<int> &globalCellCount, const std::vector<int> &assignedRanks)
+	inline void exchangeParticles(const std::vector<std::vector<int>> &cellList, const std::vector<int> &globalCellCount)
 	{
 		std::vector<int> toSend[comm_size];
 		std::vector<std::vector<double>> xbuff, ybuff, zbuff, hbuff;
@@ -253,6 +265,9 @@ public:
 			}
 		}
 
+		int end = dataset.getCount();
+		dataset.resize(end+needed);
+
 		while(needed > 0)
 		{
 			MPI_Status status[6];
@@ -273,10 +288,9 @@ public:
 		MPI_Waitall(requests.size(), &requests[0], status);
 	}
 
-	inline void tagGhostCells(const std::vector<int> &assignedRanks, const std::vector<BBox> &cellBBox, const BBox &localBBox, const std::vector<int> &globalCellCount, std::vector<int> &localWanted, std::vector<int> &globalWanted)
+	inline void computeGhostList(const std::vector<BBox> &cellBBox, const std::vector<std::vector<int>> &cellList, const BBox &localBBox, const std::vector<int> &globalCellCount)
 	{
-		for(int i=0; i<ncells; i++)
-			globalWanted[i] = 0;
+		std::vector<int> localWanted(ncells), globalWanted(ncells);
 
 		for(int i=0; i<ncells; i++)
 		{
@@ -288,19 +302,27 @@ public:
 					overlap(cellBBox[i].zmin, cellBBox[i].zmax, localBBox.zmin-2*localMaxH, localBBox.zmax+2*localMaxH))
 				{
 					if(globalCellCount[i] > 0)
-					{
-						globalWanted[i] = 1;
 						localWanted[i] = 1;
-					}
 				}
 			}
 		}
 
 		MPI_Allreduce(&localWanted[0], &globalWanted[0], ncells, MPI_INT, MPI_SUM, comm);
-	}
 
-	inline void exchangeGhosts(const std::vector<int> &assignedRanks, const std::vector<std::vector<int>> &cellList, const std::vector<int> &globalCellCount, const std::vector<int> &localWanted, const std::vector<int> &globalWanted)
-	{
+		ghostCount = 0;
+		std::vector<MPI_Request> requests;
+		for(int i=0; i<ncells; i++)
+		{
+			if(assignedRanks[i] != comm_rank && localWanted[i] > 0)
+			{
+				int rcount = requests.size();
+				requests.resize(rcount+1);
+				ghostCount += globalCellCount[i];
+				recvGhostList[assignedRanks[i]] += globalCellCount[i];
+				MPI_Isend(&comm_rank, 1, MPI_INT, assignedRanks[i], i, comm, &requests[rcount]);
+			}
+		}
+
 		for(int i=0; i<ncells; i++)
 		{
 			if(assignedRanks[i] == comm_rank && globalWanted[i] > 0)
@@ -308,25 +330,77 @@ public:
 				std::vector<int> ranks(globalWanted[i]);
 				for(int j=0; j<globalWanted[i]; j++)
 				{
-					MPI_Status status;
 					int rank;
-					MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, i*100, comm, &status);
-					dataset.send(cellList[i], rank, i*100);
+					MPI_Status status;
+					MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, i, comm, &status);
+					sendGhostList[rank].insert(sendGhostList[rank].end(), cellList[i].begin(), cellList[i].end());
 				}
 			}
-			else if(assignedRanks[i] != comm_rank && localWanted[i] > 0)
-			{
-				MPI_Send(&comm_rank, 1, MPI_INT, assignedRanks[i], i*100, comm);
-				int count = dataset.getCount();
-				dataset.resize(count+globalCellCount[i]);
-				dataset.recv(count, globalCellCount[i], assignedRanks[i], i*100);
-			}
 		}
+
+		MPI_Status status[requests.size()];
+		MPI_Waitall(requests.size(), &requests[0], status);
 	}
 
-	inline bool overlap(double leftA, double rightA, double leftB, double rightB)
+	inline void exchangeGhosts()
 	{
-		return leftA < rightB && rightA > leftB;
+		std::vector<std::vector<double>> xbuff, ybuff, zbuff, hbuff;
+		std::vector<MPI_Request> requests;
+
+		for(auto it=sendGhostList.begin(); it!=sendGhostList.end(); ++it)
+		{
+			int rank = it->first;
+			const std::vector<int> &cellList = it->second;
+
+			int rcount = requests.size();
+			int bcount = xbuff.size();
+			int count = cellList.size();
+
+			requests.resize(rcount+4);
+			xbuff.resize(bcount+1);
+			ybuff.resize(bcount+1);
+			zbuff.resize(bcount+1);
+			hbuff.resize(bcount+1);
+
+			xbuff[bcount].resize(count);
+			ybuff[bcount].resize(count);
+			zbuff[bcount].resize(count);
+			hbuff[bcount].resize(count);
+
+			for(int j=0; j<count; j++)
+			{
+				xbuff[bcount][j] = dataset.x[cellList[j]];
+				ybuff[bcount][j] = dataset.y[cellList[j]];
+				zbuff[bcount][j] = dataset.z[cellList[j]];
+				hbuff[bcount][j] = dataset.h[cellList[j]];
+			}
+
+			MPI_Isend(&xbuff[bcount][0], count, MPI_DOUBLE, rank, 0, comm, &requests[rcount]);
+			MPI_Isend(&ybuff[bcount][0], count, MPI_DOUBLE, rank, 1, comm, &requests[rcount+1]);
+			MPI_Isend(&zbuff[bcount][0], count, MPI_DOUBLE, rank, 2, comm, &requests[rcount+2]);
+			MPI_Isend(&hbuff[bcount][0], count, MPI_DOUBLE, rank, 3, comm, &requests[rcount+3]);
+		}
+
+		int end = dataset.getCount();
+		dataset.resize(end+ghostCount);
+		for(auto it=recvGhostList.begin(); it!=recvGhostList.end(); ++it)
+		{
+			int rank = it->first;
+			int count = it->second;
+			int rcount = requests.size();
+
+			requests.resize(rcount+4);
+
+			MPI_Irecv(&dataset.x[end], count, MPI_DOUBLE, rank, 0, comm, &requests[rcount]);
+			MPI_Irecv(&dataset.y[end], count, MPI_DOUBLE, rank, 1, comm, &requests[rcount+1]);
+			MPI_Irecv(&dataset.z[end], count, MPI_DOUBLE, rank, 2, comm, &requests[rcount+2]);
+			MPI_Irecv(&dataset.h[end], count, MPI_DOUBLE, rank, 3, comm, &requests[rcount+3]);
+
+			end += count;
+		}
+
+		MPI_Status status[requests.size()];
+		MPI_Waitall(requests.size(), &requests[0], status);
 	}
 
  	void balance(std::vector<int> &computeList)
@@ -338,71 +412,50 @@ public:
 	    globalBBox = computeGlobalBoundingBox(computeList);
 	   	globalMaxH = computeGlobalMaxH(computeList);
 
-	   	//if(comm_rank == 0) printf("(%d/%d,%s) Global max H = %f\n", comm_rank, comm_size, processor_name, maxH);
-		
 		nX = std::max((globalBBox.xmax-globalBBox.xmin) / globalMaxH, 2.0);
 		nY = std::max((globalBBox.ymax-globalBBox.ymin) / globalMaxH, 2.0);
 		nZ = std::max((globalBBox.zmax-globalBBox.zmin) / globalMaxH, 2.0);
 		ncells = nX*nY*nZ;
 
-		//if(comm_rank == 0) printf("(%d/%d,%s) Distributing particles...\n", comm_rank, comm_size, processor_name);
-
 		std::vector<int> globalCellCount;
 		std::vector<std::vector<int>> cellList;
 		distributeParticles(computeList, globalBBox, cellList, globalCellCount);
 
-		//if(comm_rank == 0) printf("(%d/%d,%s) Assigning work load...\n", comm_rank, comm_size, processor_name);
-
 		std::vector<int> rankLoad;
-		std::vector<int> assignedRanks;
-		assignRanks(globalCellCount, assignedRanks, rankLoad);
+		assignRanks(globalCellCount, rankLoad);
 
-		//if(comm_rank == 0) printf("(%d/%d,%s) Computing discard list...\n", comm_rank, comm_size, processor_name);
+		exchangeParticles(cellList, globalCellCount);
 
 		std::vector<int> discardList;
-		computeDiscardList(cellList, assignedRanks, discardList);
-
-		int count = dataset.getCount();
-		dataset.resize(rankLoad[comm_rank]+discardList.size());
-
-		//printf("\t(%d) Has: %zu Missing: %zu\n", comm_rank, rankLoad[comm_rank]-discardList.size(), discardList.size());
-
-		//if(comm_rank == 0) printf("(%d/%d,%s) Exchanging particles...\n", comm_rank, comm_size, processor_name);
-
-		exchangeParticles(count, cellList, globalCellCount, assignedRanks);
-		
-		// Discard extra
-		//printf("\t(%d) Count: %d, Discarding %zu and resizing to %d\n", comm_rank, dataset.getCount(), discardList.size(), rankLoad[comm_rank]);
-
+		computeDiscardList(cellList, discardList);
 		dataset.discard(discardList);
-		dataset.resize(rankLoad[comm_rank]);
-
-		//if(comm_rank == 0) printf("(%d/%d,%s) Computing cells bboxes...\n", comm_rank, comm_size, processor_name);
-
-		// Compute cell boxes using globalBBox
-		std::vector<BBox> cellBBox(ncells);
-		computeBBoxes(globalBBox, cellBBox);
 
 		computeList.resize(dataset.getCount());
 		for(unsigned int i=0; i<computeList.size(); i++)
 			computeList[i] = i;
+	}
 
-		//if(comm_rank == 0) printf("(%d/%d,%s) Redistributing particles...\n", comm_rank, comm_size, processor_name);
-
-		cellList.clear();
-		globalCellCount.clear();
+	void findGhosts(const std::vector<int> &computeList)
+	{
+		std::vector<int> globalCellCount;
+		std::vector<std::vector<int>> cellList;
 		distributeParticles(computeList, globalBBox, cellList, globalCellCount);
 
 		// Only now we are allowed to recompute the dataset BBox
 		localBBox = computeBoundingBox(computeList);
 		localMaxH = computeMaxH(computeList);
 
-		std::vector<int> localWanted(ncells), globalWanted(ncells);
-		tagGhostCells(assignedRanks, cellBBox, localBBox, globalCellCount, localWanted, globalWanted);
+		// Compute cell boxes using globalBBox
+		std::vector<BBox> cellBBox(ncells);
+		computeBBoxes(globalBBox, cellBBox);
 
-		//if(comm_rank == 0) printf("(%d/%d,%s) Exchanging ghost cells...\n", comm_rank, comm_size, processor_name);
+		// Use cell boxes and the localbbox to identify ghost cells
+		computeGhostList(cellBBox, cellList, localBBox, globalCellCount);
+	}
 
-		exchangeGhosts(assignedRanks, cellList, globalCellCount, localWanted, globalWanted);
+	void updateGhosts()
+	{
+		exchangeGhosts();
 	}
 };
 

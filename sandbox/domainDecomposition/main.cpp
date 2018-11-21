@@ -57,36 +57,6 @@ public:
 		h[j] = htmp;
 	}
 
-	inline void send(const std::vector<int> &list, int rank, int tag) const
-	{
-		unsigned int count = list.size();
-
-		double xbuff[count], ybuff[count], zbuff[count], hbuff[count];
-
-		for(unsigned int i=0; i<count; i++)
-		{
-			xbuff[i] = x[list[i]];
-			ybuff[i] = y[list[i]];
-			zbuff[i] = z[list[i]];
-			hbuff[i] = h[list[i]];
-		}
-
-		MPI_Send(xbuff, count, MPI_DOUBLE, rank, tag, MPI_COMM_WORLD);
-		MPI_Send(ybuff, count, MPI_DOUBLE, rank, tag+1, MPI_COMM_WORLD);
-		MPI_Send(zbuff, count, MPI_DOUBLE, rank, tag+2, MPI_COMM_WORLD);
-		MPI_Send(hbuff, count, MPI_DOUBLE, rank, tag+3, MPI_COMM_WORLD);
-	}
-
-	inline void recv(int start, int count, int rank, int tag)
-	{
-		MPI_Status status[4];
-
-		MPI_Recv(&x[start], count, MPI_DOUBLE, rank, tag, MPI_COMM_WORLD, &status[0]);
-		MPI_Recv(&y[start], count, MPI_DOUBLE, rank, tag+1, MPI_COMM_WORLD, &status[1]);
-		MPI_Recv(&z[start], count, MPI_DOUBLE, rank, tag+2, MPI_COMM_WORLD, &status[2]);
-		MPI_Recv(&h[start], count, MPI_DOUBLE, rank, tag+3, MPI_COMM_WORLD, &status[3]);
-	}
-
 	template<typename T>
 	inline void removeIndices(std::vector<T> &array, const std::vector<int> indices)
 	{
@@ -105,7 +75,9 @@ public:
 		removeIndices(h, discardList);
 	}
 
-	// Accessors
+	// RecvNew(field, count) : need pointer
+	// RecvUpdate(field, count, list) : need pointer
+	
 	inline unsigned int getCount() const { return x.size(); }
 	inline unsigned int getProcSize() const { return procSize; }
 	inline double getX(const int i) const { return x[i]; }
@@ -201,11 +173,9 @@ int main()
 			delete[] zt;
 			delete[] ht;
 		}
-
-		printf("(%d/%d,%s) Processing %d / %d particles\n", comm_rank, comm_size, processor_name, proc_size, n);
 	}
 	stop = STOP;
-	printf("(%d/%d,%s) LOADING AND SCATTERING TIME: %f\n", comm_rank, comm_size, processor_name, stop);
+	printf("(%d/%d,%s) LOAD SCATTER TIME: %f\n", comm_rank, comm_size, processor_name, stop);
 
 	std::vector<int> nvi;
 	std::vector<int> ng;
@@ -223,17 +193,34 @@ int main()
 		start = START;
 		scheduler.balance(computeList);
 		stop = STOP;
-		printf("(%d/%d,%s) LOAD BALANCE TIME: %f\n", comm_rank, comm_size, processor_name, stop);
 
-		int count = computeList.size();
+		printf("(%d/%d,%s) BALANCE TIME: %f\n", comm_rank, comm_size, processor_name, stop);
+		MPI_Barrier(MPI_COMM_WORLD);
 
-		printf("(%d/%d,%s) computeList.size: %d, dataset.size: %d\n", comm_rank, comm_size, processor_name, count, dataset.getCount());
+		start = START;
+		scheduler.findGhosts(computeList);
+		stop = STOP;
+
+		printf("(%d/%d,%s) FIND GHOST TIME: %f\n", comm_rank, comm_size, processor_name, stop);
+		MPI_Barrier(MPI_COMM_WORLD);
+
+		int before = dataset.getCount();
+		start = START;
+		scheduler.updateGhosts();
+		stop = STOP;
+		int after = dataset.getCount();
+
+		printf("(%d/%d,%s) UPDATE GHOST TIME: %f -- compute: %d, ghosts: %d\n", comm_rank, comm_size, processor_name, stop, before, after-before);
+		MPI_Barrier(MPI_COMM_WORLD);
 
 		start = START;
 		tree.build(scheduler.globalBBox);
 		stop = STOP;
+		
 		printf("(%d/%d,%s) BUILD TIME: %f\n", comm_rank, comm_size, processor_name, stop);
+		MPI_Barrier(MPI_COMM_WORLD);
 
+		int count = computeList.size();
 		int ngmax = 150;
 		nvi.resize(count);
 		ng.resize(count*150);
@@ -257,7 +244,9 @@ int main()
 			tree.findNeighbors(xi, yi, zi, 2*hi, ngmax, &ng[(long)id*ngmax], nvi[id]);
 		}
 		stop = STOP;
+
 		printf("(%d/%d,%s) FIND TIME: %f\n", comm_rank, comm_size, processor_name, stop);
+		MPI_Barrier(MPI_COMM_WORLD);
 
 		int totalNeighbors = 0;
 		for(int i=0; i<count; i++)
@@ -266,25 +255,6 @@ int main()
 		MPI_Allreduce(MPI_IN_PLACE, &totalNeighbors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
 		if(comm_rank == 0) printf("(%d/%d,%s) Total neighbors found: %d\n", comm_rank, comm_size, processor_name, totalNeighbors);
-		//printf("(%d/%d,%s) Total cells: %d\n", tree.cellCount());
-		//printf("(%d/%d,%s) Total buckets: %d\n", tree.bucketCount());
-
-		// if(comm_rank == 0)
-		// {
-		// 	printf("Local domain:\n");
-		// 	printBBox(scheduler.localBBox, comm_rank, comm_size, processor_name);
-		// 	printf("Global domain:\n");
-		// 	printBBox(scheduler.globalBBox, comm_rank, comm_size, processor_name);
-		// }
-
-		// scheduler.balance(computeList);
-		// if(comm_rank == 0)
-		// {
-		// 	printf("Local domain:\n");
-		// 	printBBox(scheduler.localBBox, comm_rank, comm_size, processor_name);
-		// 	printf("Global domain:\n");
-		// 	printBBox(scheduler.globalBBox, comm_rank, comm_size, processor_name);
-		// }
 	}
 
     MPI_Finalize();
