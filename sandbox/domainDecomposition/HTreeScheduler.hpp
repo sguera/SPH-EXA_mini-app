@@ -6,12 +6,6 @@
 
 #include "BBox.hpp"
 
-// TODO
-// Make assign rank recursive to assign load more finely:
-// If a cell cannot be assigned, call build recursively (else stop)
-// Make discardList, exchange, and others recursive as well (global cell id needed)
-// Finish building
-
 namespace sphexa
 {
 
@@ -214,7 +208,7 @@ public:
 
 	inline void exchangeParticles(const std::vector<std::vector<int>> &cellList, const std::vector<int> &globalCellCount)
 	{
-		std::vector<int> toSend[comm_size];
+		std::map<int,std::vector<int>> toSend;
 		std::vector<std::vector<double>> xbuff, ybuff, zbuff, hbuff;
 
 		int needed = 0;

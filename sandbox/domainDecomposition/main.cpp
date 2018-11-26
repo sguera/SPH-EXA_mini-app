@@ -39,23 +39,23 @@ public:
 		h.resize(n);
 	}
 
-	inline void swap(unsigned int i, unsigned int j)
-	{
-		double xtmp = x[i];
-		double ytmp = y[i];
-		double ztmp = z[i];
-		double htmp = h[i];
+	// inline void swap(unsigned int i, unsigned int j)
+	// {
+	// 	double xtmp = x[i];
+	// 	double ytmp = y[i];
+	// 	double ztmp = z[i];
+	// 	double htmp = h[i];
 
-		x[i] = x[j];
-		y[i] = y[j];
-		z[i] = z[j];
-		h[i] = h[j];
+	// 	x[i] = x[j];
+	// 	y[i] = y[j];
+	// 	z[i] = z[j];
+	// 	h[i] = h[j];
 
-		x[j] = xtmp;
-		y[j] = ytmp;
-		z[j] = ztmp;
-		h[j] = htmp;
-	}
+	// 	x[j] = xtmp;
+	// 	y[j] = ytmp;
+	// 	z[j] = ztmp;
+	// 	h[j] = htmp;
+	// }
 
 	template<typename T>
 	inline void removeIndices(std::vector<T> &array, const std::vector<int> indices)
