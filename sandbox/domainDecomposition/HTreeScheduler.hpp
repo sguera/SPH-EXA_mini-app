@@ -21,9 +21,9 @@ public:
 
 	BBox localBBox, globalBBox;
 
-	std::map<int,std::vector<int>> sendGhostList;
-	std::map<int,int> recvGhostList;
-	int ghostCount;
+	std::map<int,std::vector<int>> sendHaloList;
+	std::map<int,int> recvHaloList;
+	int haloCount;
 
 	double localMaxH, globalMaxH;
 
@@ -118,6 +118,9 @@ public:
 
 		std::vector<int> localCount(ncells);
 
+		for(int i=0; i<ncells; i++)
+			localCount[i] = 0;
+
 		for(unsigned int i=0; i<list.size(); i++)
 		{
 			double xx = std::max(std::min(dataset.getX(list[i]),globalBBox.xmax),globalBBox.xmin);
@@ -145,13 +148,12 @@ public:
 		MPI_Allreduce(&localCount[0], &globalCellCount[0], ncells, MPI_INT, MPI_SUM, comm);
 	}
 
-	inline void assignRanks(const std::vector<int> &globalCellCount, std::vector<int> &rankLoad)
+	inline void assignRanks(const std::vector<int> &globalCellCount, const std::vector<int> &procsize, std::vector<int> &rankLoad)
 	{
 		assignedRanks.resize(ncells);
 
 		int rank = 0;
 		int work = 0;
-		int procSize = dataset.getProcSize();
 
 		// Assign rank to each cell
 		for(int i=0; i<ncells; i++)
@@ -159,7 +161,7 @@ public:
 			work += globalCellCount[i];
 			assignedRanks[i] = rank;
 
-			if(work >= procSize)
+			if(work >= procsize[rank])
 			{
 			 	rankLoad.push_back(work);
 			 	work = 0;
@@ -249,7 +251,7 @@ public:
 					zbuff[bcount][j] = dataset.z[toSend[rank][j]];
 					hbuff[bcount][j] = dataset.h[toSend[rank][j]];
 				}
-
+				//if(rank == 5) printf("%d send %d to %d\n", comm_rank, count, rank );
 				MPI_Isend(&comm_rank, 1, MPI_INT, rank, 0, comm, &requests[rcount]);
 				MPI_Isend(&count, 1, MPI_INT, rank, 1, comm, &requests[rcount+1]);
 				MPI_Isend(&xbuff[bcount][0], count, MPI_DOUBLE, rank, 2, comm, &requests[rcount+2]);
@@ -273,75 +275,173 @@ public:
 			MPI_Recv(&dataset.y[end], count, MPI_DOUBLE, rank, 3, comm, &status[3]);
 			MPI_Recv(&dataset.z[end], count, MPI_DOUBLE, rank, 4, comm, &status[4]);
 			MPI_Recv(&dataset.h[end], count, MPI_DOUBLE, rank, 5, comm, &status[5]);
-
+			//if(comm_rank == 5) printf("recved %d rest %d\n", count, needed-count);
 			end += count;
 			needed -= count;
 		}
 
+		//printf("%d lol\n", comm_rank);
 		MPI_Status status[requests.size()];
 		MPI_Waitall(requests.size(), &requests[0], status);
 	}
 
-	inline void computeGhostList(const std::vector<BBox> &cellBBox, const std::vector<std::vector<int>> &cellList, const BBox &localBBox, const std::vector<int> &globalCellCount)
+	inline void computeHaloList(const std::vector<BBox> &cellBBox, const std::vector<std::vector<int>> &cellList, const BBox &localBBox, const std::vector<int> &globalCellCount)
 	{
-		std::vector<int> localWanted(ncells), globalWanted(ncells);
+		int reorder = 0;
+		haloCount = 0;
+		MPI_Comm graphComm;
+		std::map<int,std::vector<int>> msources;
 
-		for(int i=0; i<ncells; i++)
 		{
-			if(assignedRanks[i] != comm_rank)
+			std::vector<int> sources, weights, degrees, dests;
+
+			for(int i=0; i<ncells; i++)
 			{
-				// maxH is an overrapproximation
-				if(	overlap(cellBBox[i].xmin, cellBBox[i].xmax, localBBox.xmin-2*localMaxH, localBBox.xmax+2*localMaxH) &&
-					overlap(cellBBox[i].ymin, cellBBox[i].ymax, localBBox.ymin-2*localMaxH, localBBox.ymax+2*localMaxH) &&
-					overlap(cellBBox[i].zmin, cellBBox[i].zmax, localBBox.zmin-2*localMaxH, localBBox.zmax+2*localMaxH))
+				if(assignedRanks[i] != comm_rank && globalCellCount[i] > 0)
 				{
-					if(globalCellCount[i] > 0)
-						localWanted[i] = 1;
+					// maxH is an overrapproximation
+					if(	overlap(cellBBox[i].xmin, cellBBox[i].xmax, localBBox.xmin-2*localMaxH, localBBox.xmax+2*localMaxH) &&
+						overlap(cellBBox[i].ymin, cellBBox[i].ymax, localBBox.ymin-2*localMaxH, localBBox.ymax+2*localMaxH) &&
+						overlap(cellBBox[i].zmin, cellBBox[i].zmax, localBBox.zmin-2*localMaxH, localBBox.zmax+2*localMaxH))
+					{
+						int rank = assignedRanks[i];
+						msources[rank].push_back(i);
+						recvHaloList[rank] += globalCellCount[i];
+						haloCount += globalCellCount[i];
+					}
 				}
 			}
-		}
 
-		MPI_Allreduce(&localWanted[0], &globalWanted[0], ncells, MPI_INT, MPI_SUM, comm);
+			int n = msources.size();
+			sources.resize(n);
+			weights.resize(n);
+			degrees.resize(n);
+			dests.resize(n);
 
-		ghostCount = 0;
-		std::vector<MPI_Request> requests;
-		for(int i=0; i<ncells; i++)
-		{
-			if(assignedRanks[i] != comm_rank && localWanted[i] > 0)
+			int i = 0;
+			for(auto it=msources.begin(); it!=msources.end(); ++it)
 			{
-				int rcount = requests.size();
-				requests.resize(rcount+1);
-				ghostCount += globalCellCount[i];
-				recvGhostList[assignedRanks[i]] += globalCellCount[i];
-				MPI_Isend(&comm_rank, 1, MPI_INT, assignedRanks[i], i, comm, &requests[rcount]);
+				sources[i] = it->first;
+				weights[i] = it->second.size();
+				degrees[i] = 1;
+				dests[i++] = comm_rank;
 			}
+
+			MPI_Dist_graph_create(comm, n, &sources[0], &degrees[0], &dests[0], &weights[0], MPI_INFO_NULL, reorder, &graphComm);
 		}
 
-		for(int i=0; i<ncells; i++)
+		int indegree = 0, outdegree = 0, weighted = 0;
+		MPI_Dist_graph_neighbors_count(graphComm, &indegree, &outdegree, &weighted);
+
+		std::vector<int> sources(indegree), sourceweights(indegree);
+		std::vector<int> dests(outdegree), destweights(outdegree);
+
+		MPI_Dist_graph_neighbors(graphComm, indegree, &sources[0], &sourceweights[0], outdegree, &dests[0], &destweights[0]);
+
+		// {
+		// 	printf("%d -> { ", comm_rank);
+		// 	for(int i=0; i<indegree; i++)
+		// 		printf("%d ", sources[i]);
+		// 	printf("}\n");
+		// 	printf("%d <- { ", comm_rank);
+		// 	for(int i=0; i<outdegree; i++)
+		// 		printf("%d ", dests[i]);
+		// 	printf("}\n");
+		// }
+		// fflush(stdout);
+
+		std::vector<MPI_Request> requests(indegree);
+
+		// Ask sources a list of cells
+		for(int i=0; i<indegree; i++)
 		{
-			if(assignedRanks[i] == comm_rank && globalWanted[i] > 0)
-			{
-				std::vector<int> ranks(globalWanted[i]);
-				for(int j=0; j<globalWanted[i]; j++)
-				{
-					int rank;
-					MPI_Status status;
-					MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, i, comm, &status);
-					sendGhostList[rank].insert(sendGhostList[rank].end(), cellList[i].begin(), cellList[i].end());
-				}
-			}
+			int rank = sources[i];
+			int count = msources[rank].size();
+			//printf("%d send %d to %d\n", comm_rank, count, rank); fflush(stdout);
+			MPI_Isend(&msources[rank][0], count, MPI_INT, rank, 0, graphComm, &requests[i]);
 		}
 
-		MPI_Status status[requests.size()];
-		MPI_Waitall(requests.size(), &requests[0], status);
+		// Recv cell list from destinations
+		for(int i=0; i<outdegree; i++)
+		{
+			MPI_Status status;
+			int rank = dests[i];
+			int count = destweights[i];
+			std::vector<int> buff(count);
+			//printf("%d rcv %d from %d\n", comm_rank, count, rank); fflush(stdout);
+			MPI_Recv(&buff[0], count, MPI_INT, rank, 0, graphComm, &status);
+			for(int j=0; j<count; j++)
+				sendHaloList[rank].insert(sendHaloList[rank].end(), cellList[buff[j]].begin(), cellList[buff[j]].end());
+		}
+
+		if(requests.size() > 0)
+		{
+			MPI_Status status[requests.size()];
+			MPI_Waitall(requests.size(), &requests[0], status);
+		}
+
+		//MPI_Status status[requests.size()];
+		//MPI_Waitall(requests.size(), &requests[0], status);
+
+		// std::vector<int> localWanted(ncells), globalWanted(ncells);
+
+		// // Mark all cells that we need for halos
+		// for(int i=0; i<ncells; i++)
+		// {
+		// 	if(assignedRanks[i] != comm_rank)
+		// 	{
+		// 		// maxH is an overrapproximation
+		// 		if(	overlap(cellBBox[i].xmin, cellBBox[i].xmax, localBBox.xmin-2*localMaxH, localBBox.xmax+2*localMaxH) &&
+		// 			overlap(cellBBox[i].ymin, cellBBox[i].ymax, localBBox.ymin-2*localMaxH, localBBox.ymax+2*localMaxH) &&
+		// 			overlap(cellBBox[i].zmin, cellBBox[i].zmax, localBBox.zmin-2*localMaxH, localBBox.zmax+2*localMaxH))
+		// 		{
+		// 			if(globalCellCount[i] > 0)
+		// 				localWanted[i] = 1;
+		// 		}
+		// 	}
+		// }
+
+		// MPI_Allreduce(&localWanted[0], &globalWanted[0], ncells, MPI_INT, MPI_SUM, comm);
+
+		// haloCount = 0;
+		// std::vector<MPI_Request> requests;
+		// for(int i=0; i<ncells; i++)
+		// {
+		// 	if(assignedRanks[i] != comm_rank && localWanted[i] > 0)
+		// 	{
+		// 		int rcount = requests.size();
+		// 		requests.resize(rcount+1);
+		// 		haloCount += globalCellCount[i];
+		// 		recvHaloList[assignedRanks[i]] += globalCellCount[i];
+		// 		MPI_Isend(&comm_rank, 1, MPI_INT, assignedRanks[i], i, comm, &requests[rcount]);
+		// 	}
+		// }
+
+		// for(int i=0; i<ncells; i++)
+		// {
+		// 	if(assignedRanks[i] == comm_rank && globalWanted[i] > 0)
+		// 	{
+		// 		std::vector<int> ranks(globalWanted[i]);
+		// 		for(int j=0; j<globalWanted[i]; j++)
+		// 		{
+		// 			int rank;
+		// 			MPI_Status status;
+		// 			MPI_Recv(&rank, 1, MPI_INT, MPI_ANY_SOURCE, i, comm, &status);
+		// 			sendHaloList[rank].insert(sendHaloList[rank].end(), cellList[i].begin(), cellList[i].end());
+		// 		}
+		// 	}
+		// }
+
+		//MPI_Status status[requests.size()];
+		//MPI_Waitall(requests.size(), &requests[0], status);
 	}
 
-	inline void exchangeGhosts()
+	inline void exchangeHalos()
 	{
 		std::vector<std::vector<double>> xbuff, ybuff, zbuff, hbuff;
 		std::vector<MPI_Request> requests;
 
-		for(auto it=sendGhostList.begin(); it!=sendGhostList.end(); ++it)
+		for(auto it=sendHaloList.begin(); it!=sendHaloList.end(); ++it)
 		{
 			int rank = it->first;
 			const std::vector<int> &cellList = it->second;
@@ -376,8 +476,8 @@ public:
 		}
 
 		int end = dataset.getCount();
-		dataset.resize(end+ghostCount);
-		for(auto it=recvGhostList.begin(); it!=recvGhostList.end(); ++it)
+		dataset.resize(end+haloCount);
+		for(auto it=recvHaloList.begin(); it!=recvHaloList.end(); ++it)
 		{
 			int rank = it->first;
 			int count = it->second;
@@ -393,11 +493,14 @@ public:
 			end += count;
 		}
 
-		MPI_Status status[requests.size()];
-		MPI_Waitall(requests.size(), &requests[0], status);
+		if(requests.size() > 0)
+		{
+			MPI_Status status[requests.size()];
+			MPI_Waitall(requests.size(), &requests[0], status);
+		}
 	}
 
- 	void balance(std::vector<int> &computeList)
+ 	void balance(const std::vector<int> &procsize, std::vector<int> &computeList)
 	{	
 	    MPI_Comm_size(comm, &comm_size);
 	    MPI_Comm_rank(comm, &comm_rank);
@@ -416,7 +519,7 @@ public:
 		distributeParticles(computeList, globalBBox, cellList, globalCellCount);
 
 		std::vector<int> rankLoad;
-		assignRanks(globalCellCount, rankLoad);
+		assignRanks(globalCellCount, procsize, rankLoad);
 
 		exchangeParticles(cellList, globalCellCount);
 
@@ -429,7 +532,7 @@ public:
 			computeList[i] = i;
 	}
 
-	void findGhosts(const std::vector<int> &computeList)
+	void findHalos(const std::vector<int> &computeList)
 	{
 		std::vector<int> globalCellCount;
 		std::vector<std::vector<int>> cellList;
@@ -443,13 +546,13 @@ public:
 		std::vector<BBox> cellBBox(ncells);
 		computeBBoxes(globalBBox, cellBBox);
 
-		// Use cell boxes and the localbbox to identify ghost cells
-		computeGhostList(cellBBox, cellList, localBBox, globalCellCount);
+		// Use cell boxes and the localbbox to identify halo cells
+		computeHaloList(cellBBox, cellList, localBBox, globalCellCount);
 	}
 
-	void updateGhosts()
+	void updateHalos()
 	{
-		exchangeGhosts();
+		exchangeHalos();
 	}
 };
 

@@ -259,7 +259,7 @@ public:
 				for(int hx=mix; hx<=max; hx++)
 				{
 					unsigned int l = hz*nX*nY+hy*nX+hx;
-
+					
 					if(cells[l] != nullptr)
 		 				cells[l]->findNeighborsRec(xi, yi, zi, ri, ngmax, ng, nvi);
 		 			else
