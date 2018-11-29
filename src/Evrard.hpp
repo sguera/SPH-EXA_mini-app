@@ -52,6 +52,9 @@ class Evrard
                     temp[i] = 1.0;
                     mue[i] = 2.0;
                     mui[i] = 10.0;
+                    vx[i] = 0.0;
+                    vy[i] = 0.0;
+                    vz[i] = 0.0;
                 }
 
                 ngmax = 150;
@@ -61,12 +64,8 @@ class Evrard
                 grad_P_y = new double[n]();
                 grad_P_z = new double[n]();
 
-                d_u_x = new double[n]();
-                d_u_y = new double[n]();
-                d_u_z = new double[n]();
-                d_u_x_m1 = new double[n]();
-                d_u_y_m1 = new double[n]();
-                d_u_z_m1 = new double[n]();
+                d_u = new double[n]();
+                d_u_m1 = new double[n]();
 
                 timestep = new double[n]();
                 timestep_m1 = new double[n]();
@@ -106,12 +105,8 @@ class Evrard
             delete[] grad_P_x;
             delete[] grad_P_y;
             delete[] grad_P_z;
-            delete[] d_u_x;
-            delete[] d_u_y;
-            delete[] d_u_z;
-            delete[] d_u_x_m1;
-            delete[] d_u_y_m1;
-            delete[] d_u_z_m1;
+            delete[] d_u;
+            delete[] d_u_m1;
             delete[] timestep;
             delete[] timestep_m1;
             delete[] nvi;
@@ -133,7 +128,7 @@ class Evrard
     double *mui; // Mean molecular weight of ions
 
     double *grad_P_x, *grad_P_y, *grad_P_z; //gradient of the pressure
-    double *d_u_x, *d_u_y, *d_u_z, *d_u_x_m1, *d_u_y_m1, *d_u_z_m1; //variation of the energy
+    double *d_u, *d_u_m1; //variation of the energy
     double *timestep, *timestep_m1;
 
     int ngmax; // Maximum number of neighbors per particle

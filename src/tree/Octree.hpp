@@ -9,11 +9,11 @@
 
 namespace sphexa
 {
-//constexpr unsigned int const BUCKETSIZE = 128;
+constexpr unsigned int const BUCKETSIZE = 128;
 //constexpr double const RATIO = 0.5;
 //constexpr int const TREE = 1;
-//constexpr int const BLOCK_SIZE = 32;
-//constexpr int const PLANCK = 1e-15;
+constexpr int const BLOCK_SIZE = 32;
+constexpr int const PLANCK = 1e-15;
 
 class Octree
 {
