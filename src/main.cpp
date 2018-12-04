@@ -9,7 +9,7 @@
 #include <cassert>
 
 #include "utils.hpp"
-#include "tree/BroadTree.hpp"
+#include "tree/KdTree.hpp"
 
 #include "Evrard.hpp"
 
@@ -21,7 +21,8 @@ using namespace sphexa;
 #define K53D 0.617013
 #define GAMMA (5.0/3.0)
 #define NV0 100
-
+#define MAX_DT_INCREASE 1.1
+#define STABILIZATION_TIMESTEPS 15
 
 typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> TimePoint;
@@ -170,11 +171,13 @@ inline void computeMomentum(int i, Evrard &d)
         double grad_v_kernel_z_i = r_ijz * derivative_kernel_i;
         double grad_v_kernel_z_j = r_ijz * derivative_kernel_j;
 
-
+        if (isnan(grad_v_kernel_x_i) || isnan(grad_v_kernel_x_j) || isnan(grad_v_kernel_y_i) || isnan(grad_v_kernel_y_j) || isnan(grad_v_kernel_z_i) || isnan(grad_v_kernel_z_j))
+            cout << "ERROR: " << grad_v_kernel_x_i << ' ' << grad_v_kernel_x_j << ' ' << grad_v_kernel_y_i << ' ' << grad_v_kernel_y_j << ' ' << grad_v_kernel_z_i << ' ' << grad_v_kernel_z_j << endl;
+        if (isnan(p_i) || isnan(ro_i) || isnan(ro_j) || isnan(viscosity_ij))
+            cout << "ERROR: " << p_i << ' ' << ro_i << ' ' << ro_j << ' ' << viscosity_ij << endl;
         momentum_x +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_x_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_x_j) + viscosity_ij * (grad_v_kernel_x_i + grad_v_kernel_x_j)/2.0;
         momentum_y +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_y_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_y_j) + viscosity_ij * (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0;
         momentum_z +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_z_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_z_j) + viscosity_ij * (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0;
-
 
     }
 
@@ -202,10 +205,7 @@ inline void computeEnergy(int i, Evrard &d)
     double z_i = d.z[i];
     double h_i = d.h[i];
 
-    double energy_x = 0.0;
-    double energy_y = 0.0;
-    double energy_z = 0.0;
-
+    double energy = 0.0;
 
     for(int j=0; j<d.nvi[i]; j++)
     {
@@ -243,19 +243,17 @@ inline void computeEnergy(int i, Evrard &d)
         double grad_v_kernel_y_i = r_ijy * derivative_kernel_i;
         double grad_v_kernel_z_i = r_ijz * derivative_kernel_i;
 
-        energy_x +=  m_j * (1 + 0.5 * viscosity_ij) * v_ijx * grad_v_kernel_x_i;
-        energy_y +=  m_j * (1 + 0.5 * viscosity_ij) * v_ijy * grad_v_kernel_y_i;
-        energy_z +=  m_j * (1 + 0.5 * viscosity_ij) * v_ijz * grad_v_kernel_z_i;
+        energy +=  m_j * (1 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
     }
 
-    d.d_u_x[i] =  energy_x * (-p_i/(gradh_i * ro_i * ro_i));
-    d.d_u_y[i] =  energy_y * (-p_i/(gradh_i * ro_i * ro_i));
-    d.d_u_z[i] =  energy_z * (-p_i/(gradh_i * ro_i * ro_i));
+    d.d_u[i] =  energy * (-p_i/(gradh_i * ro_i * ro_i));
+
 }
 
-inline void buildTree(Evrard &d, BroadTree &t)
+// inline void buildTree(Evrard &d, BroadTree &t)
+inline void buildTree(Evrard &d, KdTree &t)
 {
-    d.xmin = 1000, d.xmax = -1000, d.ymin = 1000, d.ymax = -1000, d.zmin = 1000, d.zmax = -1000;
+    d.xmin = INFINITY, d.xmax = -INFINITY, d.ymin = INFINITY, d.ymax = -INFINITY, d.zmin = INFINITY, d.zmax = -INFINITY;
     for(int i=0; i<d.n; i++)
     {
         if(d.x[i] < d.xmin) d.xmin = d.x[i];
@@ -266,18 +264,18 @@ inline void buildTree(Evrard &d, BroadTree &t)
         if(d.z[i] > d.zmax) d.zmax = d.z[i];
     }
 
-    // printf("Domain x[%f %f]\n", d.xmin, d.xmax);
-    // printf("Domain y[%f %f]\n", d.ymin, d.ymax);
-    // printf("Domain z[%f %f]\n", d.zmin, d.zmax);
+    printf("Domain x[%f %f]\n", d.xmin, d.xmax);
+    printf("Domain y[%f %f]\n", d.ymin, d.ymax);
+    printf("Domain z[%f %f]\n", d.zmin, d.zmax);
  
     t.setBox(d.xmin, d.xmax, d.ymin, d.ymax, d.zmin, d.zmax);
-    t.build(d.n, d.x, d.y, d.z, d.h);
-    // cout << "CELLS: " << t.cellCount() << endl;
+    t.build(d.n, d.x, d.y, d.z);//, d.h);
+    //cout << "CELLS: " << t.cellCount() << endl;
 }
 
-inline void findNeighbors(int i, Evrard &d, BroadTree &t)
+// inline void findNeighbors(int i, Evrard &d, BroadTree &t)
+inline void findNeighbors(int i, Evrard &d, KdTree &t)
 {
-
     t.findNeighbors(d.x[i], d.y[i], d.z[i], 2.0*d.h[i], d.ngmax, &d.ng[(long)i*d.ngmax], d.nvi[i], d.PBCx, d.PBCy, d.PBCz);
 }
 
@@ -315,13 +313,13 @@ inline void computeEOS(int i, Evrard &d)
     static const double R = 8.317e7;
 
     eos(d.ro[i], R, d.u[i], d.mui[i], d.p[i], d.temp[i], d.c[i], d.cv[i]);
+
 }
 
 //computes the timestep using the Courant condition
 inline void computeTimestep(int i, Evrard &d)
 {
     static const double CHI = 0.2;
-
     d.timestep[i] = CHI * (d.h[i]/d.c[i]);
 }
 
@@ -336,6 +334,8 @@ inline void computeH(int i, Evrard &d)
     double ka = pow((1 + c0 * NV0 / d.nvi[i]), exp);
 
     d.h[i] = d.h[i] * 0.5 * ka;
+
+
 }
 
 
@@ -349,17 +349,14 @@ inline void updateQuantities(int i, Evrard &d)
     double y = d.y[i];
     double z = d.z[i];
 
-
     // in case it is the first iteration we do something different
     if(d.iteration == 0){
-
+        t_0 = 0.0001;
         t_m1 = t_0;
 
-        d.d_u_x_m1[i] = d.d_u_x[i];
+        d.d_u_m1[i] = d.d_u[i];
         d.x_m1[i] = x - d.vx[i] * t_0;
-        d.d_u_y_m1[i] = d.d_u_y[i];
         d.y_m1[i] = y - d.vy[i] * t_0;
-        d.d_u_z_m1[i] = d.d_u_z[i];
         d.z_m1[i] = z - d.vz[i] * t_0;
     }
 
@@ -368,11 +365,19 @@ inline void updateQuantities(int i, Evrard &d)
     double ay = - (d.grad_P_y[i]); //-G * fy
     double az = - (d.grad_P_z[i]); //-G * fz
 
+    // if(d.iteration < STABILIZATION_TIMESTEPS){
+    //     ax = 0.0;
+    //     ay = 0.0;
+    //     az = 0.0;
+    // }
 
+    if (isnan(ax) || isnan(ay) || isnan(az))
+        cout << "ERROR: " << ax << ' ' << ay << ' ' << az << endl;
 
     //update positions according to Press (2nd order)
     double deltaA = t_0 + 0.5 * t_m1;
     double deltaB = 0.5 * (t_0 + t_m1);
+
     double valx = (x - d.x_m1[i]) / t_m1;
     double valy = (y - d.y_m1[i]) / t_m1;
     double valz = (z - d.z_m1[i]) / t_m1;
@@ -380,33 +385,26 @@ inline void updateQuantities(int i, Evrard &d)
     double vx = valx + ax * deltaA;
     double vy = valy + ay * deltaA;
     double vz = valz + az * deltaA;
+   
     d.vx[i] = vx;
     d.vy[i] = vy;
     d.vz[i] = vz;
     
-    d.x[i] = x + deltaA * valx + (vx - valx) * t_0 * deltaB / deltaA;
+    d.x[i] = x + t_0 * valx + (vx - valx) * t_0 * deltaB / deltaA;
     d.x_m1[i] = x;
 
-    d.y[i] = y + deltaA * valy + (vy - valy) * t_0 * deltaB / deltaA;
+    d.y[i] = y + t_0 * valy + (vy - valy) * t_0 * deltaB / deltaA;
     d.y_m1[i] = y;
 
-    d.z[i] = z + deltaA * valz + (vz - valz) * t_0 * deltaB / deltaA;
+    d.z[i] = z + t_0 * valz + (vz - valz) * t_0 * deltaB / deltaA;
     d.z_m1[i] = z;
 
     //update the energy according to Adams-Bashforth (2nd order)
     deltaA = 0.5 * t_0 * t_0 / t_m1;
     deltaB = t_0 + deltaA;
 
-    double d_u_x_local = d.d_u_x[i];
-    double d_u_y_local = d.d_u_y[i];
-    double d_u_z_local = d.d_u_z[i];
-    d.d_u_x[i] = d_u_x_local + 0.5 * d_u_x_local * deltaB - 0.5 * d.d_u_x_m1[i] * deltaA;
-    d.d_u_y[i] = d_u_z_local + 0.5 * d_u_z_local * deltaB - 0.5 * d.d_u_y_m1[i] * deltaA;
-    d.d_u_z[i] = d_u_z_local + 0.5 * d_u_z_local * deltaB - 0.5 * d.d_u_z_m1[i] * deltaA;
-
-    d.d_u_x_m1[i] = d_u_x_local;
-    d.d_u_y_m1[i] = d_u_y_local;
-    d.d_u_z_m1[i] = d_u_z_local;
+    d.u[i] = d.u[i] + 0.5 * d.d_u[i] * deltaB - 0.5 * d.d_u_m1[i] * deltaA;
+    d.d_u_m1[i] = d.d_u[i];
 
 
     //update positions
@@ -418,7 +416,25 @@ inline void updateQuantities(int i, Evrard &d)
 
 }
 
+//applies the conservation laws
+inline double conservation(Evrard &d){
+    double e_tot = 0.0;
+    double e_cin = 0.0;
+    double e_int = 0.0;
+    
 
+    #pragma omp parallel for reduction(+:e_cin,e_int)
+    for(int i=0; i<d.n; i++){
+        double vmod2 = 0.0;
+        vmod2 = d.vx[i] * d.vx[i] + d.vy[i] * d.vy[i] + d.vz[i] * d.vz[i];
+        e_cin += 0.5 * d.m[i] * vmod2;
+        e_int += d.u[i] * d.m[i];
+        
+    }
+    e_tot += e_cin + e_int;
+
+    return e_tot;
+}
 
 
 int main()
@@ -427,11 +443,15 @@ int main()
     Evrard evrard("bigfiles/Evrard3D.bin");
 
     // Tree structure
-    BroadTree tree;
+    KdTree tree;
 
-    for(int timeloop = 0; timeloop < 10; timeloop++){
 
-        cout << endl << "Building tree..." << endl;
+
+    for(int timeloop = 0; timeloop < 100; timeloop++){
+
+        cout << "Time-step : " << evrard.iteration << endl;
+
+        // cout << endl << "Building tree..." << endl;
 
         float ms = task([&]()
         {
@@ -440,7 +460,10 @@ int main()
 
         cout << "# Total Time (s) to build the tree : " << ms << endl;
 
-        cout << endl << "Finding neighbors..." << endl;
+        // cout << endl << "Finding neighbors..." << endl;
+
+        for(int i=0; i<evrard.n; i++)
+            evrard.nvi[i] = 0;
 
         ms = task_loop(evrard.n, [&](int i)
         {
@@ -449,7 +472,26 @@ int main()
 
         cout << "# Total Time (s) to find the neighbors : " << ms << endl;
 
-        cout << endl << "Computing Density..." << endl;
+        //DEBUG
+        int sum = 0;
+        for(int i=0; i<evrard.n; i++)
+            sum+= evrard.nvi[i];
+
+        cout << "# Total Number of Neighbours : " << sum << endl;
+
+
+        // cout << endl << "Conservation Laws..." << endl;
+        double e_tot = 0.0;
+
+        ms = task([&]()
+        {
+            e_tot = conservation(evrard);
+        });
+
+        cout << "# Total energy resulting from the Conservation Laws : " << e_tot << endl;
+        // END DEBUG
+
+        // cout << endl << "Computing Density..." << endl;
 
         ms = task_loop(evrard.n, [&](int i)
         {
@@ -458,7 +500,7 @@ int main()
 
         cout << "# Total Time (s) to compute the density : " << ms << endl;
 
-        cout << endl << "Computing EOS..." << endl;
+        // cout << endl << "Computing EOS..." << endl;
 
         ms = task_loop(evrard.n, [&](int i)
         {
@@ -467,16 +509,16 @@ int main()
 
         cout << "# Total Time (s) to compute the EOS : " << ms << endl;
 
-        cout << endl << "Computing Momentum..." << endl;
+        // cout << endl << "Computing Momentum..." << endl;
 
         ms = task_loop(evrard.n, [&](int i)
         {
             computeMomentum(i, evrard);
-        });
+        });     
 
         cout << "# Total Time (s) to compute the Momentum : " << ms << endl;
 
-        cout << endl << "Computing Energy..." << endl;
+        // cout << endl << "Computing Energy..." << endl;
 
         ms = task_loop(evrard.n, [&](int i)
         {
@@ -485,7 +527,7 @@ int main()
 
         cout << "# Total Time (s) to compute the Energy : " << ms << endl;
 
-        cout << endl << "Computing Timestep..." << endl;
+        // cout << endl << "Computing Timestep..." << endl;
 
         ms = task_loop(evrard.n, [&](int i)
         {
@@ -496,6 +538,10 @@ int main()
         auto it = std::min_element(evrard.timestep, evrard.timestep + evrard.n);
         int index = std::distance(evrard.timestep, it);
         double min = evrard.timestep[index];
+
+        //all particles have the same time-step so we just take the one of particle 0
+        min = std::min(min, MAX_DT_INCREASE * evrard.timestep_m1[0]);
+
         // double min = 10.0;
         //int minIndex = evrard.n + 1;
         // for (int i = 0; i < evrard.n; ++i){
@@ -510,7 +556,7 @@ int main()
         TimePoint stop1 = Clock::now();
         cout << "# Total Time (s) to compute the Timestep : " << ms + duration_cast<duration<float>>(stop1-start1).count() << endl;
 
-        cout << endl << "Computing Smoothing Length..." << endl;
+        // cout << endl << "Computing Smoothing Length..." << endl;
 
         ms = task_loop(evrard.n, [&](int i)
         {
@@ -519,7 +565,7 @@ int main()
 
         cout << "# Total Time (s) to compute the Smoothing Length : " << ms << endl;
 
-        cout << endl << "Updating Quantities..." << endl;
+        // cout << endl << "Updating Quantities..." << endl;
 
         ms = task_loop(evrard.n, [&](int i)
         {
@@ -528,21 +574,27 @@ int main()
         evrard.iteration += 1;
 
         cout << "# Total Time (s) to update the Quantities : " << ms << endl;
+
+        // cout << "t_0 : " << evrard.timestep[0] << endl;
+        // cout << "t_m1 : " << evrard.timestep_m1[0] << endl;
+
+
     // double rad = 0.0;
-    // ofstream outputFile;
-    // ostringstream oss;
-    // oss << "output" << timeloop << ".txt";
-
-    // outputFile.open(oss.str());
+        ofstream outputFile;
+        ostringstream oss;
+        oss << "output" << evrard.iteration <<".txt";
+        outputFile.open(oss.str());
     
-    // for(int i=0; i<evrard.n; i++)
-    // {
-    //     outputFile << evrard.x[i] << ' ' << evrard.y[i] << ' ' << evrard.z[i] << endl;
-    // }
+        for(int i=0; i<evrard.n; i++)
+        {
+            outputFile << evrard.x[i] << ' ' << evrard.y[i] << ' ' << evrard.z[i] << ' ' << evrard.grad_P_x[i] << ' ' << evrard.grad_P_y[i] << ' ' << evrard.grad_P_z[i] << ' ' << (evrard.vx[i] *  evrard.x[i] + evrard.vy[i] * evrard.y[i] + evrard.vz[i] * evrard.z[i]) / sqrt(evrard.x[i]*evrard.x[i] + evrard.y[i] * evrard.y[i] + evrard.z[i] * evrard.z[i]) << ' ' << sqrt(evrard.x[i]*evrard.x[i] + evrard.y[i] * evrard.y[i] + evrard.z[i] * evrard.z[i]) << ' ' << evrard.ro[i] << ' ' << endl;  
+        }
+        outputFile.close();
+        cout << endl;
 
-    // outputFile.close();
-    // cout << endl;
-    } //closes timeloop
+        } //closes timeloop
+    
 
     return 0;
 }
+
