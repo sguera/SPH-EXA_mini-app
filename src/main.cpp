@@ -269,7 +269,7 @@ inline void buildTree(Evrard &d, KdTree &t)
     printf("Domain z[%f %f]\n", d.zmin, d.zmax);
  
     t.setBox(d.xmin, d.xmax, d.ymin, d.ymax, d.zmin, d.zmax);
-    t.build(d.n, d.x, d.y, d.z);//, d.h);
+    t.build(d.n, &d.x[0], &d.y[0], &d.z[0]);//, d.h);
     //cout << "CELLS: " << t.cellCount() << endl;
 }
 
@@ -535,12 +535,12 @@ int main()
         });
         //find the minimum timestep between the ones of each particle and use that one as new timestep
         TimePoint start1 = Clock::now();
-        auto it = std::min_element(evrard.timestep, evrard.timestep + evrard.n);
-        int index = std::distance(evrard.timestep, it);
-        double min = evrard.timestep[index];
+        auto result = *std::min_element(evrard.timestep.begin(), evrard.timestep.end());
+        //int index = std::distance(evrard.timestep.begin(), it);
+        // double min = evrard.timestep[index];
 
         //all particles have the same time-step so we just take the one of particle 0
-        min = std::min(min, MAX_DT_INCREASE * evrard.timestep_m1[0]);
+        double min = std::min(result, MAX_DT_INCREASE * evrard.timestep_m1[0]);
 
         // double min = 10.0;
         //int minIndex = evrard.n + 1;
@@ -550,7 +550,7 @@ int main()
         // //        minIndex = i;
         //     }
         // }
-        std::fill_n(evrard.timestep, evrard.n, min);
+        std::fill(evrard.timestep.begin(), evrard.timestep.end(), min);
 
         //cout << "# Total Time (s) to compute the Timestep : " << ms << endl;
         TimePoint stop1 = Clock::now();
