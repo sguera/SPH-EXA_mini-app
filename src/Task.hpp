@@ -1,8 +1,13 @@
 #pragma once
 
+namespace sphexa
+{
+
 class Task
 {
 public:
-	
-	virtual void exec() = 0;
+
+	virtual void compute() = 0;
 };
+
+}

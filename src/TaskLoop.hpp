@@ -3,19 +3,19 @@
 namespace sphexa
 {
 
-class ComputeParticleTask : public Task
+class TaskLoop : public Task
 {
 public:
 
-	ComputeParticleTask(int count) : count(count) {}
+	TaskLoop(int count) : count(count) {}
 	
 	virtual void preprocess() {}
 
-	virtual void compute(int particle_id) = 0;
+	virtual void compute(int i) = 0;
 
 	virtual void postprocess() {}
 
-	void exec()
+	virtual void compute()
 	{
 		preprocess();
 

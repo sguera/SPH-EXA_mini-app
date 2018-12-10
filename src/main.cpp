@@ -1,47 +1,65 @@
 #include <iostream>
+#include <functional>
 
 #include "TaskScheduler.hpp"
-#include "ComputeTask.hpp"
-#include "ComputeParticleTask.hpp"
+#include "TaskLoop.hpp"
 #include "Evrard.hpp"
 #include "BBox.hpp"
-
+#include "Density.hpp"
+#include "EOS.hpp"
+#include "Momentum.hpp"
 #include "tree/Octree.hpp"
 
 using namespace std;
 using namespace sphexa;
 
-template<class TreeType>
-class BuildTree : public ComputeTask
+// template<class TreeType>
+// class BuildTree : public ComputeTask
+// {
+// public:
+//     BuildTree(const BBox &bbox, TreeType &tree) : 
+//         tree(tree), bbox(bbox) {}
+
+//     virtual void compute()
+//     {
+//         tree.build(bbox);
+//     }
+
+//     const BBox &bbox;
+//     TreeType &tree;
+// };
+
+// template<class TreeType>
+// class FindNeighbors : public ComputeParticleTask
+// {
+// public:
+//     FindNeighbors(const TreeType &tree, std::vector<std::vector<int>> &neighbors) : 
+//         ComputeParticleTask(neighbors.size()), tree(tree), neighbors(neighbors) {}
+
+//     virtual void compute(int i)
+//     {
+//         neighbors[i].resize(0);
+//         tree.findNeighbors(i, neighbors[i]);
+//     }
+
+//     const TreeType &tree;
+//     std::vector<std::vector<int>> &neighbors;
+// };
+
+class LambdaTask : public Task
 {
 public:
-    BuildTree(const BBox &bbox, TreeType &tree) : 
-        tree(tree), bbox(bbox) {}
-
-    virtual void compute()
-    {
-        tree.build(bbox);
-    }
-
-    const BBox &bbox;
-    TreeType &tree;
+	LambdaTask(const std::function<void()> func) : func(func) {}
+	virtual void compute() { func(); }
+	const std::function<void()> func; 
 };
 
-template<class TreeType>
-class FindNeighbors : public ComputeParticleTask
+class LambdaTaskLoop : public TaskLoop
 {
 public:
-    FindNeighbors(const TreeType &tree, std::vector<std::vector<int>> &neighbors) : 
-        ComputeParticleTask(neighbors.size()), tree(tree), neighbors(neighbors) {}
-
-    virtual void compute(int i)
-    {
-        neighbors[i].resize(0);
-        tree.findNeighbors(i, neighbors[i]);
-    }
-
-    const TreeType &tree;
-    std::vector<std::vector<int>> &neighbors;
+    LambdaTaskLoop(int n, const std::function<void(int i)> func) : TaskLoop(n), func(func) {}
+    virtual void compute(int i) { func(i); }
+    const std::function<void(int i)> func; 
 };
 
 int main()
@@ -51,14 +69,50 @@ int main()
 
     // Dataset: contains arrays (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
     Dataset d("bigfiles/Evrard3D.bin");
+
     Tree tree(d.x, d.y, d.z, d.h, Tree::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
 
-    BuildTree<Tree> tbuild(d.bbox, tree);
-    FindNeighbors<Tree> tfind(tree, d.neighbors);
+    LambdaTask tbuild([&]()
+    {
+        tree.build(d.bbox);
+    });
+
+    LambdaTaskLoop tfind(d.n, [&](int i)
+    {
+        d.neighbors[i].resize(0);
+        tree.findNeighbors(i, d.neighbors[i]);
+    });
+
+    LambdaTask tprintBBox([&]()
+    { 
+        cout << "### Check ### Computational domain: ";
+        cout << d.bbox.xmin << " " << d.bbox.xmax << " ";
+        cout << d.bbox.ymin << " " << d.bbox.ymax << " ";
+        cout << d.bbox.zmin << " " << d.bbox.zmax << endl;
+    });
+
+    LambdaTask tcheckNeighbors([&]()
+    { 
+        int sum = 0;
+        for(int i=0; i<d.neighbors.size(); i++)
+            sum += d.neighbors[i].size();
+        cout << "### Check ### Total Number of Neighbours : " << sum << endl;
+    });
+
+    Density<double> tdensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
+    EOS<double> teos(d.ro, d.u, d.mui, d.p, d.temp, d.c, d.cv);
+    Momentum<double> tmomentum(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z);
+
+    // TaskScheduler::Params(/*show time=yes*/1, /*name*/"TaskName"));
 
     TaskScheduler taskSched;
-    taskSched.add(&tbuild);
-    taskSched.add(&tfind);
+    taskSched.add(&tprintBBox);
+    taskSched.add(&tbuild, TaskScheduler::Params(1, "BuildTree"));
+    taskSched.add(&tfind, TaskScheduler::Params(1, "FindNeighbors"));
+    taskSched.add(&tcheckNeighbors);
+    taskSched.add(&tdensity, TaskScheduler::Params(1, "Density"));
+    taskSched.add(&teos, TaskScheduler::Params(1, "EOS"));
+    taskSched.add(&tmomentum, TaskScheduler::Params(1, "Momentum"));
 
     for(int timeloop = 0; timeloop < 1; timeloop++)
     {
