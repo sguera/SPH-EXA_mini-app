@@ -1,8 +1,6 @@
 #ifndef EVRARD_HPP
 #define EVRARD_HPP
 
-using namespace std;
-
 class Evrard
 {
     public:
@@ -162,26 +160,26 @@ class Evrard
         ~Evrard(){}
 
     int n; // Number of particles
-    vector<double> x, y, z, x_m1, y_m1, z_m1; // Positions
-    vector<double> vx, vy, vz; // Velocities
-    vector<double> ro; // Density
-    vector<double> u; // Internal Energy
-    vector<double> p; // Pressure
-    vector<double> h; // Smoothing Length
-    vector<double> m; // Mass
-    vector<double> c; // Speed of sound
-    vector<double> cv; // Specific heat
-    vector<double> temp; // Temperature
-    vector<double> mue; // Mean molecular weigh of electrons
-    vector<double> mui; // Mean molecular weight of ions
+    std::vector<double> x, y, z, x_m1, y_m1, z_m1; // Positions
+    std::vector<double> vx, vy, vz; // Velocities
+    std::vector<double> ro; // Density
+    std::vector<double> u; // Internal Energy
+    std::vector<double> p; // Pressure
+    std::vector<double> h; // Smoothing Length
+    std::vector<double> m; // Mass
+    std::vector<double> c; // Speed of sound
+    std::vector<double> cv; // Specific heat
+    std::vector<double> temp; // Temperature
+    std::vector<double> mue; // Mean molecular weigh of electrons
+    std::vector<double> mui; // Mean molecular weight of ions
 
-    vector<double> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
-    vector<double> d_u, d_u_m1; //variation of the energy
-    vector<double> timestep, timestep_m1;
+    std::vector<double> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
+    std::vector<double> d_u, d_u_m1; //variation of the energy
+    std::vector<double> timestep, timestep_m1;
 
     int ngmax = 150; // Maximum number of neighbors per particle
-    vector<int> nvi; // Number of neighbors per particle
-    vector<int> ng; // List of neighbor indices per particle.
+    std::vector<int> nvi; // Number of neighbors per particle
+    std::vector<int> ng; // List of neighbor indices per particle.
 
     // Periodic boundary conditions
     bool PBCx = false, PBCy = false, PBCz = false;

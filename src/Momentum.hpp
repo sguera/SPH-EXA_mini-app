@@ -66,7 +66,7 @@ Momentum : public computeParticleTask {
 			T momentum_z = 0.0;
 
 
-			for(int j=0; j<d.nvi[i]; j++) {
+			for(int j=0; j<d.nvi[particle_id]; j++) {
 
 				// retrive the id of a neighbor
 	        	N neigh_id = ng[particle_id*ngmax+j];
@@ -92,7 +92,7 @@ Momentum : public computeParticleTask {
 
 		        T r_square = (r_ijx * r_ijx) + (r_ijy * r_ijy) + (r_ijz * r_ijz);
 
-		        T viscosity_ij = artificial_viscosity(ro_i, ro_j, h[i], h[neigh_id], c[particle_id], c[neigh_id], rv, r_square);
+		        T viscosity_ij = artificial_viscosity(ro_i, ro_j, h[particle_id], h[neigh_id], c[particle_id], c[neigh_id], rv, r_square);
 
 		        T r_ij = sqrt(r_square);
 		        T v_i = r_ij / h_i;
