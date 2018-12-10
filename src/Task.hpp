@@ -2,8 +2,7 @@
 
 class Task
 {
-
 public:
 	
-	virtual exec() = 0;
-}
+	virtual void exec() = 0;
+};

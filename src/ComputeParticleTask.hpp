@@ -1,34 +1,33 @@
 #pragma once
 
-class ComputeParticleTask : public Task
+namespace sphexa
 {
 
-	public:
+class ComputeParticleTask : public Task
+{
+public:
 
-		ComputeParticleTask(int size){
-			size = size;
-		}
-		
-		virtual preprocess(){}
+	ComputeParticleTask(int count) : count(count) {}
+	
+	virtual void preprocess() {}
 
-		virtual compute(int particle_id) = 0;
+	virtual void compute(int particle_id) = 0;
 
-		virtual postprocesss() {}
+	virtual void postprocess() {}
 
-		void exec(){
+	void exec()
+	{
+		preprocess();
 
-			preprocess();
+		#pragma omp parallel for
+		for(int i = 0; i<count; ++i)
+			compute(i);
 
-			#pragma omp parallel for
-			for (i = 0; i < size; ++i) {
-				compute(i);
-			}
+		postprocess();
+	}
 
-			postprocess();
-			
-		}
-
-	private:
-		int size;
+private:
+	int count;
+};
 
 }

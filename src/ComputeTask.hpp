@@ -1,14 +1,15 @@
 #pragma once
 
+#include "Task.hpp"
+
 class ComputeTask : public Task
 {
-
 public:
 	
-	virtual compute() = 0;
+	virtual void compute() = 0;
 
-	void exec(){
-
+	void exec()
+	{
 		compute();
 	}
-}
+};
