@@ -136,9 +136,9 @@ int main()
     taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "CheckConservation"));
     taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
 
-    for(int timeloop = 0; timeloop < 2; timeloop++)
+    for(d.iteration = 0; d.iteration < 2; d.iteration++)
     {
-        cout << "Iteration: " << timeloop << endl;
+        cout << "Iteration: " << d.iteration << endl;
         taskSched.exec();
         cout << endl;
     }
