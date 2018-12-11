@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <functional>
 
 #include "TaskScheduler.hpp"
@@ -132,6 +134,26 @@ int main()
         cout << "### Check ### Total energy: " << e_tot << ", (internal: " << e_int << ", cinetic: " << e_cin << ")" << endl;
     });
 
+    LambdaTask twriteFile([&]()
+    {
+        ofstream outputFile;
+        ostringstream oss;
+        oss << "output" << d.iteration << ".txt";
+        outputFile.open(oss.str());
+    
+        for(int i=0; i<d.n; i++)
+        {
+            outputFile << d.x[i] << ' ' << d.y[i] << ' ' << d.z[i] << ' ';
+            outputFile << d.vx[i] << ' ' << d.vy[i] << ' ' << d.vz[i] << ' ';
+            outputFile << d.h[i] << ' ' << d.ro[i] << ' ' << d.u[i] << ' ' << d.p[i] << ' ' << d.c[i] << ' ';
+            outputFile << d.grad_P_x[i] << ' ' << d.grad_P_y[i] << ' ' << d.grad_P_z[i] << ' ';
+            double rad = sqrt(d.x[i] * d.x[i] + d.y[i] * d.y[i] + d.z[i] * d.z[i]);
+            double vrad = (d.vx[i] *  d.x[i] + d.vy[i] * d.y[i] + d.vz[i] * d.z[i]) / rad;
+            outputFile << rad << ' ' << vrad << endl;  
+        }
+        outputFile.close();
+    });
+
     TaskScheduler taskSched;
     taskSched.add(&tprintBBox);
     taskSched.add(&tbuild, TaskScheduler::Params(1, "BuildTree"));
@@ -145,12 +167,14 @@ int main()
     taskSched.add(&tcheckTimestep, TaskScheduler::Params(1, "Update Time-step"));
     taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
     taskSched.add(&tupdate, TaskScheduler::Params(1, "UpdateQuantities"));
-    taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "checkConservation"));
+    taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "CheckConservation"));
+    taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
 
     for(int timeloop = 0; timeloop < 2; timeloop++)
     {
         cout << "Iteration: " << timeloop << endl;
         taskSched.exec();
+        cout << endl;
     }
 
     return 0;
