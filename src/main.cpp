@@ -41,12 +41,17 @@ int main()
     // Dataset: contains arrays (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
     Dataset d(1e6, "bigfiles/Evrard3D.bin");
 
-    //Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
-    HTree<double> tree(d.x, d.y, d.z, d.h, HTree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    //HTree<double> tree(d.x, d.y, d.z, d.h, HTree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
 
     LambdaTask tbuild([&]()
     {
         tree.build(d.bbox);
+    });
+
+    LambdaTask treorder([&]()
+    {
+        d.reorder(*tree.ordering);
     });
 
     LambdaTaskLoop tfind(d.n, [&](int i)
@@ -125,6 +130,7 @@ int main()
     TaskScheduler taskSched;
     taskSched.add(&tprintBBox);
     taskSched.add(&tbuild, TaskScheduler::Params(1, "BuildTree"));
+    taskSched.add(&treorder, TaskScheduler::Params(1, "Reorder"));
     taskSched.add(&tfind, TaskScheduler::Params(1, "FindNeighbors"));
     taskSched.add(&tcheckNeighbors, TaskScheduler::Params(1, "CheckNeighbors"));
     taskSched.add(&tdensity, TaskScheduler::Params(1, "Compute Density"));

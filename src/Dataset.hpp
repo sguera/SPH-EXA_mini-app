@@ -10,6 +10,10 @@ namespace sphexa
 class Dataset
 {
 public:
+
+    Dataset() = delete;
+    ~Dataset() = default;
+
     Dataset(int n, const char *filename) : 
     	n(n), x(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
     	ro(n), u(n), p(n), h(n), m(n), c(n), cv(n), temp(n), mue(n), mui(n), 
@@ -62,7 +66,44 @@ public:
         iteration = 0;
     }
 
-    ~Dataset() {}
+    template<typename T>
+    void reorderSwap(const std::vector<int> &ordering, std::vector<T> &data)
+    {
+        std::vector<T> tmp(ordering.size());
+        for(unsigned int i=0; i<ordering.size(); i++)
+            tmp[i] = data[ordering[i]];
+        data.swap(tmp);
+    }
+
+    void reorder(const std::vector<int> &ordering)
+    {
+        reorderSwap(ordering, x);
+        reorderSwap(ordering, y);
+        reorderSwap(ordering, z);
+        reorderSwap(ordering, x_m1);
+        reorderSwap(ordering, y_m1);
+        reorderSwap(ordering, z_m1);
+        reorderSwap(ordering, vx);
+        reorderSwap(ordering, vy);
+        reorderSwap(ordering, vz);
+        reorderSwap(ordering, ro);
+        reorderSwap(ordering, u);
+        reorderSwap(ordering, p);
+        reorderSwap(ordering, h);
+        reorderSwap(ordering, m);
+        reorderSwap(ordering, c);
+        reorderSwap(ordering, cv);
+        reorderSwap(ordering, temp);
+        reorderSwap(ordering, mue);
+        reorderSwap(ordering, mui);
+        reorderSwap(ordering, grad_P_x);
+        reorderSwap(ordering, grad_P_y);
+        reorderSwap(ordering, grad_P_z);
+        reorderSwap(ordering, du);
+        reorderSwap(ordering, du_m1);
+        reorderSwap(ordering, dt);
+        reorderSwap(ordering, dt_m1);
+    }
 
     int n; // Number of particles
     std::vector<double> x, y, z, x_m1, y_m1, z_m1; // Positions
