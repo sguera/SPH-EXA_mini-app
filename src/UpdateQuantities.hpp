@@ -28,16 +28,16 @@ public:
 	virtual void compute(int i)
 	{
 		int stabilization_timesteps = params.STABILIZATION_TIMESTEPS;
-		double t_m1 = dt_m1[i];
-	    double t_0 = dt[i];
-	    double x_loc = x[i];
-	    double y_loc = y[i];
-	    double z_loc = z[i];
+		T t_m1 = dt_m1[i];
+	    T t_0 = dt[i];
+	    T x_loc = x[i];
+	    T y_loc = y[i];
+	    T z_loc = z[i];
 
 	    // ADD COMPONENT DUE TO THE GRAVITY HERE
-	    double ax = - (grad_P_x[i]); //-G * fx
-	    double ay = - (grad_P_y[i]); //-G * fy
-	    double az = - (grad_P_z[i]); //-G * fz
+	    T ax = - (grad_P_x[i]); //-G * fx
+	    T ay = - (grad_P_y[i]); //-G * fy
+	    T az = - (grad_P_z[i]); //-G * fz
 
 	    if(iteration < stabilization_timesteps)
 	    {
@@ -50,16 +50,16 @@ public:
 	        std::cout << "ERROR: " << ax << ' ' << ay << ' ' << az << std::endl;
 
 	    //update positions according to Press (2nd order)
-	    double deltaA = t_0 + 0.5 * t_m1;
-	    double deltaB = 0.5 * (t_0 + t_m1);
+	    T deltaA = t_0 + 0.5 * t_m1;
+	    T deltaB = 0.5 * (t_0 + t_m1);
 
-	    double valx = (x_loc - x_m1[i]) / t_m1;
-	    double valy = (y_loc - y_m1[i]) / t_m1;
-	    double valz = (z_loc - z_m1[i]) / t_m1;
+	    T valx = (x_loc - x_m1[i]) / t_m1;
+	    T valy = (y_loc - y_m1[i]) / t_m1;
+	    T valz = (z_loc - z_m1[i]) / t_m1;
 
-	    double vx_loc = valx + ax * deltaA;
-	    double vy_loc = valy + ay * deltaA;
-	    double vz_loc = valz + az * deltaA;
+	    T vx_loc = valx + ax * deltaA;
+	    T vy_loc = valy + ay * deltaA;
+	    T vz_loc = valz + az * deltaA;
    
 	    vx[i] = vx_loc;
 	    vy[i] = vy_loc;
