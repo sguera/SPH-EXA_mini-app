@@ -39,8 +39,8 @@ public:
         grad_P_y.resize(n);
         grad_P_z.resize(n);
 
-        d_u.resize(n);
-        d_u_m1.resize(n);
+        du.resize(n);
+        du_m1.resize(n);
 
         dt.resize(n);
         dt_m1.resize(n);
@@ -107,8 +107,8 @@ public:
         std::fill(grad_P_y.begin(), grad_P_y.end(), 0.0);
         std::fill(grad_P_z.begin(), grad_P_z.end(), 0.0);
 
-        std::fill(d_u.begin(), d_u.end(), 0.0);
-        std::fill(d_u_m1.begin(), d_u_m1.end(), 0.0);
+        std::fill(du.begin(), du.end(), 0.0);
+        std::fill(du_m1.begin(), du_m1.end(), 0.0);
 
         std::fill(dt.begin(), dt.end(), 0.0001);
         std::fill(dt_m1.begin(), dt_m1.end(), 0.0001);
@@ -117,7 +117,7 @@ public:
         {
             x_m1[i] = x[i] - vx[i] * dt[0];
             y_m1[i] = y[i] - vy[i] * dt[0];
-            y_m1[i] = y[i] - vy[i] * dt[0];
+            z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
         iteration = 0;
@@ -140,7 +140,7 @@ public:
     std::vector<double> mui; // Mean molecular weight of ions
 
     std::vector<double> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
-    std::vector<double> d_u, d_u_m1; //variation of the energy
+    std::vector<double> du, du_m1; //variation of the energy
     std::vector<double> dt, dt_m1;
 
     int ngmax = 150; // Maximum number of neighbors per particle

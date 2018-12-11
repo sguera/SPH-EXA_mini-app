@@ -12,6 +12,7 @@
 #include "Energy.hpp"
 #include "Timestep.hpp"
 #include "H.hpp"
+#include "UpdateQuantities.hpp"
 
 using namespace std;
 using namespace sphexa;
@@ -102,7 +103,7 @@ int main()
     Density<double> tdensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
     EOS<double> teos(d.ro, d.u, d.mui, d.p, d.temp, d.c, d.cv);
     Momentum<double> tmomentum(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z);
-    Energy<double> tenergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.u);
+    Energy<double> tenergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.du);
     Timestep<double> ttimestep(d.h, d.c, d.dt_m1, d.dt);
 
     LambdaTask tcheckTimestep([&]()
@@ -110,7 +111,9 @@ int main()
         cout << "### Check ### Oldime-step: " << d.dt_m1[0] << ", New time-step: " << d.dt[0] << endl;
     });
 
-    H<double> tH(d.neighbors, d.h, H<double>::Params(/*TARGET No of neighbors*/100));
+    H<double> tH(d.neighbors, d.h, H<double>::Params(/*Target No of neighbors*/100));
+
+    UpdateQuantities<double> tupdate(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
 
     LambdaTask tcheckConservation([&]()
     { 
@@ -141,9 +144,10 @@ int main()
     taskSched.add(&ttimestep, TaskScheduler::Params(1, "Update Time-step"));
     taskSched.add(&tcheckTimestep, TaskScheduler::Params(1, "Update Time-step"));
     taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
+    taskSched.add(&tupdate, TaskScheduler::Params(1, "UpdateQuantities"));
     taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "checkConservation"));
 
-    for(int timeloop = 0; timeloop < 1; timeloop++)
+    for(int timeloop = 0; timeloop < 2; timeloop++)
     {
         cout << "Iteration: " << timeloop << endl;
         taskSched.exec();

@@ -21,8 +21,8 @@ public:
 		const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, 
 		const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m, 
 		const std::vector<std::vector<int>> &neighbors, 
-		ArrayT &u, Params params = Params()) : 
-	TaskLoop(x.size()), x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors), u(u), params(params) {}
+		ArrayT &du, Params params = Params()) : 
+	TaskLoop(x.size()), x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors), du(du), params(params) {}
 
 	virtual void compute(int i)
 	{
@@ -81,7 +81,7 @@ public:
 	        energy +=  m_j * (1 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
 	    }
 
-    	u[i] =  energy * (-p_i/(gradh_i * ro_i * ro_i));
+    	du[i] =  energy * (-p_i/(gradh_i * ro_i * ro_i));
 
 	}
 
@@ -90,7 +90,7 @@ private:
 	const ArrayT &x, &y, &z, &vx, &vy, &vz, &ro, &p, &h, &c, &m;
 	const std::vector<std::vector<int>> &neighbors;
 
-	ArrayT &u;
+	ArrayT &du;
 
 	Params params;
 };
