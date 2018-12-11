@@ -42,8 +42,8 @@ public:
         d_u.resize(n);
         d_u_m1.resize(n);
 
-        timestep.resize(n);
-        timestep_m1.resize(n);
+        dt.resize(n);
+        dt_m1.resize(n);
 
         neighbors.resize(n);
         for(auto i : neighbors)
@@ -87,8 +87,8 @@ public:
         //     d_u = new double[n]();
         //     d_u_m1 = new double[n]();
 
-        //     timestep = new double[n]();
-        //     timestep_m1 = new double[n]();
+        //     dt = new double[n]();
+        //     dt_m1 = new double[n]();
 
         //     ng = new int[n*ngmax];
 
@@ -139,8 +139,8 @@ public:
         std::fill(d_u.begin(), d_u.end(), 0.0);
         std::fill(d_u_m1.begin(), d_u_m1.end(), 0.0);
 
-        std::fill(timestep.begin(), timestep.end(), 0.0);
-        std::fill(timestep_m1.begin(), timestep_m1.end(), 0.0);
+        std::fill(dt.begin(), dt.end(), 0.0);
+        std::fill(dt_m1.begin(), dt_m1.end(), 0.0);
 
         iteration = 0;
     }
@@ -163,7 +163,7 @@ public:
 
     std::vector<double> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
     std::vector<double> d_u, d_u_m1; //variation of the energy
-    std::vector<double> timestep, timestep_m1;
+    std::vector<double> dt, dt_m1;
 
     int ngmax = 150; // Maximum number of neighbors per particle
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.

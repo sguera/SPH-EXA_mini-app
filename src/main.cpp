@@ -8,6 +8,8 @@
 #include "Density.hpp"
 #include "EOS.hpp"
 #include "Momentum.hpp"
+#include "Energy.hpp"
+#include "Timestep.hpp"
 #include "tree/Octree.hpp"
 
 using namespace std;
@@ -64,13 +66,10 @@ public:
 
 int main()
 {
-    typedef Evrard Dataset;
-    typedef Octree<double> Tree;
-
     // Dataset: contains arrays (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
-    Dataset d("bigfiles/Evrard3D.bin");
+    Evrard d("bigfiles/Evrard3D.bin");
 
-    Tree tree(d.x, d.y, d.z, d.h, Tree::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
 
     LambdaTask tbuild([&]()
     {
@@ -102,6 +101,8 @@ int main()
     Density<double> tdensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
     EOS<double> teos(d.ro, d.u, d.mui, d.p, d.temp, d.c, d.cv);
     Momentum<double> tmomentum(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z);
+    Energy<double> tenergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.u);
+    Timestep<double> ttimestep(d.h, d.c, d.dt_m1, d.dt);
 
     // TaskScheduler::Params(/*show time=yes*/1, /*name*/"TaskName"));
 
@@ -110,9 +111,10 @@ int main()
     taskSched.add(&tbuild, TaskScheduler::Params(1, "BuildTree"));
     taskSched.add(&tfind, TaskScheduler::Params(1, "FindNeighbors"));
     taskSched.add(&tcheckNeighbors);
-    taskSched.add(&tdensity, TaskScheduler::Params(1, "Density"));
-    taskSched.add(&teos, TaskScheduler::Params(1, "EOS"));
-    taskSched.add(&tmomentum, TaskScheduler::Params(1, "Momentum"));
+    taskSched.add(&tdensity, TaskScheduler::Params(1, "Compute Density"));
+    taskSched.add(&teos, TaskScheduler::Params(1, "Compute EOS"));
+    taskSched.add(&tmomentum, TaskScheduler::Params(1, "Compute Momentum"));
+    taskSched.add(&tenergy, TaskScheduler::Params(1, "Compute Timestep"));
 
     for(int timeloop = 0; timeloop < 1; timeloop++)
     {

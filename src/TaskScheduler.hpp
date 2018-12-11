@@ -50,10 +50,10 @@ public:
 			totalTime += ms;
 
 			if(params[i].verbose)
-				std::cout << "# " << params[i].name << ": total time " << ms << "ms" << std::endl;
+				std::cout << "# " << params[i].name << ": total time " << ms << "s" << std::endl;
 		}
 
-		std::cout << "=== Total time for iteration " << totalTime << "ms" <<std::endl;
+		std::cout << "=== Total time for iteration " << totalTime << "s" <<std::endl;
 	}
 
 private:
