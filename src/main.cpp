@@ -5,8 +5,9 @@
 
 #include "TaskScheduler.hpp"
 #include "TaskLoop.hpp"
-#include "Evrard.hpp"
+#include "Dataset.hpp"
 #include "tree/Octree.hpp"
+#include "tree/HTree.hpp"
 #include "BBox.hpp"
 #include "Density.hpp"
 #include "EOS.hpp"
@@ -38,9 +39,10 @@ public:
 int main()
 {
     // Dataset: contains arrays (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
-    Evrard d("bigfiles/Evrard3D.bin");
+    Dataset d(1e6, "bigfiles/Evrard3D.bin");
 
-    Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    //Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    HTree<double> tree(d.x, d.y, d.z, d.h, HTree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
 
     LambdaTask tbuild([&]()
     {

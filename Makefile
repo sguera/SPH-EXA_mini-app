@@ -10,7 +10,7 @@ BINDIR := bin
 HPP := $(wildcard src/*.hpp)
 HPP += $(wildcard src/tree/*.hpp)
 
-CFLAGS := -g -std=c++14 -O3 -Wall -Wextra -fopenmp -march=native -mtune=native
+CFLAGS := -g -std=c++14 -O2 -Wall -Wextra -fopenmp -march=native -mtune=native
 LIB := 
 INC := -I include
 

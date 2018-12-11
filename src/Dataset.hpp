@@ -11,7 +11,7 @@ class Dataset
 {
 public:
     Dataset(int n, const char *filename) : 
-    	n(n), x.resize(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
+    	n(n), x(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
     	ro(n), u(n), p(n), h(n), m(n), c(n), cv(n), temp(n), mue(n), mui(n), 
     	grad_P_x(n), grad_P_y(n), grad_P_z(n), 
     	du(n), du_m1(n), dt(n), dt_m1(n), neighbors(n)
@@ -23,17 +23,17 @@ public:
         std::ifstream inputfile(filename, std::ios::binary);
 
         // read the contents of the file into the vectors
-        inputfile.read(reinterpret_cast<double>(x.data()), x.size());
-        inputfile.read(reinterpret_cast<double>(y.data()), y.size());
-        inputfile.read(reinterpret_cast<double>(z.data()), z.size());
-        inputfile.read(reinterpret_cast<double>(vx.data()), vx.size());
-        inputfile.read(reinterpret_cast<double>(vy.data()), vy.size());
-        inputfile.read(reinterpret_cast<double>(vz.data()), vz.size());
-        inputfile.read(reinterpret_cast<double>(ro.data()), ro.size());
-        inputfile.read(reinterpret_cast<double>(u.data()), u.size());
-        inputfile.read(reinterpret_cast<double>(p.data()), p.size());
-        inputfile.read(reinterpret_cast<double>(h.data()), h.size());
-        inputfile.read(reinterpret_cast<double>(m.data()), m.size());
+        inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(double)*x.size());
+        inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(double)*y.size());
+        inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(double)*z.size());
+        inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(double)*vx.size());
+        inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(double)*vy.size());
+        inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(double)*vz.size());
+        inputfile.read(reinterpret_cast<char*>(ro.data()), sizeof(double)*ro.size());
+        inputfile.read(reinterpret_cast<char*>(u.data()), sizeof(double)*u.size());
+        inputfile.read(reinterpret_cast<char*>(p.data()), sizeof(double)*p.size());
+        inputfile.read(reinterpret_cast<char*>(h.data()), sizeof(double)*h.size());
+        inputfile.read(reinterpret_cast<char*>(m.data()), sizeof(double)*m.size());
 
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(mue.begin(), mue.end(), 2.0);
