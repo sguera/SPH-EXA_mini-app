@@ -65,34 +65,6 @@ public:
             fread(&m[0], sizeof(double), n, f);
 
             fclose(f);
-
-        //     #pragma omp parallel for
-        //     for(int i=0; i<n; i++)
-        //     {
-        //         temp[i] = 1.0;
-        //         mue[i] = 2.0;
-        //         mui[i] = 10.0;
-        //         vx[i] = 0.0;
-        //         vy[i] = 0.0;
-        //         vz[i] = 0.0;
-        //     }
-
-        //     ngmax = 150;
-        //     nvi = new int[n](); //adding the () at the end equals to a memset to 0
-            
-        //     grad_P_x = new double[n]();
-        //     grad_P_y = new double[n]();
-        //     grad_P_z = new double[n]();
-
-        //     d_u = new double[n]();
-        //     d_u_m1 = new double[n]();
-
-        //     dt = new double[n]();
-        //     dt_m1 = new double[n]();
-
-        //     ng = new int[n*ngmax];
-
-        //     iteration = 0;
         }
         else
         {
@@ -131,16 +103,22 @@ public:
         std::fill(vy.begin(), vy.end(), 0.0);
         std::fill(vz.begin(), vz.end(), 0.0);
 
-        // fill(grad_P_x.begin(), grad_P_x.end(), 0.0);
+        std::fill(grad_P_x.begin(), grad_P_x.end(), 0.0);
         std::fill(grad_P_y.begin(), grad_P_y.end(), 0.0);
         std::fill(grad_P_z.begin(), grad_P_z.end(), 0.0);
 
-        
         std::fill(d_u.begin(), d_u.end(), 0.0);
         std::fill(d_u_m1.begin(), d_u_m1.end(), 0.0);
 
-        std::fill(dt.begin(), dt.end(), 0.0);
-        std::fill(dt_m1.begin(), dt_m1.end(), 0.0);
+        std::fill(dt.begin(), dt.end(), 0.0001);
+        std::fill(dt_m1.begin(), dt_m1.end(), 0.0001);
+
+        for(unsigned int i=0; i<n; i++)
+        {
+            x_m1[i] = x[i] - vx[i] * dt[0];
+            y_m1[i] = y[i] - vy[i] * dt[0];
+            y_m1[i] = y[i] - vy[i] * dt[0];
+        }
 
         iteration = 0;
     }

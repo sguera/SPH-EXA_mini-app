@@ -1,30 +1,3 @@
-//         ms = task_loop(evrard.n, [&](int i)
-//         {
-//             computeTimestep(i, evrard);
-//         });
-//         //find the minimum timestep between the ones of each particle and use that one as new timestep
-//         TimePoint start1 = Clock::now();
-//         auto result = *std::min_element(evrard.timestep.begin(), evrard.timestep.end());
-//         //int index = std::distance(evrard.timestep.begin(), it);
-//         // double min = evrard.timestep[index];
-
-//         //all particles have the same time-step so we just take the one of particle 0
-//         double min = std::min(result, MAX_DT_INCREASE * evrard.timestep_m1[0]);
-
-//         // double min = 10.0;
-//         //int minIndex = evrard.n + 1;
-//         // for (int i = 0; i < evrard.n; ++i){
-//         //     if (evrard.timestep[i] < min){
-//         //         min = evrard.timestep[i];
-//         // //        minIndex = i;
-//         //     }
-//         // }
-//         std::fill(evrard.timestep.begin(), evrard.timestep.end(), min);
-
-//         //cout << "# Total Time (s) to compute the Timestep : " << ms << endl;
-//         TimePoint stop1 = Clock::now();
-//         cout << "# Total Time (s) to compute the Timestep : " << ms + duration_cast<duration<float>>(stop1-start1).count() << endl;
-
 #pragma once
 
 #include <vector>

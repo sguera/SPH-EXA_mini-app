@@ -4,13 +4,14 @@
 #include "TaskScheduler.hpp"
 #include "TaskLoop.hpp"
 #include "Evrard.hpp"
+#include "tree/Octree.hpp"
 #include "BBox.hpp"
 #include "Density.hpp"
 #include "EOS.hpp"
 #include "Momentum.hpp"
 #include "Energy.hpp"
 #include "Timestep.hpp"
-#include "tree/Octree.hpp"
+#include "H.hpp"
 
 using namespace std;
 using namespace sphexa;
@@ -95,7 +96,7 @@ int main()
         int sum = 0;
         for(int i=0; i<d.neighbors.size(); i++)
             sum += d.neighbors[i].size();
-        cout << "### Check ### Total Number of Neighbours : " << sum << endl;
+        cout << "### Check ### Total number of neighbours: " << sum << endl;
     });
 
     Density<double> tdensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
@@ -104,17 +105,43 @@ int main()
     Energy<double> tenergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.u);
     Timestep<double> ttimestep(d.h, d.c, d.dt_m1, d.dt);
 
-    // TaskScheduler::Params(/*show time=yes*/1, /*name*/"TaskName"));
+    LambdaTask tcheckTimestep([&]()
+    { 
+        cout << "### Check ### Oldime-step: " << d.dt_m1[0] << ", New time-step: " << d.dt[0] << endl;
+    });
+
+    H<double> tH(d.neighbors, d.h, H<double>::Params(/*TARGET No of neighbors*/100));
+
+    LambdaTask tcheckConservation([&]()
+    { 
+        double e_tot = 0.0, e_cin = 0.0, e_int = 0.0;
+
+        for(int i=0; i<d.n; i++)
+        {
+            double vmod2 = 0.0;
+            vmod2 = d.vx[i] * d.vx[i] + d.vy[i] * d.vy[i] + d.vz[i] * d.vz[i];
+            e_cin += 0.5 * d.m[i] * vmod2;
+            e_int += d.u[i] * d.m[i]; 
+        }
+
+        e_tot += e_cin + e_int;
+    
+        cout << "### Check ### Total energy: " << e_tot << ", (internal: " << e_int << ", cinetic: " << e_cin << ")" << endl;
+    });
 
     TaskScheduler taskSched;
     taskSched.add(&tprintBBox);
     taskSched.add(&tbuild, TaskScheduler::Params(1, "BuildTree"));
     taskSched.add(&tfind, TaskScheduler::Params(1, "FindNeighbors"));
-    taskSched.add(&tcheckNeighbors);
+    taskSched.add(&tcheckNeighbors, TaskScheduler::Params(1, "CheckNeighbors"));
     taskSched.add(&tdensity, TaskScheduler::Params(1, "Compute Density"));
     taskSched.add(&teos, TaskScheduler::Params(1, "Compute EOS"));
     taskSched.add(&tmomentum, TaskScheduler::Params(1, "Compute Momentum"));
-    taskSched.add(&tenergy, TaskScheduler::Params(1, "Compute Timestep"));
+    taskSched.add(&tenergy, TaskScheduler::Params(1, "Compute Energy"));
+    taskSched.add(&ttimestep, TaskScheduler::Params(1, "Update Time-step"));
+    taskSched.add(&tcheckTimestep, TaskScheduler::Params(1, "Update Time-step"));
+    taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
+    taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "checkConservation"));
 
     for(int timeloop = 0; timeloop < 1; timeloop++)
     {

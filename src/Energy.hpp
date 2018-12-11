@@ -22,8 +22,7 @@ public:
 		const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m, 
 		const std::vector<std::vector<int>> &neighbors, 
 		ArrayT &u, Params params = Params()) : 
-	TaskLoop(x.size()),
-	x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors), u(u), params(params) {}
+	TaskLoop(x.size()), x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors), u(u), params(params) {}
 
 	virtual void compute(int i)
 	{

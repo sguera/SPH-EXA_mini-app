@@ -7,6 +7,8 @@ class TaskLoop : public Task
 {
 public:
 
+	TaskLoop() = delete;
+	
 	TaskLoop(int count) : count(count) {}
 	
 	virtual void preprocess() {}
