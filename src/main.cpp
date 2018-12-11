@@ -64,7 +64,7 @@ int main()
     LambdaTask tcheckNeighbors([&]()
     { 
         int sum = 0;
-        for(int i=0; i<d.neighbors.size(); i++)
+        for(unsigned int i=0; i<d.neighbors.size(); i++)
             sum += d.neighbors[i].size();
         cout << "### Check ### Total number of neighbours: " << sum << endl;
     });

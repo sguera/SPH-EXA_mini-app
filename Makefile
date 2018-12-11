@@ -1,40 +1,45 @@
 CC := g++ # This is the main compiler
+MPICC := mpic++
+
 # CC := clang --analyze # and comment out the linker last line for sanity
 SRCDIR := src
 BUILDDIR := build
 BINDIR := bin
-TARGET := runner
  
-SRCEXT := cpp
 #SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
-SOURCES := $(wildcard $(SRCDIR)/*.$(SRCEXT))
-OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-CFLAGS := -g -std=c++14 -O2 -fopenmp -march=native -mtune=native# -Wall
-LIB := #-L #lib #-lpthread #-lboost_thread-mt -lboost_filesystem-mt -lboost_system-mt
+HPP := $(wildcard src/*.hpp)
+HPP += $(wildcard src/tree/*.hpp)
+
+CFLAGS := -g -std=c++14 -O3 -Wall -Wextra -fopenmp -march=native -mtune=native
+LIB := 
 INC := -I include
 
-$(TARGET): $(OBJECTS)
+runner: $(HPP)
 	$(info )
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(CC) $(CFLAGS) $^ -o $(BINDIR)/$(TARGET).app $(LIB)
+	$(CC) $(CFLAGS) src/main.cpp -o $(BINDIR)/$@.app $(LIB)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
+mpirunner: $(HPP)
 	$(info )
-	@mkdir -p $(BUILDDIR)
-	$(info Compiling the object files:)
-	$(CC) $(CFLAGS)  $(LIB) $(INC) -c $< -o $@
-
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(MPICC) $(CFLAGS) src/distmain.cpp -o $(BINDIR)/$@.app $(LIB)
 
 clean:
 	$(info )
-	$(info  Cleaning...) 
+	$(info Cleaning...) 
 	$(RM) -rf $(BUILDDIR) $(BINDIR)
 
-run: $(TARGET)
+run: runner
 	$(info )
 	$(info Run the default test case: )
-	./bin/runner.app 
+	./bin/runner.app
+
+mpirun: mpirunner
+	$(info )
+	$(info Run the default test case: )
+	mpirun -N 4 ./bin/runner.app 
 
 # Tests
 # tester:

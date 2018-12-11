@@ -72,7 +72,7 @@ public:
 		return xx*xx + yy*yy + zz*zz;
 	}
 
-	inline void check_add_start(const int start, const int count, const T xi, const T yi, const T zi, const T r, const int ngmax, std::vector<int> &neighbors) const
+	inline void check_add_start(const int start, const int count, const T xi, const T yi, const T zi, const T r, const unsigned int ngmax, std::vector<int> &neighbors) const
 	{
 		T dists[count];
 		for(int i=0; i<count; i++)

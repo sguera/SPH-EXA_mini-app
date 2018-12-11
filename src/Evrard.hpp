@@ -113,7 +113,7 @@ public:
         std::fill(dt.begin(), dt.end(), 0.0001);
         std::fill(dt_m1.begin(), dt_m1.end(), 0.0001);
 
-        for(unsigned int i=0; i<n; i++)
+        for(int i=0; i<n; i++)
         {
             x_m1[i] = x[i] - vx[i] * dt[0];
             y_m1[i] = y[i] - vy[i] * dt[0];

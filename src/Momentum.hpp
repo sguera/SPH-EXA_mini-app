@@ -42,7 +42,7 @@ public:
 		T momentum_y = 0.0;
 		T momentum_z = 0.0;
 
-		for(int j=0; j<neighbors[i].size(); j++)
+		for(unsigned int j=0; j<neighbors[i].size(); j++)
 		{
 			// retrive the id of a neighbor
         	int nid = neighbors[i][j];
@@ -97,7 +97,7 @@ public:
 private:
 	const T gradh_i = 1.0;
 	const T gradh_j = 1.0;
-	const ArrayT &x, &y, &z, &vx, &vy, &vz, &ro, &p, &h, &c, &m;
+	const ArrayT &x, &y, &z, &h, &vx, &vy, &vz, &ro, &p, &c, &m;
 	const std::vector<std::vector<int>> &neighbors;
 
 	ArrayT &grad_P_x, &grad_P_y, &grad_P_z;

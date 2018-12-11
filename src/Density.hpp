@@ -45,7 +45,7 @@ public:
 	    T roloc = 0.0;
 	    ro[i] = 0.0;
 
-	    for(int j=0; j<neighbors[i].size(); j++)
+	    for(unsigned int j=0; j<neighbors[i].size(); j++)
 	    {
 	        // retrive the id of a neighbor
 	        int nid = neighbors[i][j];

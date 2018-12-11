@@ -89,7 +89,7 @@ public:
 private:
 	const ArrayT &grad_P_x, &grad_P_y, &grad_P_z, &dt, &du;
 	const int iteration;
-	ArrayT &x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, &dt_m1, &u, &du_m1;
+	ArrayT &x, &y, &z, &vx, &vy, &vz, &x_m1, &y_m1, &z_m1, &u, &du_m1, &dt_m1;
 
 	Params params;
 };
