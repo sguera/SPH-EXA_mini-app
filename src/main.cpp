@@ -84,7 +84,7 @@ int main()
 
     LambdaTask tcheckTimestep([&]()
     { 
-        cout << "### Check ### Oldime-step: " << d.dt_m1[0] << ", New time-step: " << d.dt[0] << endl;
+        cout << "### Check ### Old Time-step: " << d.dt_m1[0] << ", New time-step: " << d.dt[0] << endl;
     });
 
     H<double> tH(d.neighbors, d.h, H<double>::Params(/*Target No of neighbors*/100));
@@ -142,7 +142,7 @@ int main()
     taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
     taskSched.add(&tupdate, TaskScheduler::Params(1, "UpdateQuantities"));
     taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "CheckConservation"));
-    taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
+    //taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
 
     for(d.iteration = 0; d.iteration < 2; d.iteration++)
     {
