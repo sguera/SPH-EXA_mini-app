@@ -13,3 +13,4 @@ public:
 		compute();
 	}
 };
+

@@ -57,3 +57,4 @@ inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, 
 }
 
 }
+

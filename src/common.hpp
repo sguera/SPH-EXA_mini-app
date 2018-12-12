@@ -16,3 +16,4 @@ inline T distance(const T x1, const T y1, const T z1, const T x2, const T y2, co
 }
 
 }
+
