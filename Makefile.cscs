@@ -1,3 +1,4 @@
+# https://bitbucket.org/sph_exa/sph-exa_mini-app/issues/
 CXX			:= CC
 OBJDIR		:= obj
 BINDIR 		:= bin
@@ -11,6 +12,7 @@ DEBUGFLAGS 	=
 
 #{{{
 # see timings in compilers.md
+# src/TaskLoop.hpp(24): #pragma omp parallel for
 ifeq ($(PE_ENV),GNU)
 	CXX=CC
 	#CXX=g++
@@ -23,7 +25,8 @@ ifeq ($(PE_ENV),PGI)
 	CXX=CC
 	#CXX=pg++
 	COMPILER_VERSION = $(PGI_VERSION)
-	CXXFLAGS += -O3 -std=c++14 -g -mp
+	CXXFLAGS += -O3 -std=c++14 -g # -mp
+	LDFLAGS += $(CXXFLAGS) -dynamic
 endif
 
 ifeq ($(PE_ENV),CRAY)
@@ -38,12 +41,14 @@ ifeq ($(PE_ENV),INTEL)
 	#CXX=icpc
 	COMPILER_VERSION = $(INTEL_VERSION)
 	CXXFLAGS += -O3 -std=c++14 -g -qopenmp
+	LDFLAGS += $(CXXFLAGS) -dynamic
 endif
 
 ifeq ($(CXX),clang++)
 	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
-	CXXFLAGS += -std=c++14 -g -fopenmp=libomp
+	CXXFLAGS = -std=c++14 -g -fopenmp=libomp
 	PE_ENV = CLANG
+	LDFLAGS += $(CXXFLAGS) -dynamic
 endif
 #}}}
 EXECUTABLE 	:= $(HH)_$(PE_ENV)_$(COMPILER_VERSION).exe
