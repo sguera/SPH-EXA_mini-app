@@ -52,6 +52,8 @@ int main()
     LambdaTask treorder([&]()
     {
         d.reorder(*tree.ordering);
+        for(unsigned i=0; i<d.x.size(); i++)
+            (*tree.ordering)[i] = i;
     });
 
     LambdaTaskLoop tfind(d.n, [&](int i)

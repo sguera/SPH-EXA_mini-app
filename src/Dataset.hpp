@@ -72,7 +72,7 @@ public:
         std::vector<T> tmp(ordering.size());
         for(unsigned int i=0; i<ordering.size(); i++)
             tmp[i] = data[ordering[i]];
-        data.swap(tmp);
+        tmp.swap(data);
     }
 
     void reorder(const std::vector<int> &ordering)
