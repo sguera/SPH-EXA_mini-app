@@ -144,7 +144,7 @@ int main()
     taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
     taskSched.add(&tupdate, TaskScheduler::Params(1, "UpdateQuantities"));
     taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "CheckConservation"));
-    //taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
+    taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
 
     for(d.iteration = 0; d.iteration < 2; d.iteration++)
     {

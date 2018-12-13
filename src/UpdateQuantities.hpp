@@ -13,7 +13,7 @@ class UpdateQuantities : public TaskLoop
 public:
 	struct Params
 	{
-		Params(const int STABILIZATION_TIMESTEPS = 15) : 
+		Params(const int STABILIZATION_TIMESTEPS = -1) : 
 			STABILIZATION_TIMESTEPS(STABILIZATION_TIMESTEPS) {}
 		const int STABILIZATION_TIMESTEPS;
 	};
