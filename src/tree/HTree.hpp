@@ -88,7 +88,7 @@ public:
 		for(int i=0; i<count; i++)
 		{
 			if(neighbors.size() < ngmax && dists[i] < r*r)//distancesq(xi, yi, zi, xx, yy, zz) < r2)
-				neighbors.push_back((*ordering)[i]);
+				neighbors.push_back((*ordering)[start+i]);
 		}
 	}
 
