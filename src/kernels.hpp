@@ -56,5 +56,28 @@ inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, 
     return viscosity_ij;
 }
 
+template<typename T>
+inline void equation_of_state_square_patch(const T chi, const T &pressure_0, const T &ro_0, const int iteration, T &pressure, T &u, T &ro,  T &soundspeed)
+{
+    if(iteration < 15)
+    {
+        pressure = pressure_0;
+    }
+
+    else if(iteration == 15)
+    {
+        pressure = pressure_0;
+        ro = ro_0;
+    }
+
+    else
+    {
+        pressure = chi * (pow((ro / ro_0), 7) - 1) + pressure_0;
+    }
+
+    soundspeed = 3500.0;
+    u = 1.0;
+}
+
 }
 

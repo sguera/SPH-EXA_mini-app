@@ -7,23 +7,25 @@ namespace sphexa
 {
 
 template<typename T = double, typename ArrayT = std::vector<T>>
-class Momentum : public TaskLoop
+class MomentumSquarePatch : public TaskLoop
 {
 public:
 	struct Params
 	{
-		Params(const T K = compute_3d_k(6.0)) : K(K) {}
-		const T K;
+		Params(const T K = compute_3d_k(6.0), const T delta_x_i = 1.0, const T A_i = 0.0, 
+			const T ep1 = 0.2, const T ep2 = 0.02, const T mre = 4.0) : K(K), delta_x_i(delta_x_i),
+			A_i(A_i), ep1(ep1), ep2(ep2), mre(mre) {}
+		const T K, delta_x_i, A_i, ep1, ep2, mre;
 	};
 public:
 
-	Momentum(const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
+	MomentumSquarePatch(const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
 		const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, 
 		const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m,
-		const std::vector<std::vector<int>> &neighbors, 
+		const int iteration, const std::vector<std::vector<int>> &neighbors, 
 		ArrayT &grad_P_x, ArrayT &grad_P_y, ArrayT &grad_P_z, Params params = Params()) : 
 	TaskLoop(x.size()),
-	x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors),
+	x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), iteration(iteration), neighbors(neighbors),
 	grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), params(params) {}
 
 	virtual void compute(int i)
@@ -42,12 +44,12 @@ public:
 		T momentum_y = 0.0;
 		T momentum_z = 0.0;
 
-		// to check where to put them
-		T delta_x_i = 1.0;
-		T A_i = 0.0;
-		T ep1 = 0.2;
-		T ep2 = 0.02;
-		T mre = 4.0;
+		
+		T delta_x_i = params.delta_x_i;
+		T A_i = params.A_i;
+		T ep1 = params.ep1;
+		T ep2 = params.ep2;
+		T mre = params.mre;
 
 		if((p_i) < 0.0)
 			A_i = 1.0;
@@ -141,6 +143,7 @@ private:
 	const T gradh_i = 1.0;
 	const T gradh_j = 1.0;
 	const ArrayT &x, &y, &z, &h, &vx, &vy, &vz, &ro, &p, &c, &m;
+	const int iteration;
 	const std::vector<std::vector<int>> &neighbors;
 
 	ArrayT &grad_P_x, &grad_P_y, &grad_P_z;
