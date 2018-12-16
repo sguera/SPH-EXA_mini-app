@@ -1,0 +1,85 @@
+# https://bitbucket.org/sph_exa/sph-exa_mini-app/issues/
+CXX			:= CC
+OBJDIR		:= obj
+BINDIR 		:= bin
+SRCDIR		:= src
+SRC			:= $(SRCDIR)/main.cpp
+OBJ			:= $(SRC:.cpp=.o)
+HPP 		:= $(wildcard $(SRCDIR)/*.hpp)
+HPP 		+= $(wildcard $(SRCDIR)/tree/*.hpp)
+HH 			:= $(shell uname -n |cut -c1-3 )
+DEBUGFLAGS 	= 
+
+#{{{
+# see timings in compilers.md
+# src/TaskLoop.hpp(24): #pragma omp parallel for
+ifeq ($(PE_ENV),GNU)
+	CXX=CC
+	#CXX=g++
+	COMPILER_VERSION = $(GNU_VERSION)
+	CXXFLAGS += -O3 -std=c++14 -g -fopenmp
+	LDFLAGS += $(CXXFLAGS) -dynamic
+endif
+
+ifeq ($(PE_ENV),PGI)
+	CXX=CC
+	#CXX=pg++
+	COMPILER_VERSION = $(PGI_VERSION)
+	CXXFLAGS += -O3 -std=c++14 -g # -mp
+	LDFLAGS += $(CXXFLAGS) -dynamic
+endif
+
+ifeq ($(PE_ENV),CRAY)
+	CXX=CC
+	COMPILER_VERSION = $(CRAY_CC_VERSION)
+	CXXFLAGS += -O3 -hstd=c++14 -g -hnoomp # -homp
+	LDFLAGS += $(CXXFLAGS) -dynamic
+endif
+
+ifeq ($(PE_ENV),INTEL)
+	CXX=CC
+	#CXX=icpc
+	COMPILER_VERSION = $(INTEL_VERSION)
+	CXXFLAGS += -O3 -std=c++14 -g -qopenmp
+	LDFLAGS += $(CXXFLAGS) -dynamic
+endif
+
+ifeq ($(CXX),clang++)
+	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
+	CXXFLAGS = -std=c++14 -g -fopenmp=libomp
+	PE_ENV = CLANG
+	LDFLAGS += $(CXXFLAGS) -dynamic
+endif
+#}}}
+EXECUTABLE 	:= $(HH)_$(PE_ENV)_$(COMPILER_VERSION).exe
+
+# ifneq ($(PE_ENV),GNU)
+#     $(error module swap PrgEnv-cray PrgEnv-gnu # PE_ENV=$(PE_ENV))
+# endif
+#
+# ifeq ($(CUDATOOLKIT_HOME),)
+#     $(error module load craype-accel-nvidia60)
+# endif
+# 
+# ifeq ($(CRAY_ACCEL_TARGET),nvidia60)
+#     CUDAFLAGS += -arch=sm_60
+# endif
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $(OBJDIR)/$@
+
+all:$(EXECUTABLE)
+
+builddir:
+	@mkdir -p $(OBJDIR)/$(SRCDIR)
+
+$(EXECUTABLE): builddir $(OBJ) $(HPP)
+	@mkdir -p $(BINDIR)
+	$(CXX) $(LDFLAGS) $(OBJDIR)/$(SRCDIR)/*.o -o $(BINDIR)/$@
+
+clean:
+	rm -fr $(OBJDIR)
+
+distclean:
+	rm -fr $(OBJDIR) $(EXECUTABLE)
+

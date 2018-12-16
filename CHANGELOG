@@ -1,0 +1,23 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased] 2018-12-05
+### Changed
+
+- Added changelog
+- Turned arrays into vectors
+- Fixed memory leaks related to the conversion
+
+## [Unreleased] 2018-12-03
+### Changed
+
+- Turned the vector product to scalar product in the energy equation
+- Fixed the calculation of the conservation law
+- Timestep set to the minimum between the min value calculated for each particle and the previous value + 10%
+- Reset the number of neighbors to 0 before each findNeighbors
+- fixed the calculation of the energy in the update phase (wrong dt used)
+- discovered an issue in the Octree that we were using, that caused the momentum to be wrong
+
