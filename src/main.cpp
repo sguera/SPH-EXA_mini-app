@@ -60,7 +60,7 @@ int main()
     LambdaTaskLoop tfind(d.n, [&](int i)
     {
         d.neighbors[i].resize(0);
-        tree.findNeighbors(i, d.neighbors[i]);
+        tree.findNeighbors(i, d.neighbors[i], d.bbox.PBCx, d.bbox.PBCy, d.bbox.PBCz);
     });
 
     LambdaTask tprintBBox([&]()
@@ -90,8 +90,8 @@ int main()
         cout << "### Check ### Old Time-step: " << d.dt_m1[0] << ", New time-step: " << d.dt[0] << endl;
     });
 
-    H<double> tH(d.neighbors, d.h, H<double>::Params(/*Target No of neighbors*/100));
-    UpdateQuantities<double> tupdate(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
+    H<double> tH(d.neighbors, d.h, H<double>::Params(/*Target No of neighbors*/500));
+    UpdateQuantities<double> tupdate(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
 
     LambdaTask tcheckConservation([&]()
     { 
@@ -145,9 +145,9 @@ int main()
     taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
     taskSched.add(&tupdate, TaskScheduler::Params(1, "UpdateQuantities"));
     taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "CheckConservation"));
-    taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
+    // taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
 
-    for(d.iteration = 0; d.iteration < 2; d.iteration++)
+    for(d.iteration = 0; d.iteration < 10; d.iteration++)
     {
         cout << "Iteration: " << d.iteration << endl;
         taskSched.exec();

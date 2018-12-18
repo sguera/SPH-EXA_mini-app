@@ -19,10 +19,10 @@ public:
 	};
 public:
 
-	UpdateQuantities(const ArrayT &grad_P_x, const ArrayT &grad_P_y, const ArrayT &grad_P_z, const ArrayT &dt, const ArrayT &du, const int iteration, 
-		ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, 
+	UpdateQuantities(const ArrayT &grad_P_x, const ArrayT &grad_P_y, const ArrayT &grad_P_z, const ArrayT &dt, const ArrayT &du, const int &iteration, 
+		const BBox &bbox, ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, 
 		ArrayT &dt_m1, Params params = Params()) : 
-		TaskLoop(x.size()),	grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), dt(dt), du(du), iteration(iteration), 
+		TaskLoop(x.size()),	grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), dt(dt), du(du), iteration(iteration), bbox(bbox),
 		x(x), y(y), z(z), vx(vx), vy(vy), vz(vz), x_m1(x_m1), y_m1(y_m1), z_m1(z_m1), u(u), du_m1(du_m1), dt_m1(dt_m1), params(params) {}
 
 	virtual void compute(int i)
@@ -70,6 +70,13 @@ public:
 	    y[i] = y_loc + t_0 * valy + (vy_loc - valy) * t_0 * deltaB / deltaA;
 	    z[i] = z_loc + t_0 * valz + (vz_loc - valz) * t_0 * deltaB / deltaA;
 
+	    if(bbox.PBCx && x[i] < bbox.xmin) x[i] += (bbox.xmax-bbox.xmin);
+	    if(bbox.PBCx && x[i] > bbox.xmax) x[i] -= (bbox.xmax-bbox.xmin);
+	    if(bbox.PBCy && y[i] < bbox.ymin) y[i] += (bbox.ymax-bbox.ymin);
+	    if(bbox.PBCy && y[i] > bbox.ymax) y[i] -= (bbox.ymax-bbox.ymin);
+	    if(bbox.PBCz && z[i] < bbox.zmin) z[i] += (bbox.zmax-bbox.zmin);
+	    if(bbox.PBCz && z[i] > bbox.zmax) z[i] -= (bbox.zmax-bbox.zmin);
+
 	    //update the energy according to Adams-Bashforth (2nd order)
 	    deltaA = 0.5 * t_0 * t_0 / t_m1;
 	    deltaB = t_0 + deltaA;
@@ -88,7 +95,8 @@ public:
 
 private:
 	const ArrayT &grad_P_x, &grad_P_y, &grad_P_z, &dt, &du;
-	const int iteration;
+	const int &iteration;
+	const BBox &bbox;
 	ArrayT &x, &y, &z, &vx, &vy, &vz, &x_m1, &y_m1, &z_m1, &u, &du_m1, &dt_m1;
 
 	Params params;

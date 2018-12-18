@@ -22,7 +22,7 @@ public:
 	};
 public:
 
-	EquationOfStateSquarePatch(const ArrayT &ro_0, const ArrayT &p_0, const int iteration,
+	EquationOfStateSquarePatch(const ArrayT &ro_0, const ArrayT &p_0, const int &iteration,
 		ArrayT &p, ArrayT &u, ArrayT &ro, ArrayT &c, Params params = Params()) : 
 			TaskLoop(ro_0.size()), ro_0(ro_0), p_0(p_0), iteration(iteration), p(p), u(u), ro(ro), c(c), params(params) {}
 
@@ -33,7 +33,7 @@ public:
 	}
 
 	const ArrayT &ro_0, &p_0;
-	const int iteration;
+	const int &iteration;
 	ArrayT &p, &u, &ro, &c;
 
 	Params params;

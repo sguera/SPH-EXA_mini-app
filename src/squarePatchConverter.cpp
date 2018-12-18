@@ -24,7 +24,7 @@ int main()
 
         fclose(f);
 
-        std::ofstream ofs("squarepatch3D_1M.bin", std::ofstream::out | std::ofstream::binary | std::ofstream::app);
+        std::ofstream ofs("squarepatch3D_1M.bin", std::ofstream::out | std::ofstream::binary);
         
         if(ofs)
         {

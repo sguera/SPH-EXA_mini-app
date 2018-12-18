@@ -36,6 +36,7 @@ public:
         inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(double)*vz.size());
         inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(double)*p_0.size());
 
+
         std::fill(h.begin(), h.end(), 2.0);
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(ro_0.begin(), ro_0.end(), 1.0);
@@ -71,7 +72,12 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
+        
+        bbox.PBCz = true;
+        bbox.zmin = -50;
+        bbox.zmax = 50;
         iteration = 0;
+
     }
 
     template<typename T>
@@ -89,16 +95,16 @@ public:
         bbox.xmax = -INFINITY;
         bbox.ymin = INFINITY;
         bbox.ymax = -INFINITY;
-        bbox.zmin = INFINITY;
-        bbox.zmax = -INFINITY;
+        // bbox.zmin = INFINITY;
+        // bbox.zmax = -INFINITY;
         for(int i=0; i<n; i++)
         {
             if(x[i] < bbox.xmin) bbox.xmin = x[i];
             if(x[i] > bbox.xmax) bbox.xmax = x[i];
             if(y[i] < bbox.ymin) bbox.ymin = y[i];
             if(y[i] > bbox.ymax) bbox.ymax = y[i];
-            if(z[i] < bbox.zmin) bbox.zmin = z[i];
-            if(z[i] > bbox.zmax) bbox.zmax = z[i];
+            // if(z[i] < bbox.zmin) bbox.zmin = z[i];
+            // if(z[i] > bbox.zmax) bbox.zmax = z[i];
         }
     }
 
@@ -147,17 +153,11 @@ public:
     std::vector<double> du, du_m1; //variation of the energy
     std::vector<double> dt, dt_m1;
 
-    int ngmax = 550; // Maximum number of neighbors per particle
+    int ngmax = 600; // Maximum number of neighbors per particle
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
     // Domain box
     BBox bbox;
-
-    // Periodic boundary conditions
-    bool PBCx = false, PBCy = false, PBCz = true;
-    
-    // Global bounding box (of the domain)
-    double xmin = -10.0, xmax = 10.0, ymin = -10.0, ymax = 10.0, zmin = -10.0, zmax = 10.0;
 
     int iteration;
 };
