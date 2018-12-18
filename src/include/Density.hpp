@@ -10,18 +10,6 @@
 namespace sphexa
 {
 
-template<typename T>
-inline T compute_3d_k(T n)
-{
-    //b0, b1, b2 and b3 are defined in "SPHYNX: an accurate density-based SPH method for astrophysical applications", DOI: 10.1051/0004-6361/201630208
-    T b0 = 2.7012593e-2;
-    T b1 = 2.0410827e-2;
-    T b2 = 3.7451957e-3;
-    T b3 = 4.7013839e-2;
-
-    return b0 + b1 * sqrt(n) + b2 * n + b3 * sqrt(n*n*n);
-}
-
 template<typename T = double, typename ArrayT = std::vector<T>>
 class Density : public TaskLoop
 {
@@ -38,7 +26,7 @@ public:
 		ArrayT &ro, Params params = Params()) : 
 			TaskLoop(x.size()), x(x), y(y), z(z), h(h), m(m), neighbors(neighbors), ro(ro), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		T K = params.K;
 

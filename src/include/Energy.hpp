@@ -24,7 +24,7 @@ public:
 		ArrayT &du, Params params = Params()) : 
 	TaskLoop(x.size()), x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors), du(du), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		T K = params.K;
 

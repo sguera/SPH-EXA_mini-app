@@ -2,13 +2,14 @@
 
 #include <vector>
 #include <cmath>
+
 #include "TaskLoop.hpp"
 
 namespace sphexa
 {
 
 template<typename T = double, typename ArrayT = std::vector<T>>
-class H : public TaskLoop
+class SmoothingLength : public TaskLoop
 {
 public:
 	struct Params
@@ -19,10 +20,10 @@ public:
 	};
 public:
 
-	H(const std::vector<std::vector<int>> &neighbors, ArrayT &h, Params params = Params()) : 
+	SmoothingLength(const std::vector<std::vector<int>> &neighbors, ArrayT &h, Params params = Params()) : 
 		TaskLoop(h.size()), neighbors(neighbors), h(h), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		const int NV0 = params.NV0;
 	    const T c0 = params.c0;

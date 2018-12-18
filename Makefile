@@ -7,37 +7,38 @@ BUILDDIR := build
 BINDIR := bin
  
 #SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
-HPP := $(wildcard src/*.hpp)
-HPP += $(wildcard src/tree/*.hpp)
+HPP := $(wildcard src/include/*.hpp)
+HPP += $(wildcard src/include/tree/*.hpp)
 
-CFLAGS := -g -std=c++14 -O2 -Wall -Wextra -fopenmp -march=native -mtune=native
-INC := -I include
+CFLAGS := -std=c++14 -O2 -s -Wall -Wextra -fopenmp -march=native -mtune=native
+DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
+INC := -I src/include
 LIB := 
 
-all: runner
+all: evrard
 	
+evrard: $(HPP)
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(CC) $(CFLAGS) $(INC) src/evrard.cpp -o $(BINDIR)/$@.app $(LIB)
+
 debug:
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(CC) $(CFLAGS) -D_GLIBCXX_DEBUG src/main.cpp -o $(BINDIR)/$@.app $(LIB)
+	$(CC) $(CFLAGS) $(INC) $(DEBUG) src/evrard.cpp -o $(BINDIR)/$@.app $(LIB)
 
-runner: $(HPP)
+mpi: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(CC) $(CFLAGS) src/main.cpp -o $(BINDIR)/$@.app $(LIB)
+	$(MPICC) $(CFLAGS) $(INC) src/evrard.cpp -o $(BINDIR)/$@.app $(LIB)
 
-mpirunner: $(HPP)
-	@mkdir -p $(BINDIR)
-	$(info Linking the executable:)
-	$(MPICC) $(CFLAGS) src/distmain.cpp -o $(BINDIR)/$@.app $(LIB)
+run: evrard
+	$(info Run the default test case: )
+	./bin/evrard.app
 
 clean:
 	$(info Cleaning...) 
 	$(RM) -rf $(BUILDDIR) $(BINDIR)
-
-run: runner
-	$(info Run the default test case: )
-	./bin/runner.app
 
 # Tests
 # tester:

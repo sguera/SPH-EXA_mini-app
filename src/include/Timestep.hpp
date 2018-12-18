@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vector>
+
 #include "TaskLoop.hpp"
+#include "kernels.hpp"
 
 namespace sphexa
 {
@@ -20,13 +22,13 @@ public:
 	Timestep(const ArrayT &h, const ArrayT &c, const ArrayT &dt_m1, ArrayT &dt, Params params = Params()) : 
 		TaskLoop(h.size()), h(h), c(c), dt_m1(dt_m1), dt(dt), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		T CHI = params.CHI;
 	    dt[i] = CHI * (h[i]/c[i]);
 	}
 
-	virtual void postprocess()
+	virtual void postProcess() override
 	{
 		T MAX_DT_INCREASE = params.MAX_DT_INCREASE;
 

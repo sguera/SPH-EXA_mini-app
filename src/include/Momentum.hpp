@@ -26,7 +26,7 @@ public:
 	x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors),
 	grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		T K = params.K;
 		T ro_i = ro[i];
