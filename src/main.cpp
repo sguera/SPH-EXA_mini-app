@@ -46,6 +46,7 @@ int main()
 
     LambdaTask tbuild([&]()
     {
+        d.computeBBox();
         tree.build(d.bbox);
     });
 
@@ -130,8 +131,8 @@ int main()
     });
 
     TaskScheduler taskSched;
-    taskSched.add(&tprintBBox);
     taskSched.add(&tbuild, TaskScheduler::Params(1, "BuildTree"));
+    taskSched.add(&tprintBBox);
     taskSched.add(&treorder, TaskScheduler::Params(1, "Reorder"));
     taskSched.add(&tfind, TaskScheduler::Params(1, "FindNeighbors"));
     taskSched.add(&tcheckNeighbors, TaskScheduler::Params(1, "CheckNeighbors"));

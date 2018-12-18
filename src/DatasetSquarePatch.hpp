@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <vector>
 #include <fstream>
 #include "BBox.hpp"
@@ -33,12 +34,12 @@ public:
         inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(double)*vx.size());
         inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(double)*vy.size());
         inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(double)*vz.size());
-        inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(double)*ro.size());
-
+        inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(double)*p_0.size());
 
         std::fill(h.begin(), h.end(), 2.0);
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(ro_0.begin(), ro_0.end(), 1.0);
+        std::fill(ro.begin(), ro.end(), 0.0);
         std::fill(c.begin(), c.end(), 3500.0);
         std::fill(m.begin(), m.end(), 1.0);
 
@@ -81,6 +82,26 @@ public:
             tmp[i] = data[ordering[i]];
         tmp.swap(data);
     }
+
+    void computeBBox()
+    {
+        bbox.xmin = INFINITY;
+        bbox.xmax = -INFINITY;
+        bbox.ymin = INFINITY;
+        bbox.ymax = -INFINITY;
+        bbox.zmin = INFINITY;
+        bbox.zmax = -INFINITY;
+        for(int i=0; i<n; i++)
+        {
+            if(x[i] < bbox.xmin) bbox.xmin = x[i];
+            if(x[i] > bbox.xmax) bbox.xmax = x[i];
+            if(y[i] < bbox.ymin) bbox.ymin = y[i];
+            if(y[i] > bbox.ymax) bbox.ymax = y[i];
+            if(z[i] < bbox.zmin) bbox.zmin = z[i];
+            if(z[i] > bbox.zmax) bbox.zmax = z[i];
+        }
+    }
+
 
     void reorder(const std::vector<int> &ordering)
     {
