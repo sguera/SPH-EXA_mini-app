@@ -26,6 +26,11 @@ public:
 
         // input file stream
         std::ifstream inputfile(filename, std::ios::binary);
+        if(!inputfile)
+        {
+            std::cout << "Couldn't open file " << filename << std::endl;
+            exit(1);
+        }
 
         // read the contents of the file into the vectors
         inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(double)*x.size());
@@ -35,7 +40,6 @@ public:
         inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(double)*vy.size());
         inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(double)*vz.size());
         inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(double)*p_0.size());
-
 
         std::fill(h.begin(), h.end(), 2.0);
         std::fill(temp.begin(), temp.end(), 1.0);

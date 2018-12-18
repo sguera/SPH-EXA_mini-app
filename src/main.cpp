@@ -39,7 +39,7 @@ public:
 int main()
 {
     // Dataset: contains arrays (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
-    DatasetSquarePatch d(1e6, "bigfiles/SquarePatch3D_1M.bin");
+    DatasetSquarePatch d(1e6, "bigfiles/squarepatch3D_1M.bin");
 
     Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
     //HTree<double> tree(d.x, d.y, d.z, d.h, HTree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
