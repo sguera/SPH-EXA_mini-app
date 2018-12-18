@@ -11,35 +11,33 @@ HPP := $(wildcard src/*.hpp)
 HPP += $(wildcard src/tree/*.hpp)
 
 CFLAGS := -g -std=c++14 -O2 -Wall -Wextra -fopenmp -march=native -mtune=native
-LIB := 
 INC := -I include
+LIB := 
+
+all: runner
+	
+debug:
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(CC) $(CFLAGS) -D_GLIBCXX_DEBUG src/main.cpp -o $(BINDIR)/$@.app $(LIB)
 
 runner: $(HPP)
-	$(info )
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(CC) $(CFLAGS) src/main.cpp -o $(BINDIR)/$@.app $(LIB)
 
 mpirunner: $(HPP)
-	$(info )
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(MPICC) $(CFLAGS) src/distmain.cpp -o $(BINDIR)/$@.app $(LIB)
 
 clean:
-	$(info )
 	$(info Cleaning...) 
 	$(RM) -rf $(BUILDDIR) $(BINDIR)
 
 run: runner
-	$(info )
 	$(info Run the default test case: )
 	./bin/runner.app
-
-mpirun: mpirunner
-	$(info )
-	$(info Run the default test case: )
-	mpirun -N 4 ./bin/runner.app 
 
 # Tests
 # tester:

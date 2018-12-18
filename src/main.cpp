@@ -46,6 +46,7 @@ int main()
 
     LambdaTask tbuild([&]()
     {
+        d.computeBBox();
         tree.build(d.bbox);
     });
 
@@ -130,8 +131,8 @@ int main()
     });
 
     TaskScheduler taskSched;
-    taskSched.add(&tprintBBox);
     taskSched.add(&tbuild, TaskScheduler::Params(1, "BuildTree"));
+    taskSched.add(&tprintBBox);
     taskSched.add(&treorder, TaskScheduler::Params(1, "Reorder"));
     taskSched.add(&tfind, TaskScheduler::Params(1, "FindNeighbors"));
     taskSched.add(&tcheckNeighbors, TaskScheduler::Params(1, "CheckNeighbors"));
@@ -144,9 +145,9 @@ int main()
     taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
     taskSched.add(&tupdate, TaskScheduler::Params(1, "UpdateQuantities"));
     taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "CheckConservation"));
-    taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
+    //taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
 
-    for(d.iteration = 0; d.iteration < 2; d.iteration++)
+    for(d.iteration = 0; d.iteration < 200; d.iteration++)
     {
         cout << "Iteration: " << d.iteration << endl;
         taskSched.exec();

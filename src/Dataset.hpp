@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <vector>
 #include <fstream>
 #include "BBox.hpp"
@@ -104,6 +105,26 @@ public:
         reorderSwap(ordering, dt);
         reorderSwap(ordering, dt_m1);
     }
+
+    void computeBBox()
+    {
+        bbox.xmin = INFINITY;
+        bbox.xmax = -INFINITY;
+        bbox.ymin = INFINITY;
+        bbox.ymax = -INFINITY;
+        bbox.zmin = INFINITY;
+        bbox.zmax = -INFINITY;
+        for(int i=0; i<n; i++)
+        {
+            if(x[i] < bbox.xmin) bbox.xmin = x[i];
+            if(x[i] > bbox.xmax) bbox.xmax = x[i];
+            if(y[i] < bbox.ymin) bbox.ymin = y[i];
+            if(y[i] > bbox.ymax) bbox.ymax = y[i];
+            if(z[i] < bbox.zmin) bbox.zmin = z[i];
+            if(z[i] > bbox.zmax) bbox.zmax = z[i];
+        }
+    }
+
 
     int n; // Number of particles
     std::vector<double> x, y, z, x_m1, y_m1, z_m1; // Positions
