@@ -83,7 +83,7 @@ public:
 
 	    u[i] = u_i + 0.5 * du[i] * deltaB - 0.5 * du_m1[i] * deltaA;
 
-	    if(std::isnan(u[i]) || u[i] < 0)
+	    if(std::isnan(u[i]))
 	    	printf("ERROR::UpdateQuantities(%d) internal energy: new_u %f u %f du %f dB %f du_m1 %f dA %f\n", i, u[i], u_i, du[i], deltaB, du_m1[i], deltaA);
 
 	    du_m1[i] = du[i];

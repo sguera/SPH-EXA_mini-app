@@ -58,27 +58,88 @@ int main()
     // We build the workflow
     Workflow work;
     work.add(&tComputeBBox);
+
     work.add(&tBuildTree, Workflow::Params(1, "Building Tree"));
     work.add(&tReorderParticles, Workflow::Params(1, "Reordering Particles"));
+
     work.add(&tFindNeighbors, Workflow::Params(1, "Finding Neighbors"));
     work.add(&tDensity, Workflow::Params(1, "Computing Density"));
     work.add(&tEquationOfState, Workflow::Params(1, "Computing Equation Of State"));
     work.add(&tMomentum, Workflow::Params(1, "Computing Momentum"));
     work.add(&tEnergy, Workflow::Params(1, "Computing Energy"));
+
     work.add(&tTimestep, Workflow::Params(1, "Updating Time-step"));
     work.add(&tUpdateQuantities, Workflow::Params(1, "Updating Quantities"));
     work.add(&tEnergyConservation, Workflow::Params(1, "Computng Total Energy"));
+
     work.add(&tPrintBBox);
     work.add(&tCheckNeighbors);
     work.add(&tCheckTimestep);
     work.add(&tCheckConservation);
+    work.add(&twriteFile, Workflow::Params(1, "Writing File"));
 
-    //taskSched.add(&twriteFile, Workflow::Params(1, "WriteFile"));
+    int chunkSize = 500;
+    int nChunks = d.n/chunkSize;
 
     for(d.iteration = 0; d.iteration < 64; d.iteration++)
     {
         cout << "Iteration: " << d.iteration << endl;
-        work.exec();
+
+        tComputeBBox.compute();
+        tBuildTree.compute();
+        tReorderParticles.compute();
+        
+        #pragma omp parallel for
+        for(int chunk=0; chunk<nChunks; chunk++)
+        {
+            int start = chunk * chunkSize;
+            int end = start + chunkSize;
+
+            for(int i=start; i<end; i++)
+            {
+                tFindNeighbors.compute(i);
+                tDensity.compute(i);
+                tEquationOfState.compute(i);
+            }
+        }
+
+        #pragma omp parallel for
+        for(int chunk=0; chunk<nChunks; chunk++)
+        {
+            int start = chunk * chunkSize;
+            int end = start + chunkSize;
+
+            for(int i=start; i<end; i++)
+            {
+                // Need Equation of State to be computed for all neighbors of i
+                tMomentum.compute(i);
+                tEnergy.compute(i);
+                tTimestep.compute(i);
+                tUpdateQuantities.compute(i);
+            }
+        }
+
+        cout << "Chunks done" << endl;
+
+        // REDUCTION: Update global Time-Step
+        tTimestep.postProcess();
+
+        // Need new time-step
+        #pragma omp parallel for
+        for(int i=0; i<d.n; i++) tUpdateQuantities.compute(i);
+        
+        // REDUCTION: sum total energy
+        tEnergyConservation.compute();
+
+        // Checks
+        tPrintBBox.compute();
+        tCheckNeighbors.compute();
+        tCheckTimestep.compute();
+        tCheckConservation.compute();
+
+        //cout << "Writing file" << endl;
+        //twriteFile.compute();
+
         cout << endl;
     }
 
