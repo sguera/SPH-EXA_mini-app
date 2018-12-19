@@ -8,14 +8,14 @@
 #include "BBox.hpp"
 
 template<typename T>
-class Dataset
+class Evrard
 {
 public:
 
-    Dataset() = delete;
-    ~Dataset() = default;
+    Evrard() = delete;
+    ~Evrard() = default;
 
-    Dataset(int n, const char *filename) : 
+    Evrard(int n, const char *filename) : 
     	n(n), x(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
     	ro(n), u(n), p(n), h(n), m(n), c(n), cv(n), temp(n), mue(n), mui(n), 
     	grad_P_x(n), grad_P_y(n), grad_P_z(n), 
@@ -165,17 +165,11 @@ public:
 
     T etot, ecin, eint;
 
-    int ngmax = 150; // Maximum number of neighbors per particle
+    int ng0 = 100, ngmax = 150; // Maximum number of neighbors per particle
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
     // Domain box
     sphexa::BBox bbox;
-
-    // Periodic boundary conditions
-    bool PBCx = false, PBCy = false, PBCz = false;
-    
-    // Global bounding box (of the domain)
-    T xmin = -1.0, xmax = 1.0, ymin = -1.0, ymax = 1.0, zmin = -1.0, zmax = 1.0;
 
     int iteration;
 };

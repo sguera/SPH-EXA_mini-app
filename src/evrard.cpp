@@ -1,13 +1,13 @@
 #include <iostream>
 
 #include "sphexa.hpp"
-#include "Dataset.hpp"
+#include "Evrard.hpp"
 
 using namespace std;
 using namespace sphexa;
 
 template<typename T>
-void reorderParticles(Dataset<T> &d, std::vector<int> &ordering)
+void reorderParticles(Evrard<T> &d, std::vector<int> &ordering)
 {
     d.reorder(ordering);
     for(unsigned i=0; i<d.x.size(); i++)
@@ -20,7 +20,7 @@ int main()
     typedef Octree<Real> Tree;
     //typedef HTree<Real> Tree;
 
-    Dataset<Real> d(1e6, "bigfiles/Evrard3D.bin");
+    Evrard<Real> d(1e6, "bigfiles/Evrard3D.bin");
 
     Tree tree(d.x, d.y, d.z, d.h, Tree::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
 
@@ -34,7 +34,7 @@ int main()
     Momentum<Real> tMomentum(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z);
     Energy<Real> tEnergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.du);
     Timestep<Real> tTimestep(d.h, d.c, d.dt_m1, d.dt);
-    SmoothingLength<Real> tSmoothingLength(d.neighbors, d.h, SmoothingLength<Real>::Params(/*Target No of neighbors*/100));
+    SmoothingLength<Real> tSmoothingLength(d.neighbors, d.h, SmoothingLength<Real>::Params(/*Target No of neighbors*/d.ng0));
     UpdateQuantities<Real> tUpdateQuantities(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
     EnergyConservation<Real> tEnergyConservation(d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint);
     
@@ -50,7 +50,7 @@ int main()
         int sum = 0;
         for(unsigned int i=0; i<d.neighbors.size(); i++)
             sum += d.neighbors[i].size();
-        cout << "### Check ### Total number of neighbours: " << sum << endl;
+        cout << "### Check ### Avg. number of neighbours: " << sum/d.n << "/" << d.ng0 << endl;
     });
     LambdaTask tCheckTimestep([&](){ cout << "### Check ### Old Time-step: " << d.dt_m1[0] << ", New time-step: " << d.dt[0] << endl; });
     LambdaTask tCheckConservation([&](){ cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl; });
