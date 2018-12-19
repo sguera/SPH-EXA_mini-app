@@ -13,7 +13,7 @@ public:
     struct Params
     {
         Params(const T K = compute_3d_k(6.0), const T delta_x_i = 1.0, const T A_i = 0.0, 
-            const T ep1 = 0.2, const T ep2 = 0.02, const T mre = 4.0, const int init_timesteps = 15) : K(K), delta_x_i(delta_x_i),
+            const T ep1 = 0.2, const T ep2 = 0.02, const T mre = 4.0, const int init_timesteps = -1) : K(K), delta_x_i(delta_x_i),
             A_i(A_i), ep1(ep1), ep2(ep2), mre(mre), init_timesteps(init_timesteps) {}
         const T K, delta_x_i, A_i, ep1, ep2, mre;
         const int init_timesteps;
@@ -103,33 +103,43 @@ public:
             T grad_v_kernel_y_i_j = (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0;
             T grad_v_kernel_z_i_j = (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0;
 
-            T force_i_j_r = 0.0;
+            T force_i_j_r = exp(-(v_i * v_i)) * exp(delta_x_i / (h_i * h_i));
 
-            force_i_j_r = exp(-(v_i * v_i)) * exp(delta_x_i / (h_i * h_i));
+            if (iteration < init_timesteps)
+               force_i_j_r = 0.0;
 
             T A_j = 0.0;
 
-            if((p_j) < 0.0)
+            if(p_j < 0.0)
                 A_j = 1.0;
 
             T delta_pos_i_j = 0.0;
+
             if(p_i > 0.0 && p_j > 0.0)
                 delta_pos_i_j = 1.0;
 
             T R_i_j = ep1 * (A_i * abs(p_i) + A_j * abs(p_j)) + ep2 * delta_pos_i_j * (abs(p_i) + abs(p_j));
 
+            if(std::isnan(ep1))
+                std::cout << "Ep1 is nan" << std::endl;
+
             T r_force_i_j = R_i_j * pow(force_i_j_r, mre);
 
+            if(std::isnan(r_force_i_j))
+                std::cout << "r_force_i_j is nan" << std::endl;
+
             T partial_repulsive_force = (r_force_i_j / (ro_i * ro_j)) * m_j;
+
+            if(std::isnan(partial_repulsive_force))
+                printf("partial_repulsive_force: %f %f %f %f\n", ro_i, ro_j, m_j, r_force_i_j);
+                //std::cout << "partial_repulsive_force nan: " << ro_i << " " << ro_j << " " << m_j << " " << r_force_i_j << std::endl;
+
             T repulsive_force_x = partial_repulsive_force * grad_v_kernel_x_i_j;
             T repulsive_force_y = partial_repulsive_force * grad_v_kernel_y_i_j;
             T repulsive_force_z = partial_repulsive_force * grad_v_kernel_z_i_j;
 
-
-            if (iteration < init_timesteps)
-            {
-                force_i_j_r = 0.0;
-            }
+            //if(std::isnan(repulsive_force_x) && std::isnan(repulsive_force_y) && std::isnan(repulsive_force_z))
+            //    std::cout << "repulsive_force_x y or z is nan" << std::endl;
             
             momentum_x +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_x_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_x_j) + viscosity_ij * grad_v_kernel_x_i_j + repulsive_force_x;
             momentum_y +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_y_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_y_j) + viscosity_ij * grad_v_kernel_y_i_j + repulsive_force_y;

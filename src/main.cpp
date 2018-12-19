@@ -41,8 +41,8 @@ int main()
     // Dataset: contains arrays (x, y, z, vx, vy, vz, ro, u, p, h, m, temp, mue, mui)
     DatasetSquarePatch d(1e6, "bigfiles/squarepatch3D_1M.bin");
 
-    Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
-    //HTree<double> tree(d.x, d.y, d.z, d.h, HTree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    //Octree<double> tree(d.x, d.y, d.z, d.h, Octree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    HTree<double> tree(d.x, d.y, d.z, d.h, HTree<double>::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
 
     LambdaTask tbuild([&]()
     {
@@ -55,12 +55,6 @@ int main()
         d.reorder(*tree.ordering);
         for(unsigned i=0; i<d.x.size(); i++)
             (*tree.ordering)[i] = i;
-    });
-
-    LambdaTaskLoop tfind(d.n, [&](int i)
-    {
-        d.neighbors[i].resize(0);
-        tree.findNeighbors(i, d.neighbors[i], d.bbox.PBCx, d.bbox.PBCy, d.bbox.PBCz);
     });
 
     LambdaTask tprintBBox([&]()
@@ -90,8 +84,26 @@ int main()
         cout << "### Check ### Old Time-step: " << d.dt_m1[0] << ", New time-step: " << d.dt[0] << endl;
     });
 
-    H<double> tH(d.neighbors, d.h, H<double>::Params(/*Target No of neighbors*/500));
+    H<double> tH(d.neighbors, d.h, H<double>::Params(/*Target No of neighbors*/500.0));
     UpdateQuantities<double> tupdate(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
+
+    LambdaTaskLoop tfind(d.n, [&](int i)
+    {
+        int nn = 0;
+        do
+        {
+            d.neighbors[i].resize(0);
+            tree.findNeighbors(i, d.neighbors[i]);
+            nn = d.neighbors[i].size();
+            if(nn < 450 || nn > 600)
+            {
+                printf("%d = %d\n", i, nn);
+                tH.compute(i);
+            }
+        } while(nn < 450 || nn > 600);
+        /*d.neighbors[i].resize(0);
+        tree.findNeighbors(i, d.neighbors[i], d.bbox.PBCx, d.bbox.PBCy, d.bbox.PBCz);*/
+    });
 
     LambdaTask tcheckConservation([&]()
     { 
@@ -112,22 +124,25 @@ int main()
 
     LambdaTask twriteFile([&]()
     {
-        ofstream outputFile;
-        ostringstream oss;
-        oss << "output" << d.iteration << ".txt";
-        outputFile.open(oss.str());
-    
-        for(int i=0; i<d.n; i++)
+        if(d.iteration % 10 == 0)
         {
-            outputFile << d.x[i] << ' ' << d.y[i] << ' ' << d.z[i] << ' ';
-            outputFile << d.vx[i] << ' ' << d.vy[i] << ' ' << d.vz[i] << ' ';
-            outputFile << d.h[i] << ' ' << d.ro[i] << ' ' << d.u[i] << ' ' << d.p[i] << ' ' << d.c[i] << ' ';
-            outputFile << d.grad_P_x[i] << ' ' << d.grad_P_y[i] << ' ' << d.grad_P_z[i] << ' ';
-            double rad = sqrt(d.x[i] * d.x[i] + d.y[i] * d.y[i] + d.z[i] * d.z[i]);
-            double vrad = (d.vx[i] *  d.x[i] + d.vy[i] * d.y[i] + d.vz[i] * d.z[i]) / rad;
-            outputFile << rad << ' ' << vrad << endl;  
+            ofstream outputFile;
+            ostringstream oss;
+            oss << "output" << d.iteration << ".txt";
+            outputFile.open(oss.str());
+        
+            for(int i=0; i<d.n; i++)
+            {
+                outputFile << d.x[i] << ' ' << d.y[i] << ' ' << d.z[i] << ' ';
+                outputFile << d.vx[i] << ' ' << d.vy[i] << ' ' << d.vz[i] << ' ';
+                outputFile << d.h[i] << ' ' << d.ro[i] << ' ' << d.u[i] << ' ' << d.p[i] << ' ' << d.c[i] << ' ';
+                outputFile << d.grad_P_x[i] << ' ' << d.grad_P_y[i] << ' ' << d.grad_P_z[i] << ' ';
+                double rad = sqrt(d.x[i] * d.x[i] + d.y[i] * d.y[i] + d.z[i] * d.z[i]);
+                double vrad = (d.vx[i] *  d.x[i] + d.vy[i] * d.y[i] + d.vz[i] * d.z[i]) / rad;
+                outputFile << rad << ' ' << vrad << endl;  
+            }
+            outputFile.close();
         }
-        outputFile.close();
     });
 
     TaskScheduler taskSched;
@@ -145,7 +160,7 @@ int main()
     taskSched.add(&tH, TaskScheduler::Params(1, "Update H"));
     taskSched.add(&tupdate, TaskScheduler::Params(1, "UpdateQuantities"));
     taskSched.add(&tcheckConservation, TaskScheduler::Params(1, "CheckConservation"));
-    // taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
+    taskSched.add(&twriteFile, TaskScheduler::Params(1, "WriteFile"));
 
     for(d.iteration = 0; d.iteration < 10; d.iteration++)
     {
