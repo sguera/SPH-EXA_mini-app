@@ -3,19 +3,19 @@
 #include <cmath>
 #include <vector>
 #include <fstream>
+#include <sstream>
+
 #include "BBox.hpp"
 
-namespace sphexa
-{
-
-class DatasetSquarePatch
+template<typename T>
+class SqPatch
 {
 public:
 
-    DatasetSquarePatch() = delete;
-    ~DatasetSquarePatch() = default;
+    SqPatch() = delete;
+    ~SqPatch() = default;
 
-    DatasetSquarePatch(int n, const char *filename) : 
+    SqPatch(int n, const char *filename) : 
     	n(n), x(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
     	ro(n), ro_0(n), u(n), p(n), p_0(n), h(n), m(n), c(n), temp(n), 
     	grad_P_x(n), grad_P_y(n), grad_P_z(n), 
@@ -33,13 +33,13 @@ public:
         }
 
         // read the contents of the file into the vectors
-        inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(double)*x.size());
-        inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(double)*y.size());
-        inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(double)*z.size());
-        inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(double)*vx.size());
-        inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(double)*vy.size());
-        inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(double)*vz.size());
-        inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(double)*p_0.size());
+        inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
+        inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
+        inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
+        inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
+        inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
+        inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
+        inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(T)*p_0.size());
 
         std::fill(h.begin(), h.end(), 2.0);
         std::fill(temp.begin(), temp.end(), 1.0);
@@ -84,7 +84,6 @@ public:
 
     }
 
-    template<typename T>
     void reorderSwap(const std::vector<int> &ordering, std::vector<T> &data)
     {
         std::vector<T> tmp(ordering.size());
@@ -142,29 +141,51 @@ public:
         reorderSwap(ordering, dt_m1);
     }
 
+    void writeFile()
+    {
+        if(iteration % 10 == 0)
+        {
+            std::ofstream outputFile;
+            std::ostringstream oss;
+            oss << "output" << iteration << ".txt";
+            outputFile.open(oss.str());
+        
+            for(int i=0; i<n; i++)
+            {
+                outputFile << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
+                outputFile << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
+                outputFile << h[i] << ' ' << ro[i] << ' ' << u[i] << ' ' << p[i] << ' ' << c[i] << ' ';
+                outputFile << grad_P_x[i] << ' ' << grad_P_y[i] << ' ' << grad_P_z[i] << ' ';
+                T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
+                T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
+                outputFile << rad << ' ' << vrad << std::endl;  
+            }
+            outputFile.close();
+        }
+    }
+
     int n; // Number of particles
-    std::vector<double> x, y, z, x_m1, y_m1, z_m1; // Positions
-    std::vector<double> vx, vy, vz; // Velocities
-    std::vector<double> ro, ro_0; // Density
-    std::vector<double> u; // Internal Energy
-    std::vector<double> p, p_0; // Pressure
-    std::vector<double> h; // Smoothing Length
-    std::vector<double> m; // Mass
-    std::vector<double> c; // Speed of sound
-    std::vector<double> temp; // Temperature
+    std::vector<T> x, y, z, x_m1, y_m1, z_m1; // Positions
+    std::vector<T> vx, vy, vz; // Velocities
+    std::vector<T> ro, ro_0; // Density
+    std::vector<T> u; // Internal Energy
+    std::vector<T> p, p_0; // Pressure
+    std::vector<T> h; // Smoothing Length
+    std::vector<T> m; // Mass
+    std::vector<T> c; // Speed of sound
+    std::vector<T> temp; // Temperature
 
-    std::vector<double> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
-    std::vector<double> du, du_m1; //variation of the energy
-    std::vector<double> dt, dt_m1;
+    std::vector<T> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
+    std::vector<T> du, du_m1; //variation of the energy
+    std::vector<T> dt, dt_m1;
 
-    int ngmax = 600; // Maximum number of neighbors per particle
+    int ngmin = 450, ng0 = 500, ngmax = 550; // Minimum, target and maximum number of neighbors per particle
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
+    T etot, ecin, eint;
+
     // Domain box
-    BBox bbox;
+    sphexa::BBox bbox;
 
     int iteration;
 };
-
-}
-

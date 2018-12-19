@@ -26,7 +26,7 @@ public:
 	x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors),
 	grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		T K = params.K;
 		T ro_i = ro[i];
@@ -69,6 +69,10 @@ public:
 	        T r_square = (r_ijx * r_ijx) + (r_ijy * r_ijy) + (r_ijz * r_ijz);
 
 	        T viscosity_ij = artificial_viscosity(ro_i, ro_j, h[i], h[nid], c[i], c[nid], rv, r_square);
+	        
+	        if(isnan(viscosity_ij))
+        	    printf("ERROR::Momentum::artificial_viscosity(%d %d) c_i %f c_j %f h_i %f h_j %f rv %f r_square %f ro_i %f ro_j %f\n", 
+        	    	i, nid, c[i], c[nid], h_i, h_j, rv, r_square, ro_i, ro_j);
 
 	        T r_ij = sqrt(r_square);
 	        T v_i = r_ij / h_i;
@@ -88,6 +92,9 @@ public:
 	        momentum_y +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_y_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_y_j) + viscosity_ij * (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0;
 	        momentum_z +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_z_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_z_j) + viscosity_ij * (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0;
 	    }
+
+	    if(std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))
+    		printf("ERROR::Momentum(%d) momentum (%f %f %f)\n", i, momentum_x, momentum_y, momentum_z);
 
 	    grad_P_x[i] = momentum_x * m[i];
 	    grad_P_y[i] = momentum_y * m[i];

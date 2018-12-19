@@ -1,100 +1,44 @@
 #pragma once
 
+#include <cmath>
 #include <vector>
+#include <fstream>
+#include <sstream>
+
 #include "BBox.hpp"
 
-namespace sphexa
-{
-
+template<typename T>
 class Evrard
 {
 public:
-    Evrard(const char *filename)
+
+    Evrard() = delete;
+    ~Evrard() = default;
+
+    Evrard(int n, const char *filename) : 
+    	n(n), x(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
+    	ro(n), u(n), p(n), h(n), m(n), c(n), cv(n), temp(n), mue(n), mui(n), 
+    	grad_P_x(n), grad_P_y(n), grad_P_z(n), 
+    	du(n), du_m1(n), dt(n), dt_m1(n), neighbors(n)
     {
-        n = 1e6;
-
-        //reserve the space for each vector
-        x.resize(n);
-        y.resize(n);
-        z.resize(n);
-        x_m1.resize(n);
-        y_m1.resize(n);
-        z_m1.resize(n);
-        vx.resize(n);
-        vy.resize(n);
-        vz.resize(n);
-        ro.resize(n);
-        u.resize(n);
-        p.resize(n);
-        h.resize(n);
-        m.resize(n);
-
-        c.resize(n);
-        cv.resize(n);
-        temp.resize(n);
-        mue.resize(n);
-        mui.resize(n);
-
-        grad_P_x.resize(n);
-        grad_P_y.resize(n);
-        grad_P_z.resize(n);
-
-        du.resize(n);
-        du_m1.resize(n);
-
-        dt.resize(n);
-        dt_m1.resize(n);
-
-        neighbors.resize(n);
         for(auto i : neighbors)
             i.reserve(ngmax);
 
-        FILE *f = fopen(filename, "rb");
-        if(f)
-        {
-            fread(&x[0], sizeof(double), n, f);
-            fread(&y[0], sizeof(double), n, f);
-            fread(&z[0], sizeof(double), n, f);
-            fread(&vx[0], sizeof(double), n, f);
-            fread(&vy[0], sizeof(double), n, f);
-            fread(&vz[0], sizeof(double), n, f);
-            fread(&ro[0], sizeof(double), n, f);
-            fread(&u[0], sizeof(double), n, f);
-            fread(&p[0], sizeof(double), n, f);
-            fread(&h[0], sizeof(double), n, f);
-            fread(&m[0], sizeof(double), n, f);
+        // input file stream
+        std::ifstream inputfile(filename, std::ios::binary);
 
-            fclose(f);
-        }
-        else
-        {
-            printf("Error opening file %s\n", filename);
-            exit(EXIT_FAILURE);
-        }
-
-        // // input file stream
-        // ifstream inputfile(filename, std::ios::binary);
-
-        // // read the contents of the file into the vectors
-        // inputfile.read(reinterpret_cast<char*>(x.data()), x.size());
-        // inputfile.read(reinterpret_cast<char*>(y.data()), y.size());
-        // inputfile.read(reinterpret_cast<char*>(z.data()), z.size());
-        // inputfile.read(reinterpret_cast<char*>(x_m1.data()), x_m1.size());
-        // inputfile.read(reinterpret_cast<char*>(y_m1.data()), y_m1.size());
-        // inputfile.read(reinterpret_cast<char*>(z_m1.data()), z_m1.size());
-        // inputfile.read(reinterpret_cast<char*>(vx.data()), vx.size());
-        // inputfile.read(reinterpret_cast<char*>(vy.data()), vy.size());
-        // inputfile.read(reinterpret_cast<char*>(vz.data()), vz.size());
-        // inputfile.read(reinterpret_cast<char*>(ro.data()), ro.size());
-        // inputfile.read(reinterpret_cast<char*>(u.data()), u.size());
-        // inputfile.read(reinterpret_cast<char*>(p.data()), p.size());
-        // inputfile.read(reinterpret_cast<char*>(h.data()), h.size());
-        // inputfile.read(reinterpret_cast<char*>(m.data()), m.size());
-        // inputfile.read(reinterpret_cast<char*>(c.data()), c.size());
-        // inputfile.read(reinterpret_cast<char*>(cv.data()), cv.size());
-        // inputfile.read(reinterpret_cast<char*>(temp.data()), temp.size());
-        // inputfile.read(reinterpret_cast<char*>(mue.data()), mue.size());
-        // inputfile.read(reinterpret_cast<char*>(mui.data()), mui.size());
+        // read the contents of the file into the vectors
+        inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
+        inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
+        inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
+        inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
+        inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
+        inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
+        inputfile.read(reinterpret_cast<char*>(ro.data()), sizeof(T)*ro.size());
+        inputfile.read(reinterpret_cast<char*>(u.data()), sizeof(T)*u.size());
+        inputfile.read(reinterpret_cast<char*>(p.data()), sizeof(T)*p.size());
+        inputfile.read(reinterpret_cast<char*>(h.data()), sizeof(T)*h.size());
+        inputfile.read(reinterpret_cast<char*>(m.data()), sizeof(T)*m.size());
 
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(mue.begin(), mue.end(), 2.0);
@@ -120,43 +64,115 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
+        etot = ecin = eint = 0.0;
+
         iteration = 0;
     }
 
-    ~Evrard(){}
+    void reorderSwap(const std::vector<int> &ordering, std::vector<T> &data)
+    {
+        std::vector<T> tmp(ordering.size());
+        for(unsigned int i=0; i<ordering.size(); i++)
+            tmp[i] = data[ordering[i]];
+        tmp.swap(data);
+    }
+
+    void reorder(const std::vector<int> &ordering)
+    {
+        reorderSwap(ordering, x);
+        reorderSwap(ordering, y);
+        reorderSwap(ordering, z);
+        reorderSwap(ordering, x_m1);
+        reorderSwap(ordering, y_m1);
+        reorderSwap(ordering, z_m1);
+        reorderSwap(ordering, vx);
+        reorderSwap(ordering, vy);
+        reorderSwap(ordering, vz);
+        reorderSwap(ordering, ro);
+        reorderSwap(ordering, u);
+        reorderSwap(ordering, p);
+        reorderSwap(ordering, h);
+        reorderSwap(ordering, m);
+        reorderSwap(ordering, c);
+        reorderSwap(ordering, cv);
+        reorderSwap(ordering, temp);
+        reorderSwap(ordering, mue);
+        reorderSwap(ordering, mui);
+        reorderSwap(ordering, grad_P_x);
+        reorderSwap(ordering, grad_P_y);
+        reorderSwap(ordering, grad_P_z);
+        reorderSwap(ordering, du);
+        reorderSwap(ordering, du_m1);
+        reorderSwap(ordering, dt);
+        reorderSwap(ordering, dt_m1);
+    }
+
+    void computeBBox()
+    {
+        bbox.xmin = INFINITY;
+        bbox.xmax = -INFINITY;
+        bbox.ymin = INFINITY;
+        bbox.ymax = -INFINITY;
+        bbox.zmin = INFINITY;
+        bbox.zmax = -INFINITY;
+        for(int i=0; i<n; i++)
+        {
+            if(x[i] < bbox.xmin) bbox.xmin = x[i];
+            if(x[i] > bbox.xmax) bbox.xmax = x[i];
+            if(y[i] < bbox.ymin) bbox.ymin = y[i];
+            if(y[i] > bbox.ymax) bbox.ymax = y[i];
+            if(z[i] < bbox.zmin) bbox.zmin = z[i];
+            if(z[i] > bbox.zmax) bbox.zmax = z[i];
+        }
+    }
+
+    void writeFile()
+    {
+        if(iteration % 10 == 0)
+        {
+            std::ofstream outputFile;
+            std::ostringstream oss;
+            oss << "output" << iteration << ".txt";
+            outputFile.open(oss.str());
+        
+            for(int i=0; i<n; i++)
+            {
+                outputFile << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
+                outputFile << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
+                outputFile << h[i] << ' ' << ro[i] << ' ' << u[i] << ' ' << p[i] << ' ' << c[i] << ' ';
+                outputFile << grad_P_x[i] << ' ' << grad_P_y[i] << ' ' << grad_P_z[i] << ' ';
+                T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
+                T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
+                outputFile << rad << ' ' << vrad << std::endl;  
+            }
+            outputFile.close();
+        }
+    }
 
     int n; // Number of particles
-    std::vector<double> x, y, z, x_m1, y_m1, z_m1; // Positions
-    std::vector<double> vx, vy, vz; // Velocities
-    std::vector<double> ro; // Density
-    std::vector<double> u; // Internal Energy
-    std::vector<double> p; // Pressure
-    std::vector<double> h; // Smoothing Length
-    std::vector<double> m; // Mass
-    std::vector<double> c; // Speed of sound
-    std::vector<double> cv; // Specific heat
-    std::vector<double> temp; // Temperature
-    std::vector<double> mue; // Mean molecular weigh of electrons
-    std::vector<double> mui; // Mean molecular weight of ions
+    std::vector<T> x, y, z, x_m1, y_m1, z_m1; // Positions
+    std::vector<T> vx, vy, vz; // Velocities
+    std::vector<T> ro; // Density
+    std::vector<T> u; // Internal Energy
+    std::vector<T> p; // Pressure
+    std::vector<T> h; // Smoothing Length
+    std::vector<T> m; // Mass
+    std::vector<T> c; // Speed of sound
+    std::vector<T> cv; // Specific heat
+    std::vector<T> temp; // Temperature
+    std::vector<T> mue; // Mean molecular weigh of electrons
+    std::vector<T> mui; // Mean molecular weight of ions
+    std::vector<T> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
+    std::vector<T> du, du_m1; //variation of the energy
+    std::vector<T> dt, dt_m1;
 
-    std::vector<double> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
-    std::vector<double> du, du_m1; //variation of the energy
-    std::vector<double> dt, dt_m1;
+    T etot, ecin, eint;
 
-    int ngmax = 150; // Maximum number of neighbors per particle
+    int ngmin = 50, ng0 = 100, ngmax = 150; // Minimum, target and maximum number of neighbors per particle
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
     // Domain box
-    BBox bbox;
-
-    // Periodic boundary conditions
-    bool PBCx = false, PBCy = false, PBCz = false;
-    
-    // Global bounding box (of the domain)
-    double xmin = -1.0, xmax = 1.0, ymin = -1.0, ymax = 1.0, zmin = -1.0, zmax = 1.0;
+    sphexa::BBox bbox;
 
     int iteration;
 };
-
-}
-

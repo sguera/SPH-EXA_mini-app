@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Task.hpp"
+
 namespace sphexa
 {
 
@@ -11,21 +13,21 @@ public:
 	
 	TaskLoop(int count) : count(count) {}
 	
-	virtual void preprocess() {}
+	virtual void preProcess() {}
 
 	virtual void compute(int i) = 0;
 
-	virtual void postprocess() {}
+	virtual void postProcess() {}
 
 	virtual void compute()
 	{
-		preprocess();
+		preProcess();
 
 		#pragma omp parallel for
 		for(int i = 0; i<count; ++i)
 			compute(i);
 
-		postprocess();
+		postProcess();
 	}
 
 private:

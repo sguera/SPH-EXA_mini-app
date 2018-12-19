@@ -20,12 +20,11 @@ public:
 public:
 
 	UpdateQuantities(const ArrayT &grad_P_x, const ArrayT &grad_P_y, const ArrayT &grad_P_z, const ArrayT &dt, const ArrayT &du, const int &iteration, 
-		const BBox &bbox, ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, 
-		ArrayT &dt_m1, Params params = Params()) : 
+		const BBox &bbox, ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, ArrayT &dt_m1, Params params = Params()) : 
 		TaskLoop(x.size()),	grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), dt(dt), du(du), iteration(iteration), bbox(bbox),
 		x(x), y(y), z(z), vx(vx), vy(vy), vz(vz), x_m1(x_m1), y_m1(y_m1), z_m1(z_m1), u(u), du_m1(du_m1), dt_m1(dt_m1), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		int stabilization_timesteps = params.STABILIZATION_TIMESTEPS;
 		T t_m1 = dt_m1[i];
@@ -33,6 +32,7 @@ public:
 	    T x_loc = x[i];
 	    T y_loc = y[i];
 	    T z_loc = z[i];
+	    T u_i = u[i];
 
 	    // ADD COMPONENT DUE TO THE GRAVITY HERE
 	    T ax = - (grad_P_x[i]); //-G * fx
@@ -47,7 +47,7 @@ public:
 	    }
 
 	    if(std::isnan(ax) || std::isnan(ay) || std::isnan(az))
-	        std::cout << "ERROR: " << ax << ' ' << ay << ' ' << az << std::endl;
+	    	printf("ERROR::UpdateQuantities(%d) acceleration: (%f %f %f)\n", i, ax, ay, az);
 
 	    //update positions according to Press (2nd order)
 	    T deltaA = t_0 + 0.5 * t_m1;
@@ -81,7 +81,11 @@ public:
 	    deltaA = 0.5 * t_0 * t_0 / t_m1;
 	    deltaB = t_0 + deltaA;
 
-	    u[i] = u[i] + 0.5 * du[i] * deltaB - 0.5 * du_m1[i] * deltaA;
+	    u[i] = u_i + 0.5 * du[i] * deltaB - 0.5 * du_m1[i] * deltaA;
+
+	    if(std::isnan(u[i]) || u[i] < 0)
+	    	printf("ERROR::UpdateQuantities(%d) internal energy: new_u %f u %f du %f dB %f du_m1 %f dA %f\n", i, u[i], u_i, du[i], deltaB, du_m1[i], deltaA);
+
 	    du_m1[i] = du[i];
 
 	    //update positions
@@ -97,6 +101,7 @@ private:
 	const ArrayT &grad_P_x, &grad_P_y, &grad_P_z, &dt, &du;
 	const int &iteration;
 	const BBox &bbox;
+
 	ArrayT &x, &y, &z, &vx, &vy, &vz, &x_m1, &y_m1, &z_m1, &u, &du_m1, &dt_m1;
 
 	Params params;

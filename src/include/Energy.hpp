@@ -24,7 +24,7 @@ public:
 		ArrayT &du, Params params = Params()) : 
 	TaskLoop(x.size()), x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), neighbors(neighbors), du(du), params(params) {}
 
-	virtual void compute(int i)
+	virtual void compute(int i) override
 	{
 		T K = params.K;
 
@@ -69,6 +69,10 @@ public:
 
 	        T viscosity_ij = artificial_viscosity(ro_i, ro_j, h[i], h[nid], c[i], c[nid], rv, r_square);
 
+	        if(isnan(viscosity_ij))
+        	    printf("ERROR::Momentum::artificial_viscosity(%d %d) c_i %f c_j %f h_i %f h_j %f rv %f r_square %f ro_i %f ro_j %f\n", 
+        	    	i, nid, c[i], c[nid], h_i, h[nid], rv, r_square, ro_i, ro_j);
+
 	        T r_ij = sqrt(r_square);
 	        T v_i = r_ij / h_i;
 
@@ -83,6 +87,8 @@ public:
 
     	du[i] =  energy * (-p_i/(gradh_i * ro_i * ro_i));
 
+    	if(isnan(du[i]))
+    		printf("ERROR:Energy du %f energy %f p_i %f gradh_i %f ro_i %f\n", du[i], energy, p_i, gradh_i, ro_i);
 	}
 
 private:

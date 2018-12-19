@@ -15,7 +15,7 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::time_point<Clock> TimePoint;
 typedef std::chrono::duration<float> Time;
 
-class TaskScheduler
+class Workflow
 {
 public:
 	struct Params
