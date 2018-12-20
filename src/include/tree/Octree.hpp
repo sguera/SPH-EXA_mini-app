@@ -28,7 +28,7 @@ public:
 	int ncells;
 	int nX, nY, nZ;
 
-	BBox bbox;
+	BBox<T> bbox;
 
 	std::vector<std::shared_ptr<Octree>> cells;
 
@@ -131,7 +131,7 @@ public:
 		}
 	}
 
-	inline void computeBBoxes(std::vector<BBox> &cellBBox)
+	inline void computeBBoxes(std::vector<BBox<T>> &cellBBox)
 	{
 		for(int hz=0; hz<nZ; hz++)
 		{
@@ -148,7 +148,7 @@ public:
 
 					unsigned int i = hz*nX*nY+hy*nX+hx;
 
-					cellBBox[i] = BBox(ax, bx, ay, by, az, bz);
+					cellBBox[i] = BBox<T>(ax, bx, ay, by, az, bz);
 				}
 			}
 		}
@@ -171,7 +171,7 @@ public:
 		}
 	}
 
- 	void buildRec(const std::vector<int> &list, const BBox &bbox, int ptr)
+ 	void buildRec(const std::vector<int> &list, const BBox<T> &bbox, int ptr)
 	{	
 		this->bbox = bbox;
 	   	//maxH = computeMaxH();
@@ -184,7 +184,7 @@ public:
 		std::vector<std::vector<int>> cellList(ncells);
 		distributeParticles(list, cellList);
 
-		std::vector<BBox> cellBBox(ncells);
+		std::vector<BBox<T>> cellBBox(ncells);
 		computeBBoxes(cellBBox);
 
 		std::vector<int> padding(ncells);
@@ -222,7 +222,7 @@ public:
 		}
 	}
 
-	void build(const BBox &bbox)
+	void build(const BBox<T> &bbox)
 	{
 		int count = ax.size();
 

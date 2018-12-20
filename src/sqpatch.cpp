@@ -26,12 +26,12 @@ int main()
 
     // Main computational tasks
     LambdaTask tComputeBBox([&](){ d.computeBBox(); });
-    BuildTree<Tree> tBuildTree(d.bbox, tree);
+    BuildTree<Tree, Real> tBuildTree(d.bbox, tree);
     LambdaTask tReorderParticles([&](){ reorderParticles(d, *tree.ordering); });
-    FindNeighbors<Tree> tFindNeighbors(tree, d.neighbors, d.h, FindNeighbors<Tree>::Params(d.ngmin, d.ng0, d.ngmax));
+    FindNeighbors<Tree, Real> tFindNeighbors(tree, d.neighbors, d.h, FindNeighbors<Tree, Real>::Params(d.ngmin, d.ng0, d.ngmax));
     Density<Real> tDensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
-    EquationOfStateSquarePatch<double> tEquationOfState(d.ro_0, d.p_0, d.iteration, d.p, d.u, d.ro, d.c);
-    MomentumSquarePatch<double> tMomentum(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.iteration, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z);
+    EquationOfStateSquarePatch<Real> tEquationOfState(d.ro_0, d.p_0, d.iteration, d.p, d.u, d.ro, d.c);
+    MomentumSquarePatch<Real> tMomentum(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.iteration, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z);
     Energy<Real> tEnergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.du);
     Timestep<Real> tTimestep(d.h, d.c, d.dt_m1, d.dt);
     UpdateQuantities<Real> tUpdateQuantities(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);

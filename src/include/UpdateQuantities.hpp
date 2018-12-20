@@ -20,7 +20,7 @@ public:
 public:
 
 	UpdateQuantities(const ArrayT &grad_P_x, const ArrayT &grad_P_y, const ArrayT &grad_P_z, const ArrayT &dt, const ArrayT &du, const int &iteration, 
-		const BBox &bbox, ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, ArrayT &dt_m1, Params params = Params()) : 
+		const BBox<T> &bbox, ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, ArrayT &dt_m1, Params params = Params()) : 
 		TaskLoop(x.size()),	grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), dt(dt), du(du), iteration(iteration), bbox(bbox),
 		x(x), y(y), z(z), vx(vx), vy(vy), vz(vz), x_m1(x_m1), y_m1(y_m1), z_m1(z_m1), u(u), du_m1(du_m1), dt_m1(dt_m1), params(params) {}
 
@@ -100,7 +100,7 @@ public:
 private:
 	const ArrayT &grad_P_x, &grad_P_y, &grad_P_z, &dt, &du;
 	const int &iteration;
-	const BBox &bbox;
+	const BBox<T> &bbox;
 
 	ArrayT &x, &y, &z, &vx, &vy, &vz, &x_m1, &y_m1, &z_m1, &u, &du_m1, &dt_m1;
 

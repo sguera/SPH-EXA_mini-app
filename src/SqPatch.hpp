@@ -185,7 +185,7 @@ public:
     T etot, ecin, eint;
 
     // Domain box
-    sphexa::BBox bbox;
+    sphexa::BBox<T> bbox;
 
     int iteration;
 };

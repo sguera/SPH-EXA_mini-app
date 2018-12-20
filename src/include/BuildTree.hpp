@@ -5,7 +5,7 @@
 namespace sphexa
 {
 
-template<class Tree>
+template<class Tree, typename T = double>
 class BuildTree : public Task
 {
 public:
@@ -14,7 +14,7 @@ public:
 	
 	~BuildTree() = default;
 
-	BuildTree(const BBox &bbox, Tree &tree) : 
+	BuildTree(const BBox<T> &bbox, Tree &tree) : 
 		bbox(bbox), tree(tree) {}
 
 	virtual void compute() override
@@ -23,7 +23,7 @@ public:
 	}
 
 private:
-	const BBox &bbox;
+	const BBox<T> &bbox;
 	Tree &tree;
 };
 

@@ -22,7 +22,7 @@ public:
 	
 	~FindNeighbors() = default;
 
-	FindNeighbors(const Tree &tree, std::vector<std::vector<int>> &neighbors, ArrayT &h, const Params &params = Params()) : 
+	FindNeighbors(const Tree &tree, std::vector<std::vector<int>> &neighbors, ArrayT &h, const Params params = Params()) : 
 		TaskLoop(neighbors.size()), tree(tree), neighbors(neighbors), h(h), params(params) {}
 
 	virtual void compute(int i) override

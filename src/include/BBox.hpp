@@ -3,15 +3,15 @@
 namespace sphexa
 {
 
+template<typename T = double>
 class BBox
 {
 public:
-	BBox(double xmin = -1, double xmax = 1, double ymin = -1, double ymax = 1, double zmin = -1, double zmax = 1, bool PBCx = false, bool PBCy = false, bool PBCz = false) : 
+	BBox(T xmin = -1, T xmax = 1, T ymin = -1, T ymax = 1, T zmin = -1, T zmax = 1, bool PBCx = false, bool PBCy = false, bool PBCz = false) : 
 		xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), zmin(zmin), zmax(zmax), PBCx(PBCx), PBCy(PBCy), PBCz(PBCz) {}
 
-	double xmin, xmax, ymin, ymax, zmin, zmax;
+	T xmin, xmax, ymin, ymax, zmin, zmax;
 	bool PBCx, PBCy, PBCz;
 };
 
 }
-

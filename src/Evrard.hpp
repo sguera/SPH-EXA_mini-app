@@ -172,7 +172,7 @@ public:
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
     // Domain box
-    sphexa::BBox bbox;
+    sphexa::BBox<T> bbox;
 
     int iteration;
 };
