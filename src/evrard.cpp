@@ -26,7 +26,7 @@ int main()
 
     // Main computational tasks
     LambdaTask tComputeBBox([&](){ d.computeBBox(); });
-    BuildTree<Real, Tree> tBuildTree(d.bbox, tree);
+    BuildTree<Tree, Real> tBuildTree(d.bbox, tree);
     LambdaTask tReorderParticles([&](){ reorderParticles(d, *tree.ordering); });
     FindNeighbors<Tree> tFindNeighbors(tree, d.neighbors, d.h, FindNeighbors<Tree>::Params(d.ngmin, d.ng0, d.ngmax));
     Density<Real> tDensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
