@@ -28,9 +28,14 @@ public:
 	{
 		T R = params.R;
 		T gamma = params.gamma;
-		equation_of_state(R, gamma, ro[i], u[i], mui[i], p[i], temp[i], c[i], cv[i]);
 
-		if(isnan(c[i]) || isnan(cv[i]))
+		cv[i] = (gamma - 1) * R / mui[i];
+	    temp[i] = u[i] / cv[i];
+	    T tmp = u[i] * (gamma - 1);
+	    p[i] = ro[i] * tmp;
+	    c[i] = sqrt(tmp);
+
+		if(std::isnan(c[i]) || std::isnan(cv[i]))
         	printf("ERROR:equation_of_state c %f cv %f temp %f u %f p %f\n", c[i], cv[i], temp[i], u[i], p[i]);
 	}
 

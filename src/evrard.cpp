@@ -31,8 +31,7 @@ int main()
     FindNeighbors<Tree> tFindNeighbors(tree, d.neighbors, d.h, FindNeighbors<Tree>::Params(d.ngmin, d.ng0, d.ngmax));
     Density<Real> tDensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
     EquationOfState<Real> tEquationOfState(d.ro, d.u, d.mui, d.p, d.temp, d.c, d.cv);
-    Momentum<Real> tMomentum(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z);
-    Energy<Real> tEnergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.du);
+    MomentumEnergy<Real> tMomentumEnergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du);
     Timestep<Real> tTimestep(d.h, d.c, d.dt_m1, d.dt);
     UpdateQuantities<Real> tUpdateQuantities(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
     EnergyConservation<Real> tEnergyConservation(d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint);
@@ -63,8 +62,7 @@ int main()
     work.add(&tFindNeighbors, Workflow::Params(1, "Finding Neighbors"));
     work.add(&tDensity, Workflow::Params(1, "Computing Density"));
     work.add(&tEquationOfState, Workflow::Params(1, "Computing Equation Of State"));
-    work.add(&tMomentum, Workflow::Params(1, "Computing Momentum"));
-    work.add(&tEnergy, Workflow::Params(1, "Computing Energy"));
+    work.add(&tMomentumEnergy, Workflow::Params(1, "Computing Momentum"));
     work.add(&tTimestep, Workflow::Params(1, "Updating Time-step"));
     work.add(&tUpdateQuantities, Workflow::Params(1, "Updating Quantities"));
     work.add(&tEnergyConservation, Workflow::Params(1, "Computng Total Energy"));
@@ -72,7 +70,7 @@ int main()
     work.add(&tCheckNeighbors);
     work.add(&tCheckTimestep);
     work.add(&tCheckConservation);
-    //work.add(&twriteFile, Workflow::Params(1, "WriteFile"));
+    work.add(&twriteFile, Workflow::Params(1, "WriteFile"));
 
     for(d.iteration = 0; d.iteration < 200; d.iteration++)
     {

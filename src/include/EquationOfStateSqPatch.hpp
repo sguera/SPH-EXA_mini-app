@@ -29,7 +29,23 @@ public:
 	virtual void compute(int i)
 	{
 		T chi = params.chi;
-		sphexa::equation_of_state_square_patch(chi, p_0[i], ro_0[i], iteration, p[i], u[i], ro[i],  c[i]);
+
+	    if(iteration < 15)
+	    {
+	        p[i] = p_0[i];
+	    }
+	    else if(iteration == 15)
+	    {
+	        p[i] = p_0[i];
+	        ro[i] = ro_0[i];
+	    }
+	    else
+	    {
+	        p[i] = chi * (pow((ro[i] / ro_0[i]), 7) - 1) + p_0[i];
+	    }
+
+	    c[i] = 3500.0;
+	    u[i] = 1.0;
 	}
 
 	const ArrayT &ro_0, &p_0;

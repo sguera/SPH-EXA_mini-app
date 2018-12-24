@@ -47,16 +47,6 @@ inline T wharmonic_derivative(T v, T h, T K)
 }
 
 template<typename T>
-inline void equation_of_state(const T R, const T gamma, const T ro, const T u, const T mui, T &pressure, T &temperature, T &soundspeed, T &cv)
-{
-    cv = (gamma - 1) * R / mui;
-    temperature = u / cv;
-    T tmp = u * (gamma - 1);
-    pressure = ro * tmp;
-    soundspeed = sqrt(tmp);
-}
-
-template<typename T>
 inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, T r_square)
 {
     T alpha = 1.0;
@@ -78,29 +68,6 @@ inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, 
     }
 
     return viscosity_ij;
-}
-
-template<typename T>
-inline void equation_of_state_square_patch(const T chi, const T &pressure_0, const T &ro_0, const int iteration, T &pressure, T &u, T &ro,  T &soundspeed)
-{
-    if(iteration < 15)
-    {
-        pressure = pressure_0;
-    }
-
-    else if(iteration == 15)
-    {
-        pressure = pressure_0;
-        ro = ro_0;
-    }
-
-    else
-    {
-        pressure = chi * (pow((ro / ro_0), 7) - 1) + pressure_0;
-    }
-
-    soundspeed = 3500.0;
-    u = 1.0;
 }
 
 }

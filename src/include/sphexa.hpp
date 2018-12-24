@@ -19,12 +19,13 @@
 #include "FindNeighbors.hpp"
 #include "Density.hpp"
 #include "Timestep.hpp"
+
 #include "EquationOfState.hpp"
-#include "Momentum.hpp"
-#include "Energy.hpp"
+#include "EquationOfStateSqPatch.hpp"
+
 #include "EnergyConservation.hpp"
 #include "UpdateQuantities.hpp"
 #include "EnergyConservation.hpp"
 
-#include "EquationOfStateSquarePatch.hpp"
-#include "MomentumSquarePatch.hpp"
+#include "MomentumEnergy.hpp"
+#include "MomentumEnergySqPatch.hpp"

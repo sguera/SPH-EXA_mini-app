@@ -7,7 +7,7 @@ namespace sphexa
 {
 
 template<typename T = double, typename ArrayT = std::vector<T>>
-class MomentumSquarePatch : public TaskLoop
+class MomentumEnergySqPatch : public TaskLoop
 {
 public:
     struct Params
@@ -20,14 +20,14 @@ public:
     };
 public:
 
-    MomentumSquarePatch(const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
+    MomentumEnergySqPatch(const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
         const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, 
         const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m,
         const int &iteration, const std::vector<std::vector<int>> &neighbors, 
-        ArrayT &grad_P_x, ArrayT &grad_P_y, ArrayT &grad_P_z, Params params = Params()) : 
+        ArrayT &grad_P_x, ArrayT &grad_P_y, ArrayT &grad_P_z, ArrayT &du, Params params = Params()) : 
     TaskLoop(x.size()),
     x(x), y(y), z(z), h(h), vx(vx), vy(vy), vz(vz), ro(ro), p(p), c(c), m(m), iteration(iteration), neighbors(neighbors),
-    grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), params(params) {}
+    grad_P_x(grad_P_x), grad_P_y(grad_P_y), grad_P_z(grad_P_z), du(du), params(params) {}
 
     virtual void compute(int i)
     {
@@ -45,7 +45,8 @@ public:
         T momentum_y = 0.0;
         T momentum_z = 0.0;
 
-        
+        T energy = 0.0;
+
         T delta_x_i = params.delta_x_i;
         T A_i = params.A_i;
         T ep1 = params.ep1;
@@ -120,19 +121,18 @@ public:
 
             T R_i_j = ep1 * (A_i * abs(p_i) + A_j * abs(p_j)) + ep2 * delta_pos_i_j * (abs(p_i) + abs(p_j));
 
-            if(std::isnan(ep1))
-                std::cout << "Ep1 is nan" << std::endl;
+            // if(std::isnan(ep1))
+            //     std::cout << "Ep1 is nan" << std::endl;
 
             T r_force_i_j = R_i_j * pow(force_i_j_r, mre);
 
-            if(std::isnan(r_force_i_j))
-                std::cout << "r_force_i_j is nan" << std::endl;
+            // if(std::isnan(r_force_i_j))
+            //     std::cout << "r_force_i_j is nan" << std::endl;
 
             T partial_repulsive_force = (r_force_i_j / (ro_i * ro_j)) * m_j;
 
-            if(std::isnan(partial_repulsive_force))
-                printf("partial_repulsive_force: %f %f %f %f\n", ro_i, ro_j, m_j, r_force_i_j);
-                //std::cout << "partial_repulsive_force nan: " << ro_i << " " << ro_j << " " << m_j << " " << r_force_i_j << std::endl;
+            // if(std::isnan(partial_repulsive_force))
+            //     printf("partial_repulsive_force: %f %f %f %f\n", ro_i, ro_j, m_j, r_force_i_j);
 
             T repulsive_force_x = partial_repulsive_force * grad_v_kernel_x_i_j;
             T repulsive_force_y = partial_repulsive_force * grad_v_kernel_y_i_j;
@@ -144,7 +144,17 @@ public:
             momentum_x +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_x_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_x_j) + viscosity_ij * grad_v_kernel_x_i_j + repulsive_force_x;
             momentum_y +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_y_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_y_j) + viscosity_ij * grad_v_kernel_y_i_j + repulsive_force_y;
             momentum_z +=  (p_i/(gradh_i * ro_i * ro_i) * grad_v_kernel_z_i) + (p_j/(gradh_j * ro_j * ro_j) * grad_v_kernel_z_j) + viscosity_ij * grad_v_kernel_z_i_j + repulsive_force_z;
+            
+            energy +=  m_j * (1 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
         }
+
+        if(std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))
+            printf("ERROR::Momentum(%d) momentum (%f %f %f)\n", i, momentum_x, momentum_y, momentum_z);
+
+        du[i] =  energy * (-p_i/(gradh_i * ro_i * ro_i));
+
+        if(std::isnan(du[i]))
+            printf("ERROR:Energy du %f energy %f p_i %f gradh_i %f ro_i %f\n", du[i], energy, p_i, gradh_i, ro_i);
 
         grad_P_x[i] = momentum_x * m[i];
         grad_P_y[i] = momentum_y * m[i];
@@ -158,7 +168,7 @@ private:
     const int &iteration;
     const std::vector<std::vector<int>> &neighbors;
 
-    ArrayT &grad_P_x, &grad_P_y, &grad_P_z;
+    ArrayT &grad_P_x, &grad_P_y, &grad_P_z, &du;
 
     Params params;
 };
