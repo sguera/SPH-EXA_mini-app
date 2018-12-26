@@ -112,18 +112,15 @@ public:
                 //if(std::isnan(repulsive_force_x) && std::isnan(repulsive_force_y) && std::isnan(repulsive_force_z))
                 //    std::cout << "repulsive_force_x y or z is nan" << std::endl;
 
-                momentum_x +=  (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_x_i) 
-                    + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_x_j) 
-                    + viscosity_ij * (grad_v_kernel_x_i + grad_v_kernel_x_j)/2.0
-                    + repulsive_force_x;
-                momentum_y +=  (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_y_i) 
-                    + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_y_j) 
-                    + viscosity_ij * (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0
-                    + repulsive_force_y;
-                momentum_z +=  (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_z_i) 
-                    + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_z_j) 
-                    + viscosity_ij * (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0
-                    + repulsive_force_z;
+                // momentum_x += (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_x_i) 
+                //     + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_x_j) 
+                //     + viscosity_ij * grad_v_kernel_x_i_j + repulsive_force_x;
+                // momentum_y += (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_y_i) 
+                //     + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_y_j) 
+                //     + viscosity_ij * grad_v_kernel_y_i_j + repulsive_force_y;
+                // momentum_z += (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_z_i) 
+                //     + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_z_j) 
+                //     + viscosity_ij * grad_v_kernel_z_i_j + repulsive_force_z;
                 
                 energy +=  m[nid] * (1 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
             }
