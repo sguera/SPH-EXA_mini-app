@@ -1,23 +1,23 @@
 #pragma once
 
 #include <vector>
-#include "Task.hpp"
 
 namespace sphexa
 {
 
 template<typename T = double, typename ArrayT = std::vector<T>>
-class EnergyConservation : public Task
+class EnergyConservation
 {
 public:
-	EnergyConservation(const ArrayT &u, const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, const ArrayT &m,
-		T &etot, T &ecin, T &eint) : u(u), vx(vx), vy(vy), vz(vz), m(m), 
-		etot(etot), ecin(ecin), eint(eint) {}
+	EnergyConservation() {}
 
-	virtual void compute() override
+	void compute(const ArrayT &u, const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, const ArrayT &m, T &etot, T &ecin, T &eint)
 	{
+		int n = u.size();
+
 		etot = ecin = eint = 0.0;
-        for(unsigned int i=0; i<u.size(); i++)
+		#pragma omp parallel for reduction (+:etot,ecin,eint)
+        for(int i=0; i<n; i++)
         {
             T vmod2 = 0.0;
             vmod2 = vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i];
@@ -26,10 +26,6 @@ public:
         }
         etot += ecin + eint;
 	}
-
-private:
-	const ArrayT &u, &vx, &vy, &vz, &m;
-	T &etot, &ecin, &eint;
 };
 
 }

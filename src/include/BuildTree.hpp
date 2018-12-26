@@ -1,23 +1,16 @@
 #pragma once
 
-#include "Task.hpp"
-
 namespace sphexa
 {
 
 template<class Tree, typename T = double>
-class BuildTree : public Task
+class BuildTree
 {
 public:
-	
-	BuildTree() = delete;
-	
-	~BuildTree() = default;
 
-	BuildTree(const BBox<T> &bbox, Tree &tree) : 
-		bbox(bbox), tree(tree) {}
+	BuildTree(const BBox<T> &bbox, Tree &tree) : bbox(bbox), tree(tree) {}
 
-	virtual void compute() override
+	void compute()
 	{
 		tree.build(bbox);
 	}

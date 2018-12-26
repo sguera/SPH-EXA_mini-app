@@ -12,40 +12,9 @@ template<typename T = double, class ArrayT = std::vector<T>>
 class HTree
 {
 public:
-	struct Params
-	{
-		Params(unsigned int ngmax = 150, unsigned int bucketSize = 128) :
-			ngmax(ngmax), bucketSize(bucketSize) {}
-		unsigned int ngmax, bucketSize;
-	};
-
-public:
-	const ArrayT &ax, &ay, &az, &ah;
-	const Params params;
-
-	T maxH;
-
-	int ncells;
-	int nX, nY, nZ;
-
-	BBox<T> bbox;
-
-	std::vector<std::shared_ptr<HTree>> cells;
-
-	std::vector<int> start, count;
-	std::shared_ptr<std::vector<int>> ordering;
-	std::shared_ptr<std::vector<T>> x, y, z;
-
-	HTree() = delete;
-	
-	~HTree() = default;
-
-	HTree(const ArrayT &ax, const ArrayT &ay, const ArrayT &az, const ArrayT &ah, const Params params = Params()): 
-		ax(ax), ay(ay), az(az), ah(ah), params(params) {}
-
 	int cellCount() const
 	{
-		int c = 1;//  C*C*C;
+		int c = 1;
 		for(int i=0; i<ncells; i++)
 			if(cells[i] != nullptr) c += cells[i]->cellCount();
 		return c;
@@ -93,19 +62,7 @@ public:
 		}
 	}
 
-	inline T computeMaxH()
-	{
-		T hmax = 0.0;
-		for(unsigned int i=0; i<ax.size(); i++)
-		{
-			T h = ah[i];
-			if(h > hmax)
-				hmax = h;
-		}
-		return hmax;
-	}
-
-	inline void distributeParticles(const std::vector<int> &list, std::vector<std::vector<int>> &cellList)
+	inline void distributeParticles(const std::vector<int> &list, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, std::vector<std::vector<int>> &cellList)
 	{
 		for(unsigned int i=0; i<list.size(); i++)
 		{
@@ -171,10 +128,23 @@ public:
 		}
 	}
 
- 	void buildRec(const std::vector<int> &list, const BBox<T> &bbox, int ptr)
+
+	inline T computeMaxH(const ArrayT &ah)
+	{
+		T hmax = 0.0;
+		for(unsigned int i=0; i<ah.size(); i++)
+		{
+			T h = ah[i];
+			if(h > hmax)
+				hmax = h;
+		}
+		return hmax;
+	}
+
+ 	void buildRec(const std::vector<int> &list, const BBox<T> &bbox, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, const ArrayT &ah, const unsigned int bucketSize, int ptr)
 	{	
 		this->bbox = bbox;
-	   	maxH = computeMaxH();
+	   	T maxH = computeMaxH(ah);
 
 		nX = std::max((bbox.xmax-bbox.xmin) / maxH, 2.0);
 		nY = std::max((bbox.ymax-bbox.ymin) / maxH, 2.0);
@@ -182,7 +152,7 @@ public:
 		ncells = nX*nY*nZ;
 
 		std::vector<std::vector<int>> cellList(ncells);
-		distributeParticles(list, cellList);
+		distributeParticles(list, ax, ay, az, cellList);
 
 		std::vector<BBox<T>> cellBBox(ncells);
 		computeBBoxes(cellBBox);
@@ -196,14 +166,14 @@ public:
 
 		for(int i=0; i<ncells; i++)
 		{
-			if(cellList[i].size() > params.bucketSize)// && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
+			if(cellList[i].size() > bucketSize)// && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
 			{
-				cells[i] = std::make_shared<HTree>(ax, ay, az, ah, params);
+				cells[i] = std::make_shared<HTree>();
 				cells[i]->x = x;
 				cells[i]->y = y;
 				cells[i]->z = z;
 				cells[i]->ordering = ordering;
-				cells[i]->buildRec(cellList[i], cellBBox[i], ptr+padding[i]);
+				cells[i]->buildRec(cellList[i], cellBBox[i], ax, ay, az, ah, bucketSize, ptr+padding[i]);
 			}
 			else
 			{
@@ -222,7 +192,7 @@ public:
 		}
 	}
 
-	void build(const BBox<T> &bbox)
+	void build(const BBox<T> &bbox, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, const ArrayT &ah, const unsigned int bucketSize = 128)
 	{
 		int count = ax.size();
 
@@ -237,7 +207,7 @@ public:
 		for(int i=0; i<count; i++)
 			list[i] = i;
 
-		buildRec(list, bbox, 0);
+		buildRec(list, bbox, ax, ay, az, ah, bucketSize, 0);
 	}
 
 	void findNeighborsRec(const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors) const
@@ -266,16 +236,9 @@ public:
 		}
 	}
 
-	void findNeighbors(const int i, std::vector<int> &neighbors,
+	void findNeighbors(const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors,
 		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const
 	{
-		const T xi = ax[i];
-		const T yi = ay[i];
-		const T zi = az[i];
-		const T ri = 2*ah[i];
-
-		int ngmax = params.ngmax;
-
 		if((PBCx && (xi-ri < bbox.xmin || xi+ri > bbox.xmax)) || (PBCy && (yi-ri < bbox.ymin || yi+ri > bbox.ymax)) || (PBCz && (zi-ri < bbox.zmin || zi+ri > bbox.zmax)))
 		{
 			int mix = (int)floor(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX) % nX;
@@ -312,6 +275,20 @@ public:
 		else
 			findNeighborsRec(xi, yi, zi, ri, ngmax, neighbors);
 	}
+
+public:
+	std::shared_ptr<std::vector<int>> ordering;
+
+private:
+	int ncells;
+	int nX, nY, nZ;
+
+	BBox<T> bbox;
+
+	std::vector<std::shared_ptr<HTree>> cells;
+
+	std::vector<int> start, count;
+	std::shared_ptr<std::vector<T>> x, y, z;
 };
 
 }

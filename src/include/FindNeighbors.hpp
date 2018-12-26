@@ -2,13 +2,11 @@
 
 #include <vector>
 
-#include "TaskLoop.hpp"
-
 namespace sphexa
 {
 
 template<class Tree, typename T = double, typename ArrayT = std::vector<T>>
-class FindNeighbors : public TaskLoop
+class FindNeighbors
 {
 public:
 	struct Params
@@ -18,31 +16,31 @@ public:
 	};
 public:
 	
-	FindNeighbors() = delete;
-	
-	~FindNeighbors() = default;
-
 	FindNeighbors(const Tree &tree, std::vector<std::vector<int>> &neighbors, ArrayT &h, const Params params = Params()) : 
-		TaskLoop(neighbors.size()), tree(tree), neighbors(neighbors), h(h), params(params) {}
+		tree(tree), neighbors(neighbors), h(h), params(params) {}
 
-	virtual void compute(int i) override
+	void compute(int n)
 	{
-		int ngi = neighbors[i].size();
-		
-		if(ngi > 0)
-			h[i] = update_smoothing_length(params.ng0, ngi, h[i]);
+		#pragma omp parallel for
+		for(int i=0; i<n; i++)
+		{
+			int ngi = neighbors[i].size();
+			
+			if(ngi > 0)
+				h[i] = update_smoothing_length(params.ng0, ngi, h[i]);
 
-        do
-        {
-            neighbors[i].resize(0);
-            tree.findNeighbors(i, neighbors[i]);
+	        do
+	        {
+	            neighbors[i].resize(0);
+	            tree.findNeighbors(i, neighbors[i]);
 
-            ngi = neighbors[i].size();
+	            ngi = neighbors[i].size();
 
-            if(ngi < params.ngmin || ngi > params.ngmax)
-                h[i] = update_smoothing_length(params.ng0, ngi, h[i]);
-        }
-        while(ngi < params.ngmin || ngi > params.ngmax);
+	            if(ngi < params.ngmin || ngi > params.ngmax)
+	                h[i] = update_smoothing_length(params.ng0, ngi, h[i]);
+	        }
+	        while(ngi < params.ngmin || ngi > params.ngmax);
+	    }
 	}
 
 private:

@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <string>
 
 #include "sphexa.hpp"
 #include "Evrard.hpp"
@@ -6,77 +8,60 @@
 using namespace std;
 using namespace sphexa;
 
-template<typename T>
-void reorderParticles(Evrard<T> &d, std::vector<int> &ordering)
-{
-    d.reorder(ordering);
-    for(unsigned i=0; i<d.x.size(); i++)
-        ordering[i] = i;
-}
-
 int main()
 {
     typedef double Real;
     typedef Octree<Real> Tree;
-    //typedef HTree<Real> Tree;
+    typedef Evrard<Real> Dataset;
 
-    Evrard<Real> d(1e6, "bigfiles/Evrard3D.bin");
+    int n = 1e6;
+    Dataset d(n, "bigfiles/Evrard3D.bin");
+    Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
+    Density<Real> density(d.K);
+    EquationOfState<Real> equationOfState;
+    MomentumEnergy<Real> momentumEnergy(d.K);
+    Timestep<Real> timestep(d.K, d.maxDtIncrease);
+    UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
+    EnergyConservation<Real> energyConservation;
 
-    Tree tree(d.x, d.y, d.z, d.h, Tree::Params(/*max neighbors*/d.ngmax, /*bucketSize*/128));
+    for(int iteration = 0; iteration < 200; iteration++)
+    {
+        timer::TimePoint start = timer::Clock::now();
 
-    // Main computational tasks
-    LambdaTask tComputeBBox([&](){ d.computeBBox(); });
-    BuildTree<Tree, Real> tBuildTree(d.bbox, tree);
-    LambdaTask tReorderParticles([&](){ reorderParticles(d, *tree.ordering); });
-    FindNeighbors<Tree> tFindNeighbors(tree, d.neighbors, d.h, FindNeighbors<Tree>::Params(d.ngmin, d.ng0, d.ngmax));
-    Density<Real> tDensity(d.x, d.y, d.z, d.h, d.m, d.neighbors, d.ro);
-    EquationOfState<Real> tEquationOfState(d.ro, d.u, d.mui, d.p, d.temp, d.c, d.cv);
-    MomentumEnergy<Real> tMomentumEnergy(d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.neighbors, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du);
-    Timestep<Real> tTimestep(d.h, d.c, d.dt_m1, d.dt);
-    UpdateQuantities<Real> tUpdateQuantities(d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.iteration, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
-    EnergyConservation<Real> tEnergyConservation(d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint);
-    
-    // Small tasks to check the result
-    LambdaTask tPrintBBox([&](){
+        cout << "Iteration: " << iteration << endl;
+
+        REPORT_TIME(domain.buildTree(d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
+        REPORT_TIME(domain.reorderParticles(d), "ReorderParticles");
+        REPORT_TIME(domain.findNeighbors(d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
+        REPORT_TIME(density.compute(d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
+        REPORT_TIME(equationOfState.compute(d.ro, d.mui, d.temp, d.u, d.p, d.c, d.cv), "EquationOfState");
+        REPORT_TIME(momentumEnergy.compute(d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");
+        REPORT_TIME(timestep.compute(d.h, d.c, d.dt_m1, d.dt), "Timestep");
+        REPORT_TIME(updateQuantities.compute(iteration, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
+        REPORT_TIME(energyConservation.compute(d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
+
+        int totalNeighbors = 0;
+        #pragma omp parallel for reduction (+:totalNeighbors)
+        for(unsigned int i=0; i<d.neighbors.size(); i++)
+            totalNeighbors += d.neighbors[i].size();
+
         cout << "### Check ### Computational domain: ";
         cout << d.bbox.xmin << " " << d.bbox.xmax << " ";
         cout << d.bbox.ymin << " " << d.bbox.ymax << " ";
         cout << d.bbox.zmin << " " << d.bbox.zmax << endl;
-    });
-    LambdaTask tCheckNeighbors([&]()
-    { 
-        int sum = 0;
-        for(unsigned int i=0; i<d.neighbors.size(); i++)
-            sum += d.neighbors[i].size();
-        cout << "### Check ### Avg. number of neighbours: " << sum/d.n << "/" << d.ng0 << endl;
-    });
-    LambdaTask tCheckTimestep([&](){ cout << "### Check ### New Time-step: " << d.dt[0] << endl; });
-    LambdaTask tCheckConservation([&](){ cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl; });
-    LambdaTask twriteFile([&](){ d.writeFile(); });
+        cout << "### Check ### Avg. number of neighbours: " << totalNeighbors/n << "/" << d.ng0 << endl;
+        cout << "### Check ### New Time-step: " << d.dt[0] << endl;
+        cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
 
-    // We build the workflow
-    Workflow work;
-    work.add(&tComputeBBox);
-    work.add(&tBuildTree, Workflow::Params(1, "Building Tree"));
-    work.add(&tReorderParticles, Workflow::Params(1, "Reordering Particles"));
-    work.add(&tFindNeighbors, Workflow::Params(1, "Finding Neighbors"));
-    work.add(&tDensity, Workflow::Params(1, "Computing Density"));
-    work.add(&tEquationOfState, Workflow::Params(1, "Computing Equation Of State"));
-    work.add(&tMomentumEnergy, Workflow::Params(1, "Computing Momentum"));
-    work.add(&tTimestep, Workflow::Params(1, "Updating Time-step"));
-    work.add(&tUpdateQuantities, Workflow::Params(1, "Updating Quantities"));
-    work.add(&tEnergyConservation, Workflow::Params(1, "Computng Total Energy"));
-    work.add(&tPrintBBox);
-    work.add(&tCheckNeighbors);
-    work.add(&tCheckTimestep);
-    work.add(&tCheckConservation);
-    work.add(&twriteFile, Workflow::Params(1, "WriteFile"));
+        if(iteration % 10 == 0)
+        {
+            std::ofstream outputFile("output" + to_string(iteration) + ".txt");
+            REPORT_TIME(d.writeFile(outputFile), "writeFile");
+            outputFile.close();
+        }
 
-    for(d.iteration = 0; d.iteration < 200; d.iteration++)
-    {
-        cout << "Iteration: " << d.iteration << endl;
-        work.exec();
-        cout << endl;
+        timer::TimePoint stop = timer::Clock::now();
+        cout << "=== Total time for iteration " << timer::duration(start, stop) << "s" << endl << endl;
     }
 
     return 0;

@@ -5,15 +5,16 @@
 namespace sphexa
 {
 
+#define PI 3.141592653589793
+
 template<typename T>
-inline T update_smoothing_length(const int ng0, const int ngi, const T hi)
+inline T distance(const T x1, const T y1, const T z1, const T x2, const T y2, const T z2)
 {
-    const T c0 = 7.0;
-    const T exp = 1.0/3.0;
+    T xx = x1 - x2;
+    T yy = y1 - y2;
+    T zz = z1 - z2;
 
-    T ka = pow((1.0 + c0 * ng0 / ngi), exp);
-
-    return hi * 0.5 * ka;
+    return sqrt(xx*xx + yy*yy + zz*zz);
 }
 
 template<typename T>
@@ -57,10 +58,9 @@ inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, 
     T c_ij = (c_i + c_j) / 2.0;
     T h_ij = (h_i + h_j) / 2.0;
 
-
     //calculate viscosity_ij according to Monaghan & Gringold 1983
     T viscosity_ij = 0.0;
-    if (rv < 0.0)
+    if(rv < 0.0)
     {
         //calculate muij
         T mu_ij = (h_ij * rv) / (r_square + epsilon * h_ij * h_ij);

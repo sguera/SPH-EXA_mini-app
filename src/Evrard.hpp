@@ -5,16 +5,12 @@
 #include <fstream>
 #include <sstream>
 
-#include "BBox.hpp"
+#include "sphexa.hpp"
 
 template<typename T>
 class Evrard
 {
 public:
-
-    Evrard() = delete;
-    ~Evrard() = default;
-
     Evrard(int n, const char *filename) : 
     	n(n), x(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
     	ro(n), u(n), p(n), h(n), m(n), c(n), cv(n), temp(n), mue(n), mui(n), 
@@ -65,8 +61,6 @@ public:
         }
 
         etot = ecin = eint = 0.0;
-
-        iteration = 0;
     }
 
     void reorderSwap(const std::vector<int> &ordering, std::vector<T> &data)
@@ -107,45 +101,17 @@ public:
         reorderSwap(ordering, dt_m1);
     }
 
-    void computeBBox()
+    void writeFile(std::ofstream &outputFile)
     {
-        bbox.xmin = INFINITY;
-        bbox.xmax = -INFINITY;
-        bbox.ymin = INFINITY;
-        bbox.ymax = -INFINITY;
-        bbox.zmin = INFINITY;
-        bbox.zmax = -INFINITY;
         for(int i=0; i<n; i++)
         {
-            if(x[i] < bbox.xmin) bbox.xmin = x[i];
-            if(x[i] > bbox.xmax) bbox.xmax = x[i];
-            if(y[i] < bbox.ymin) bbox.ymin = y[i];
-            if(y[i] > bbox.ymax) bbox.ymax = y[i];
-            if(z[i] < bbox.zmin) bbox.zmin = z[i];
-            if(z[i] > bbox.zmax) bbox.zmax = z[i];
-        }
-    }
-
-    void writeFile()
-    {
-        if(iteration % 10 == 0)
-        {
-            std::ofstream outputFile;
-            std::ostringstream oss;
-            oss << "output" << iteration << ".txt";
-            outputFile.open(oss.str());
-        
-            for(int i=0; i<n; i++)
-            {
-                outputFile << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
-                outputFile << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
-                outputFile << h[i] << ' ' << ro[i] << ' ' << u[i] << ' ' << p[i] << ' ' << c[i] << ' ';
-                outputFile << grad_P_x[i] << ' ' << grad_P_y[i] << ' ' << grad_P_z[i] << ' ';
-                T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
-                T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
-                outputFile << rad << ' ' << vrad << std::endl;  
-            }
-            outputFile.close();
+            outputFile << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
+            outputFile << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
+            outputFile << h[i] << ' ' << ro[i] << ' ' << u[i] << ' ' << p[i] << ' ' << c[i] << ' ';
+            outputFile << grad_P_x[i] << ' ' << grad_P_y[i] << ' ' << grad_P_z[i] << ' ';
+            T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
+            T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
+            outputFile << rad << ' ' << vrad << std::endl;  
         }
     }
 
@@ -168,11 +134,11 @@ public:
 
     T etot, ecin, eint;
 
-    int ngmin = 50, ng0 = 100, ngmax = 150; // Minimum, target and maximum number of neighbors per particle
+    sphexa::BBox<T> bbox;
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
-    // Domain box
-    sphexa::BBox<T> bbox;
-
-    int iteration;
+    const T K = sphexa::compute_3d_k(5.0);
+    const T maxDtIncrease = 1.1;
+    const int stabilizationTimesteps = -1;
+    const int ngmin = 50, ng0 = 100, ngmax = 150; // Minimum, target and maximum number of neighbors per particle
 };
