@@ -72,8 +72,6 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
-        
-        bbox.PBCz = true;
         bbox.zmin = -50;
         bbox.zmax = 50;
     }
@@ -85,26 +83,6 @@ public:
             tmp[i] = data[ordering[i]];
         tmp.swap(data);
     }
-
-    void computeBBox()
-    {
-        bbox.xmin = INFINITY;
-        bbox.xmax = -INFINITY;
-        bbox.ymin = INFINITY;
-        bbox.ymax = -INFINITY;
-        // bbox.zmin = INFINITY;
-        // bbox.zmax = -INFINITY;
-        for(int i=0; i<n; i++)
-        {
-            if(x[i] < bbox.xmin) bbox.xmin = x[i];
-            if(x[i] > bbox.xmax) bbox.xmax = x[i];
-            if(y[i] < bbox.ymin) bbox.ymin = y[i];
-            if(y[i] > bbox.ymax) bbox.ymax = y[i];
-            // if(z[i] < bbox.zmin) bbox.zmin = z[i];
-            // if(z[i] > bbox.zmax) bbox.zmax = z[i];
-        }
-    }
-
 
     void reorder(const std::vector<int> &ordering)
     {
@@ -169,8 +147,9 @@ public:
     sphexa::BBox<T> bbox;
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
-    const T K = sphexa::compute_3d_k(5.0);
+    const T K = sphexa::compute_3d_k(6.0);
     const T maxDtIncrease = 1.1;
-    const int stabilizationTimesteps = -1;
+    const int stabilizationTimesteps = 15;
     const int ngmin = 450, ng0 = 500, ngmax = 550;
+    const bool PBCx = false, PBCy = false, PBCz = false;
 };

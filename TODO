@@ -1,2 +1,4 @@
-CHECK: chi in timestep is the same as K in MomemtumEnergy
+CHECK:
+- chi in timestep is the same as K in MomemtumEnergy
+- K in square patch has two different values in Density and Momentum
 ASK: Ruben to give a name to the EOS functions

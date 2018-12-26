@@ -23,7 +23,7 @@ public:
 
         const T gradh_i = 1.0;
         const T gradh_j = 1.0;
-        const T delta_x_i = 1.0, A_i = 0.0;
+        const T delta_x_i = 1.0;
         const T ep1 = 0.2, ep2 = 0.02, mre = 4.0;
 
         #pragma omp parallel for
@@ -31,6 +31,9 @@ public:
         {
             T momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0, energy = 0.0;
             
+            T A_i = 0.0;
+            if(p[i] < 0.0)
+                A_i = 1.0;
 
             for(unsigned int j=0; j<neighbors[i].size(); j++)
             {
@@ -77,7 +80,7 @@ public:
 
                 T force_i_j_r = exp(-(rv_i * rv_i)) * exp(delta_x_i / (h[i] * h[i]));
 
-                if (iteration < stabilizationTimesteps)
+                if(iteration < stabilizationTimesteps)
                    force_i_j_r = 0.0;
 
                 T A_j = 0.0;

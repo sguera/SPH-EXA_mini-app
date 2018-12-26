@@ -15,8 +15,8 @@ int main()
     typedef SqPatch<Real> Dataset;
 
     int n = 1e6;
-    Dataset d(n, "bigfiles/Evrard3D.bin");
-    Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
+    Dataset d(n, "bigfiles/squarepatch3D_1M.bin");
+    Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax, d.PBCx, d.PBCy, d.PBCz);
     Density<Real> density(d.K);
     EquationOfStateSqPatch<Real> equationOfState(d.stabilizationTimesteps);
     MomentumEnergySqPatch<Real> momentumEnergy(d.stabilizationTimesteps, d.K);
