@@ -29,9 +29,12 @@ public:
 		}
 
         T min = INFINITY;
-        for(unsigned int i = 0; i < dt.size(); ++i)
+        for(int pi=0; pi<n; pi++)
+		{
+			int i = clist[pi];
             if(dt[i] < min)
                 min = dt[i];
+        }
 
         min = std::min(min, maxDtIncrease * dt_m1[0]);
 
@@ -40,8 +43,11 @@ public:
         #endif
 
         #pragma omp parallel for
-        for(unsigned int i=0; i<dt.size(); i++)
+        for(int pi=0; pi<n; pi++)
+		{
+			int i = clist[pi];
         	dt[i] = min;
+        }
 	}
 
 private:

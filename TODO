@@ -1,4 +1,11 @@
 CHECK:
 - chi in timestep is the same as K in MomemtumEnergy
-- K in square patch has two different values in Density and Momentum
-ASK: Ruben to give a name to the EOS functions
+- K in square patch has two different values in Density and Momentum (temporarily set to the same in SqPatch.hpp)
+
+TODO:
+- synchronizeHalos should perhaps be inside each module, and should send/receive only the datasets that are needed instead of all
+- DistributedDomain.hpp has no openmp but some parts are easy to parallelize
+- build() in Octree or Htree has no openmp but is also easy to parallelize
+- maybe use MPI_IO to read the file instead of standard reading + scatterv
+- give a global idea to the particles in DistributedDomain; that way when we assign particles to nodes and we build the list of halo particles, we can refer to the global idea. We need an additional array that map the global idea of a particle to its actual position in the array. This will enable us to reorder particles every iteration for a 20% performance boost.
+

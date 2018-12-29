@@ -20,7 +20,7 @@ public:
 		int n = clist.size();
 
 		etot = ecin = eint = 0.0;
-		#pragma omp parallel for reduction (+:etot,ecin,eint)
+		#pragma omp parallel for reduction (+:ecin,eint)
         for(int pi=0; pi<n; pi++)
         {
             int i = clist[pi];
@@ -30,12 +30,15 @@ public:
             ecin += 0.5 * m[i] * vmod2;
             eint += u[i] * m[i]; 
         }
-        etot += ecin + eint;
 
-        MPI_Allreduce(MPI_IN_PLACE, &etot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &ecin, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &eint, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	}
+        #ifdef USE_MPI
+            //MPI_Allreduce(MPI_IN_PLACE, &etot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, &ecin, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(MPI_IN_PLACE, &eint, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	   #endif
+
+        etot = ecin + eint;
+    }
 };
 
 }

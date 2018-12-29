@@ -46,7 +46,9 @@ public:
 		    ro[i] = roloc + m[i] * K/(h[i]*h[i]*h[i]);
 
 		    if(std::isnan(ro[i]))
+		    {
 		    	printf("ERROR::Density(%d) density %f, position: (%f %f %f), h: %f\n", i, ro[i], x[i], y[i], z[i], h[i]);
+		    }
 		}
 	}
 

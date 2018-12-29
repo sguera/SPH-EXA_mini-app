@@ -29,5 +29,3 @@ namespace sphexa
 		}
 	}
 }
-
-#define REPORT_TIME(expr, name) sphexa::timer::report_time([&](){ expr; }, name)

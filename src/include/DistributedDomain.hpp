@@ -447,9 +447,6 @@ public:
         globalBBox = computeGlobalBBox(clist, x, y, z);
         globalMaxH = computeGlobalMaxH(clist, h);
 
-        localBBox = computeBBox(clist, x, y, z);
-        localMaxH = computeMaxH(clist, h);
-
         nX = std::max((globalBBox.xmax-globalBBox.xmin) / globalMaxH, 2.0);
         nY = std::max((globalBBox.ymax-globalBBox.ymin) / globalMaxH, 2.0);
         nZ = std::max((globalBBox.zmax-globalBBox.zmin) / globalMaxH, 2.0);
@@ -484,14 +481,14 @@ public:
             removeIndices(discardList, *data[i]);
     }
 
-    void synchronizeHalos(std::vector<ArrayT*> &data, bool showGraph = false)
+    void synchronizeHalos(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, std::vector<ArrayT*> &data, bool showGraph = false)
     {
-        //globalBBox = computeGlobalBBox(clist);
-        //distributeParticles(clist, globalBBox, cellList);
+        //globalBBox = computeGlobalBBox(clist, x, y, z);
+        //distributeParticles(clist, x, y, z);
 
         // Only now we are allowed to recompute the d BBox
-        // localBBox = computeBBox(clist, x, y, z);
-        // localMaxH = computeMaxH(clist, h);
+        localBBox = computeBBox(clist, x, y, z);
+        localMaxH = computeMaxH(clist, h);
 
         // Compute cell boxes using globalBBox
         std::vector<BBox<T>> cellBBox(ncells);
