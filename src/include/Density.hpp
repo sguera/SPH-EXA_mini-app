@@ -14,20 +14,22 @@ class Density
 public:
 	Density(T K = compute_3d_k(5.0)) : K(K) {}
 
-	void compute(const std::vector<std::vector<int>> &neighbors, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, const ArrayT &m, ArrayT &ro)
+	void compute(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, const ArrayT &m, ArrayT &ro)
 	{
-		int n = x.size();
+		int n = clist.size();
 
 		#pragma omp parallel for
-		for(int i=0; i<n; i++)
+		for(int pi=0; pi<n; pi++)
 		{
+			int i = clist[pi];
+
 		    T roloc = 0.0;
 		    ro[i] = 0.0;
 
-		    for(unsigned int j=0; j<neighbors[i].size(); j++)
+		    for(unsigned int j=0; j<neighbors[pi].size(); j++)
 		    {
 		        // retrive the id of a neighbor
-		        int nid = neighbors[i][j];
+		        int nid = neighbors[pi][j];
 		        if(nid == i) continue;
 
 		        // later can be stores into an array per particle

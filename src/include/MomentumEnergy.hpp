@@ -12,26 +12,28 @@ class MomentumEnergy
 public:
 	MomentumEnergy(const T K = compute_3d_k(5.0)) : K(K) {}
 
-	void compute(const std::vector<std::vector<int>> &neighbors, 
+	void compute(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors, 
 		const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
 		const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, 
 		const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m,
 		ArrayT &grad_P_x, ArrayT &grad_P_y, ArrayT &grad_P_z, ArrayT &du)
 	{
-		int n = x.size();
+		int n = clist.size();
 
 		const T gradh_i = 1.0;
 		const T gradh_j = 1.0;
 
 		#pragma omp parallel for
-		for(int i=0; i<n; i++)
+		for(int pi=0; pi<n; pi++)
 		{
+			int i = clist[pi];
+
 			T momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0, energy = 0.0;
 			
-			for(unsigned int j=0; j<neighbors[i].size(); j++)
+			for(unsigned int j=0; j<neighbors[pi].size(); j++)
 			{
 				// retrive the id of a neighbor
-	        	int nid = neighbors[i][j];
+	        	int nid = neighbors[pi][j];
 	        	if(nid == i) continue;
 
 		        // calculate the scalar product rv = rij * vij

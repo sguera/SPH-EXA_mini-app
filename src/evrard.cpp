@@ -74,19 +74,36 @@ int main()
             REPORT_TIME(mpi.synchronizeHalos(d.data, true), "mpi::synchronizeHalos");
             d.neighbors.resize(d.count);
 
-            printf("%d %d\n", d.count, clist.size());
             if(d.rank == 0) cout << "ComputeList.size: " << clist.size() << ", Halos: " << mpi.haloCount << endl;
         #endif
 
         REPORT_TIME(domain.buildTree(d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
-        // REPORT_TIME(domain.reorder(d.data), "ReorderParticles");
+        // REPORT_TIME(mpi.reorder(d.data), "ReorderParticles");
         REPORT_TIME(domain.findNeighbors(clist, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
-        // REPORT_TIME(density.compute(d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
-        // REPORT_TIME(equationOfState.compute(d.ro, d.mui, d.temp, d.u, d.p, d.c, d.cv), "EquationOfState");
-        // REPORT_TIME(momentumEnergy.compute(d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");
-        // REPORT_TIME(timestep.compute(d.h, d.c, d.dt_m1, d.dt), "Timestep");
-        // REPORT_TIME(updateQuantities.compute(iteration, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
-        // REPORT_TIME(energyConservation.compute(d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
+        #ifdef USE_MPI
+            REPORT_TIME(mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
+        #endif
+        REPORT_TIME(density.compute(clist, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
+        #ifdef USE_MPI
+            REPORT_TIME(mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
+        #endif
+        REPORT_TIME(equationOfState.compute(clist, d.ro, d.mui, d.temp, d.u, d.p, d.c, d.cv), "EquationOfState");
+        #ifdef USE_MPI
+            REPORT_TIME(mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
+        #endif
+        REPORT_TIME(momentumEnergy.compute(clist, d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");
+        #ifdef USE_MPI
+            REPORT_TIME(mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
+        #endif
+        REPORT_TIME(timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt), "Timestep");
+        #ifdef USE_MPI
+            REPORT_TIME(mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
+        #endif
+        REPORT_TIME(updateQuantities.compute(clist, iteration, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
+        #ifdef USE_MPI
+            REPORT_TIME(mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
+        #endif
+        REPORT_TIME(energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
 
         int totalNeighbors = neighbors_sum(d.neighbors);
 

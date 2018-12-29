@@ -69,24 +69,23 @@ public:
 		neighbors.resize(n);
 
 		#pragma omp parallel for
-		for(int i=0; i<n; i++)
+		for(int pi=0; pi<n; pi++)
 		{
-			int id = clist[i];
-
-			int ngi = neighbors[id].size();
+			int i = clist[pi];
+			int ngi = neighbors[i].size();
 			
 			if(ngi > 0)
-				h[id] = update_smoothing_length(ng0, ngi, h[id]);
+				h[i] = update_smoothing_length(ng0, ngi, h[i]);
 
 	        do
 	        {
-	            neighbors[id].resize(0);
-	            tree.findNeighbors(x[id], y[id], z[id], 2*h[id], ngmax, neighbors[id], PBCx, PBCy, PBCz);
+	            neighbors[i].resize(0);
+	            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[i], PBCx, PBCy, PBCz);
 
-	            ngi = neighbors[id].size();
+	            ngi = neighbors[i].size();
 
 	            if(ngi < ngmin || ngi > ngmax)
-	                h[id] = update_smoothing_length(ng0, ngi, h[id]);
+	                h[i] = update_smoothing_length(ng0, ngi, h[i]);
 	        }
 	        while(ngi < ngmin || ngi > ngmax);
 	    }

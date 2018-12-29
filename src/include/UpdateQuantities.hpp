@@ -13,14 +13,16 @@ public:
 
 	UpdateQuantities(const int stabilizationTimesteps = -1) : stabilizationTimesteps(stabilizationTimesteps) {}
 
-	void compute(const int iteration, const ArrayT &grad_P_x, const ArrayT &grad_P_y, const ArrayT &grad_P_z, const ArrayT &dt, const ArrayT &du, 
+	void compute(const std::vector<int> &clist, const int iteration, const ArrayT &grad_P_x, const ArrayT &grad_P_y, const ArrayT &grad_P_z, const ArrayT &dt, const ArrayT &du, 
 		const BBox<T> &bbox, ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, ArrayT &dt_m1)
 	{
-		int n = grad_P_x.size();
+		int n = clist.size();
 
 		#pragma omp parallel for
-		for(int i=0; i<n; i++)
+		for(int pi=0; pi<n; pi++)
 		{
+			int i = clist[pi];
+
 			T t_m1 = dt_m1[i];
 		    T t_0 = dt[i];
 		    T x_loc = x[i];

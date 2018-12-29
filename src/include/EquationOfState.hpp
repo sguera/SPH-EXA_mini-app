@@ -11,15 +11,17 @@ template<typename T, typename ArrayT = std::vector<T>>
 class EquationOfState
 {
 public:
-	void compute(const ArrayT &ro, const ArrayT &mui, ArrayT &temp, ArrayT &u, ArrayT &p, ArrayT &c, ArrayT &cv)
+	void compute(const std::vector<int> &clist, const ArrayT &ro, const ArrayT &mui, ArrayT &temp, ArrayT &u, ArrayT &p, ArrayT &c, ArrayT &cv)
 	{
-		int n = ro.size();
+		int n = clist.size();
 
 		const T R = 8.317e7, gamma = (5.0/3.0);
 
 		#pragma omp parallel for
-		for(int i=0; i<n; i++)
+		for(int pi=0; pi<n; pi++)
 		{
+			int i = clist[pi];
+
 			cv[i] = (gamma - 1) * R / mui[i];
 		    temp[i] = u[i] / cv[i];
 		    T tmp = u[i] * (gamma - 1);
