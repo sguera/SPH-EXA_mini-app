@@ -22,6 +22,11 @@ int neighbors_sum(const std::vector<std::vector<int>> &neighbors)
     return sum;
 }
 
+void synchronize()
+{
+
+}
+
 int main()
 {
     typedef double Real;
@@ -31,6 +36,7 @@ int main()
     #ifdef USE_MPI
         MPI_Init(NULL, NULL);
         Dataset d(1e6, "bigfiles/Evrard3D.bin", MPI_COMM_WORLD);
+        DistributedDomain<Real> mpi(MPI_COMM_WORLD);
     #else
         Dataset d(1e6, "bigfiles/Evrard3D.bin");
     #endif
@@ -43,15 +49,38 @@ int main()
     UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
     EnergyConservation<Real> energyConservation;
 
+    std::vector<int> clist(d.count);
+    for(unsigned int i=0; i<d.count; i++)
+        clist[i] = i;
+
     for(int iteration = 0; iteration < 200; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
 
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
 
+        #ifdef USE_MPI
+            REPORT_TIME(mpi.build(clist, d.workload, d.x, d.y, d.z, d.h), "mpi::build");
+            REPORT_TIME(mpi.synchronize(d.data), "mpi::synchronize");
+            REPORT_TIME(mpi.discard(d.data), "mpi::discard");
+            
+            d.count = d.data[0]->size();
+            clist.resize(d.count);
+
+            for(unsigned int i=0; i<clist.size(); i++)
+                clist[i] = i;
+
+            REPORT_TIME(mpi.build(clist, d.workload, d.x, d.y, d.z, d.h), "mpi::build");
+            REPORT_TIME(mpi.synchronizeHalos(d.data, true), "mpi::synchronizeHalos");
+            d.neighbors.resize(d.count);
+
+            printf("%d %d\n", d.count, clist.size());
+            if(d.rank == 0) cout << "ComputeList.size: " << clist.size() << ", Halos: " << mpi.haloCount << endl;
+        #endif
+
         REPORT_TIME(domain.buildTree(d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
         // REPORT_TIME(domain.reorder(d.data), "ReorderParticles");
-        REPORT_TIME(domain.findNeighbors(d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
+        REPORT_TIME(domain.findNeighbors(clist, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
         // REPORT_TIME(density.compute(d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
         // REPORT_TIME(equationOfState.compute(d.ro, d.mui, d.temp, d.u, d.p, d.c, d.cv), "EquationOfState");
         // REPORT_TIME(momentumEnergy.compute(d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");

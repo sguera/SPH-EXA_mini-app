@@ -17,3 +17,8 @@
 
 #include "timer.hpp"
 #include "kernels.hpp"
+
+#ifdef USE_MPI
+    #include "mpi.h"
+	#include "DistributedDomain.hpp"
+#endif

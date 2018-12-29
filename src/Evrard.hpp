@@ -7,10 +7,6 @@
 
 #include "sphexa.hpp"
 
-#ifdef USE_MPI
-    #include "mpi.h"
-#endif
-
 template<typename T>
 class Evrard
 {
@@ -52,7 +48,7 @@ public:
         count = n / nrank;
         int offset = n % count;
         
-        std::vector<int> workload(nrank);
+        workload.resize(nrank);
         std::vector<int> displs(nrank);
 
         workload[0] = count+offset;
@@ -202,6 +198,7 @@ public:
         MPI_Comm comm;
         int nrank = 0, pnamelen = 0;
         char pname[MPI_MAX_PROCESSOR_NAME];
+        std::vector<int> workload;
     #endif
     
     int rank = 0;

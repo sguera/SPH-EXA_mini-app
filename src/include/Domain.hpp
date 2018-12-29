@@ -63,27 +63,30 @@ public:
 		tree.build(bbox, x, y, z, h, bucketSize);
 	}
 
-	void findNeighbors(const ArrayT &x, const ArrayT &y, const ArrayT &z, ArrayT &h, std::vector<std::vector<int>> &neighbors)
+	void findNeighbors(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z, ArrayT &h, std::vector<std::vector<int>> &neighbors)
 	{
-		int n = x.size();
+		int n = clist.size();
+		neighbors.resize(n);
 
 		#pragma omp parallel for
 		for(int i=0; i<n; i++)
 		{
-			int ngi = neighbors[i].size();
+			int id = clist[i];
+
+			int ngi = neighbors[id].size();
 			
 			if(ngi > 0)
-				h[i] = update_smoothing_length(ng0, ngi, h[i]);
+				h[id] = update_smoothing_length(ng0, ngi, h[id]);
 
 	        do
 	        {
-	            neighbors[i].resize(0);
-	            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[i], PBCx, PBCy, PBCz);
+	            neighbors[id].resize(0);
+	            tree.findNeighbors(x[id], y[id], z[id], 2*h[id], ngmax, neighbors[id], PBCx, PBCy, PBCz);
 
-	            ngi = neighbors[i].size();
+	            ngi = neighbors[id].size();
 
 	            if(ngi < ngmin || ngi > ngmax)
-	                h[i] = update_smoothing_length(ng0, ngi, h[i]);
+	                h[id] = update_smoothing_length(ng0, ngi, h[id]);
 	        }
 	        while(ngi < ngmin || ngi > ngmax);
 	    }
