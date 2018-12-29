@@ -149,6 +149,7 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
+        bbox.PBCz = true;
         bbox.zmin = -50;
         bbox.zmax = 50;
     }
@@ -254,5 +255,4 @@ public:
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
     const int ngmin = 450, ng0 = 500, ngmax = 550;
-    const bool PBCx = false, PBCy = false, PBCz = false;
 };

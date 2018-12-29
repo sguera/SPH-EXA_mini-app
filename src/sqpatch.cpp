@@ -77,7 +77,7 @@ int main()
 
         REPORT_TIME(d.rank, domain.buildTree(d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
         // REPORT_TIME(d.rank, mpi.reorder(d.data), "ReorderParticles");
-        REPORT_TIME(d.rank, domain.findNeighbors(clist, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
+        REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
         REPORT_TIME(d.rank, density.compute(clist, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
         REPORT_TIME(d.rank, equationOfState.compute(clist, iteration, d.ro_0, d.p_0, d.ro, d.p, d.u, d.c), "EquationOfState");
         
@@ -90,11 +90,6 @@ int main()
         REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt), "Timestep");
         REPORT_TIME(d.rank, updateQuantities.compute(clist, iteration, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
-        
-        #ifdef USE_MPI
-            d.resize(d.count);
-            mpi.synchronizeHalos(clist, d.x, d.y, d.z, d.h, d.data);
-        #endif
 
         int totalNeighbors = neighbors_sum(d.neighbors);
 

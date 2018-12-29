@@ -18,28 +18,28 @@ template<typename T, class Tree = Octree<T>, class ArrayT = std::vector<T>>
 class Domain
 {
 public:
-	Domain(int ngmin, int ng0, int ngmax, bool PBCx = false, bool PBCy = false, bool PBCz = false, unsigned int bucketSize = 128) : 
-		ngmin(ngmin), ng0(ng0), ngmax(ngmax), PBCx(PBCx), PBCy(PBCy), PBCz(PBCz), bucketSize(bucketSize) {}
+	Domain(int ngmin, int ng0, int ngmax, unsigned int bucketSize = 128) : 
+		ngmin(ngmin), ng0(ng0), ngmax(ngmax), bucketSize(bucketSize) {}
 
 	void computeBBox(const ArrayT &x, const ArrayT &y, const ArrayT &z, BBox<T> &bbox)
 	{
 		int n = x.size();
 
-        if(!PBCx) bbox.xmin = INFINITY;
-        if(!PBCx) bbox.xmax = -INFINITY;
-        if(!PBCy) bbox.ymin = INFINITY;
-        if(!PBCy) bbox.ymax = -INFINITY;
-        if(!PBCz) bbox.zmin = INFINITY;
-        if(!PBCz) bbox.zmax = -INFINITY;
+        if(!bbox.PBCx) bbox.xmin = INFINITY;
+        if(!bbox.PBCx) bbox.xmax = -INFINITY;
+        if(!bbox.PBCy) bbox.ymin = INFINITY;
+        if(!bbox.PBCy) bbox.ymax = -INFINITY;
+        if(!bbox.PBCz) bbox.zmin = INFINITY;
+        if(!bbox.PBCz) bbox.zmax = -INFINITY;
 
         for(int i=0; i<n; i++)
         {
-            if(!PBCx && x[i] < bbox.xmin) bbox.xmin = x[i];
-            if(!PBCx && x[i] > bbox.xmax) bbox.xmax = x[i];
-            if(!PBCy && y[i] < bbox.ymin) bbox.ymin = y[i];
-            if(!PBCy && y[i] > bbox.ymax) bbox.ymax = y[i];
-            if(!PBCz && z[i] < bbox.zmin) bbox.zmin = z[i];
-            if(!PBCz && z[i] > bbox.zmax) bbox.zmax = z[i];
+            if(!bbox.PBCx && x[i] < bbox.xmin) bbox.xmin = x[i];
+            if(!bbox.PBCx && x[i] > bbox.xmax) bbox.xmax = x[i];
+            if(!bbox.PBCy && y[i] < bbox.ymin) bbox.ymin = y[i];
+            if(!bbox.PBCy && y[i] > bbox.ymax) bbox.ymax = y[i];
+            if(!bbox.PBCz && z[i] < bbox.zmin) bbox.zmin = z[i];
+            if(!bbox.PBCz && z[i] > bbox.zmax) bbox.zmax = z[i];
         }
 	}
 
@@ -63,7 +63,7 @@ public:
 		tree.build(bbox, x, y, z, h, bucketSize);
 	}
 
-	void findNeighbors(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z, ArrayT &h, std::vector<std::vector<int>> &neighbors)
+	void findNeighbors(const std::vector<int> &clist, const BBox<T> &bbox, const ArrayT &x, const ArrayT &y, const ArrayT &z, ArrayT &h, std::vector<std::vector<int>> &neighbors)
 	{
 		int n = clist.size();
 		neighbors.resize(n);
@@ -80,7 +80,7 @@ public:
 	        do
 	        {
 	            neighbors[i].resize(0);
-	            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[i], PBCx, PBCy, PBCz);
+	            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[i], bbox.PBCx, bbox.PBCy, bbox.PBCz);
 
 	            ngi = neighbors[i].size();
 
@@ -94,7 +94,6 @@ public:
 private:
 	Tree tree;
 	const int ngmin, ng0, ngmax;
-	const bool PBCx, PBCy, PBCz;
 	const unsigned int bucketSize;
 };
 
