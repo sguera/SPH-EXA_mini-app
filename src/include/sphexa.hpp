@@ -1,7 +1,5 @@
 #pragma once
 
-#include "kernels.hpp"
-
 #include "tree/Octree.hpp"
 #include "tree/HTree.hpp"
 
@@ -18,3 +16,4 @@
 #include "UpdateQuantities.hpp"
 
 #include "timer.hpp"
+#include "kernels.hpp"

@@ -43,13 +43,19 @@ public:
         }
 	}
 
-	template<class Dataset>
-	void reorderParticles(Dataset &d)
-	{
-		d.reorder(*tree.ordering);
-	    for(int i=0; i<d.n; i++)
-	       (*tree.ordering)[i] = i;
-	}
+    void reorderSwap(const std::vector<int> &ordering, ArrayT &data)
+    {
+        std::vector<T> tmp(ordering.size());
+        for(unsigned int i=0; i<ordering.size(); i++)
+            tmp[i] = data[ordering[i]];
+        tmp.swap(data);
+    }
+
+	void reorder(std::vector<ArrayT*> &data)
+    {
+        for(unsigned int i=0; i<data.size(); i++)
+            reorderSwap(*tree.ordering, *data[i]);
+    }
 
 	void buildTree(const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, BBox<T> &bbox)
 	{

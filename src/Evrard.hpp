@@ -7,35 +7,131 @@
 
 #include "sphexa.hpp"
 
+#ifdef USE_MPI
+    #include "mpi.h"
+#endif
+
 template<typename T>
 class Evrard
 {
 public:
-    Evrard(int n, const char *filename) : 
-    	n(n), x(n), y(n), z(n), x_m1(n), y_m1(n), z_m1(n), vx(n), vy(n), vz(n), 
-    	ro(n), u(n), p(n), h(n), m(n), c(n), cv(n), temp(n), mue(n), mui(n), 
-    	grad_P_x(n), grad_P_y(n), grad_P_z(n), 
-    	du(n), du_m1(n), dt(n), dt_m1(n), neighbors(n)
-    {
-        for(auto i : neighbors)
-            i.reserve(ngmax);
+    #ifdef USE_MPI
+        Evrard(int n, const std::string &filename, MPI_Comm comm) : 
+            n(n), count(n), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
+                &ro, &u, &p, &h, &m, &c, &cv, &temp, &mue, &mui, 
+                &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+        {
+            MPI_Comm_size(comm, &nrank);
+            MPI_Comm_rank(comm, &rank);
+            MPI_Get_processor_name(pname, &pnamelen);
+            loadMPI(filename);
+            init();
+        }
+    #else
+         Evrard(int n, const std::string &filename) : 
+            n(n), count(n), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
+                &ro, &u, &p, &h, &m, &c, &cv, &temp, &mue, &mui, 
+                &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+        {
+            resize(n);
+            load(filename);
+            init();
+        }
+    #endif
 
+    inline void resize(unsigned int size)
+    {
+        for(unsigned int i=0; i<data.size(); i++)
+            data[i]->resize(size);
+        neighbors.resize(size);
+    }
+
+    #ifdef USE_MPI
+    void loadMPI(const std::string &filename)
+    {
+        count = n / nrank;
+        int offset = n % count;
+        
+        std::vector<int> workload(nrank);
+        std::vector<int> displs(nrank);
+
+        workload[0] = count+offset;
+        displs[0] = 0;
+
+        for(int i=1; i<nrank; i++)
+        {
+            workload[i] = count;
+            displs[i] = displs[i-1] + workload[i-1];
+        }
+
+        if(rank == 0)
+        {
+            count += offset;
+
+            resize(n);
+            load(filename);
+
+            MPI_Scatterv(&x[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&y[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&z[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&vx[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&vy[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&vz[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&ro[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&u[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&p[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&h[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&m[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+
+            resize(count);
+
+            printf("COUNT=%d\n", count);
+        }
+        else
+        {
+            resize(count);
+
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &x[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &y[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &z[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vx[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vy[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vz[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &ro[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &u[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &p[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &h[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &m[0], count, MPI_DOUBLE, 0, comm);
+        }
+    }
+    #endif
+
+    void load(const std::string &filename)
+    {
         // input file stream
         std::ifstream inputfile(filename, std::ios::binary);
 
-        // read the contents of the file into the vectors
-        inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
-        inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
-        inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
-        inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
-        inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
-        inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
-        inputfile.read(reinterpret_cast<char*>(ro.data()), sizeof(T)*ro.size());
-        inputfile.read(reinterpret_cast<char*>(u.data()), sizeof(T)*u.size());
-        inputfile.read(reinterpret_cast<char*>(p.data()), sizeof(T)*p.size());
-        inputfile.read(reinterpret_cast<char*>(h.data()), sizeof(T)*h.size());
-        inputfile.read(reinterpret_cast<char*>(m.data()), sizeof(T)*m.size());
+        if(inputfile.is_open())
+        {
+            // read the contents of the file into the vectors
+            inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
+            inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
+            inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
+            inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
+            inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
+            inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
+            inputfile.read(reinterpret_cast<char*>(ro.data()), sizeof(T)*ro.size());
+            inputfile.read(reinterpret_cast<char*>(u.data()), sizeof(T)*u.size());
+            inputfile.read(reinterpret_cast<char*>(p.data()), sizeof(T)*p.size());
+            inputfile.read(reinterpret_cast<char*>(h.data()), sizeof(T)*h.size());
+            inputfile.read(reinterpret_cast<char*>(m.data()), sizeof(T)*m.size());
+        }
+        else
+            std::cout << "ERROR: " << "in opening file " << filename << std::endl;
+    }
 
+    void init()
+    {
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(mue.begin(), mue.end(), 2.0);
         std::fill(mui.begin(), mui.end(), 10.0);
@@ -53,7 +149,7 @@ public:
         std::fill(dt.begin(), dt.end(), 0.0001);
         std::fill(dt_m1.begin(), dt_m1.end(), 0.0001);
 
-        for(int i=0; i<n; i++)
+        for(unsigned int i=0; i<count; i++)
         {
             x_m1[i] = x[i] - vx[i] * dt[0];
             y_m1[i] = y[i] - vy[i] * dt[0];
@@ -61,49 +157,14 @@ public:
         }
 
         etot = ecin = eint = 0.0;
-    }
 
-    void reorderSwap(const std::vector<int> &ordering, std::vector<T> &data)
-    {
-        std::vector<T> tmp(ordering.size());
-        for(unsigned int i=0; i<ordering.size(); i++)
-            tmp[i] = data[ordering[i]];
-        tmp.swap(data);
-    }
-
-    void reorder(const std::vector<int> &ordering)
-    {
-        reorderSwap(ordering, x);
-        reorderSwap(ordering, y);
-        reorderSwap(ordering, z);
-        reorderSwap(ordering, x_m1);
-        reorderSwap(ordering, y_m1);
-        reorderSwap(ordering, z_m1);
-        reorderSwap(ordering, vx);
-        reorderSwap(ordering, vy);
-        reorderSwap(ordering, vz);
-        reorderSwap(ordering, ro);
-        reorderSwap(ordering, u);
-        reorderSwap(ordering, p);
-        reorderSwap(ordering, h);
-        reorderSwap(ordering, m);
-        reorderSwap(ordering, c);
-        reorderSwap(ordering, cv);
-        reorderSwap(ordering, temp);
-        reorderSwap(ordering, mue);
-        reorderSwap(ordering, mui);
-        reorderSwap(ordering, grad_P_x);
-        reorderSwap(ordering, grad_P_y);
-        reorderSwap(ordering, grad_P_z);
-        reorderSwap(ordering, du);
-        reorderSwap(ordering, du_m1);
-        reorderSwap(ordering, dt);
-        reorderSwap(ordering, dt_m1);
+        for(auto i : neighbors)
+            i.reserve(ngmax);
     }
 
     void writeFile(std::ofstream &outputFile)
     {
-        for(int i=0; i<n; i++)
+        for(unsigned int i=0; i<n; i++)
         {
             outputFile << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
             outputFile << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
@@ -115,7 +176,7 @@ public:
         }
     }
 
-    int n; // Number of particles
+    unsigned int n, count; // Number of particles
     std::vector<T> x, y, z, x_m1, y_m1, z_m1; // Positions
     std::vector<T> vx, vy, vz; // Velocities
     std::vector<T> ro; // Density
@@ -136,6 +197,16 @@ public:
 
     sphexa::BBox<T> bbox;
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
+
+    #ifdef USE_MPI
+        MPI_Comm comm;
+        int nrank = 0, pnamelen = 0;
+        char pname[MPI_MAX_PROCESSOR_NAME];
+    #endif
+    
+    int rank = 0;
+
+    std::vector<std::vector<T>*> data;
 
     const T K = sphexa::compute_3d_k(5.0);
     const T maxDtIncrease = 1.1;

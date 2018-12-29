@@ -10,12 +10,13 @@ BINDIR := bin
 HPP := $(wildcard src/include/*.hpp)
 HPP += $(wildcard src/include/tree/*.hpp)
 
-CFLAGS := -std=c++14 -O2 -s -Wall -Wextra -fopenmp -march=native -mtune=native
+USE_MPI=
+CFLAGS := -std=c++14 -O2 -s -Wall -Wextra -fopenmp -march=native -mtune=native $(USE_MPI)
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 INC := -I src/include
 LIB := 
 
-TESTCASE=sqpatch
+TESTCASE=evrard
 
 all: $(TESTCASE)
 	
