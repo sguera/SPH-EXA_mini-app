@@ -27,7 +27,7 @@ int neighbors_sum(const std::vector<std::vector<int>> &neighbors)
 int main()
 {
     typedef double Real;
-    typedef Octree<Real> Tree;
+    typedef HTree<Real> Tree;
     typedef Evrard<Real> Dataset;
 
     #ifdef USE_MPI
