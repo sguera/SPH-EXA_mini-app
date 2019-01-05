@@ -16,19 +16,27 @@ DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 INC := -I src/include
 LIB := 
 
-TESTCASE=evrard
-
 all: $(TESTCASE)
-	
-$(TESTCASE): $(HPP)
-	@mkdir -p $(BINDIR)
-	$(info Linking the executable:)
-	$(CC) $(CFLAGS) $(INC) src/$(TESTCASE).cpp -o $(BINDIR)/$@.app $(LIB)
 
-debug:
+evrard: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(CC) $(CFLAGS) $(INC) $(DEBUG) src/$(TESTCASE).cpp -o $(BINDIR)/$@.app $(LIB)
+	$(CC) $(CFLAGS) $(INC) src/evrard.cpp -o $(BINDIR)/$@.app $(LIB)
+
+mpievrard: $(HPP)
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(MPICC) $(CFLAGS) $(INC) -DUSE_MPI src/evrard.cpp -o $(BINDIR)/$@.app $(LIB)
+
+sqpatch: $(HPP)
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(CC) $(CFLAGS) $(INC) src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
+
+mpisqpatch: $(HPP)
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(MPICC) $(CFLAGS) $(INC) -DUSE_MPI src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
 run: evrard
 

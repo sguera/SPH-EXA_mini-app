@@ -240,12 +240,15 @@ public:
 	{
 		if((PBCx && (xi-ri < bbox.xmin || xi+ri > bbox.xmax)) || (PBCy && (yi-ri < bbox.ymin || yi+ri > bbox.ymax)) || (PBCz && (zi-ri < bbox.zmin || zi+ri > bbox.zmax)))
 		{
-			int mix = (int)floor(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX) % nX;
-			int miy = (int)floor(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY) % nY;
-			int miz = (int)floor(normalize(zi-ri, bbox.zmin, bbox.zmax)*nZ) % nZ;
-			int max = (int)floor(normalize(xi+ri, bbox.xmin, bbox.xmax)*nX) % nX;
-			int may = (int)floor(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY) % nY;
-			int maz = (int)floor(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ) % nZ;
+			int mix = (int)floor(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX);
+			int miy = (int)floor(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY);
+			int miz = (int)floor(normalize(zi-ri, bbox.zmin, bbox.zmax)*nZ);
+			int max = (int)floor(normalize(xi+ri, bbox.xmin, bbox.xmax)*nX);
+			int may = (int)floor(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY);
+			int maz = (int)floor(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ);
+
+			//printf("%f %f %f %f %f %f for %f %f %f with %f\n", bbox.xmin, bbox.xmax, bbox.ymin, bbox.ymax, bbox.zmin, bbox.zmax, xi, yi, zi, ri);
+			//printf("%d %d %d %d %d %d for %f %f %f\n", mix, miy, miz, max, may, maz, xi, yi, zi);
 
 			for(int hz=miz; hz<=maz; hz++)
 			{

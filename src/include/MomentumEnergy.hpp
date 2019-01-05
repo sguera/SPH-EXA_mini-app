@@ -88,7 +88,7 @@ public:
 	    	du[i] =  energy * (-p[i]/(gradh_i * ro[i] * ro[i]));
 
 	    	if(std::isnan(du[i]))
-	    		printf("ERROR:Energy du %f energy %f p_i %f gradh_i %f ro_i %f\n", du[i], energy, p[i], gradh_i, ro[i]);
+	    		printf("ERROR::Energy du %f energy %f p_i %f gradh_i %f ro_i %f\n", du[i], energy, p[i], gradh_i, ro[i]);
 
 		    grad_P_x[i] = momentum_x * m[i];
 		    grad_P_y[i] = momentum_y * m[i];

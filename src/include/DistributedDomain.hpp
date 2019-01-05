@@ -145,7 +145,7 @@ public:
 
     inline void computeGlobalCellCount()
     {
-        // globalCellCount.resize(0);
+        globalCellCount.clear();
         globalCellCount.resize(ncells);
 
         std::vector<int> localCount(ncells);
@@ -313,7 +313,7 @@ public:
                 if(assignedRanks[i] != comm_rank && globalCellCount[i] > 0)
                 {
                     // maxH is an overrapproximation
-                    if( overlap(cellBBox[i].xmin, cellBBox[i].xmax, localBBox.xmin-2*localMaxH, localBBox.xmax+2*localMaxH) &&
+                    if(overlap(cellBBox[i].xmin, cellBBox[i].xmax, localBBox.xmin-2*localMaxH, localBBox.xmax+2*localMaxH) &&
                         overlap(cellBBox[i].ymin, cellBBox[i].ymax, localBBox.ymin-2*localMaxH, localBBox.ymax+2*localMaxH) &&
                         overlap(cellBBox[i].zmin, cellBBox[i].zmax, localBBox.zmin-2*localMaxH, localBBox.zmax+2*localMaxH))
                     {
@@ -442,7 +442,35 @@ public:
         }
     }
 
-    void build(const std::vector<int> &clist, const std::vector<int> &procsize, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h)
+    inline void removeIndices(const std::vector<bool> indices, std::vector<ArrayT*> &data)
+    {
+        for(unsigned int i=0; i<data.size(); i++)
+        {
+            ArrayT &array = *data[i];
+            
+            int j = 0;
+            std::vector<T> tmp(array.size());
+            for(unsigned int i=0; i<array.size(); i++)
+            {
+                if(indices[i] == false)
+                    tmp[j++] = array[i];
+                // array[indices[i]] = array.back();
+                // array.pop_back();
+            }
+            tmp.swap(array);
+            array.resize(j);
+        }
+    }
+
+    void discard(std::vector<ArrayT*> &data)
+    {
+        std::vector<bool> discardList;
+        computeDiscardList(data[0]->size(), discardList);
+        if(discardList.size() > 0)
+            removeIndices(discardList, data);
+    }
+
+    void build(const std::vector<int> &procsize, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, std::vector<int> &clist, std::vector<ArrayT*> &data, bool showGraph = false)
     {   
         globalBBox = computeGlobalBBox(clist, x, y, z);
         globalMaxH = computeGlobalMaxH(clist, h);
@@ -455,38 +483,27 @@ public:
         distributeParticles(clist, x, y, z);
         computeGlobalCellCount();
         assignRanks(procsize);
-    }
+        synchronize(data);
+        discard(data);
 
+        clist.resize(data[0]->size());
+        for(unsigned int i=0; i<clist.size(); i++)
+            clist[i] = i;
 
-    inline void removeIndices(const std::vector<bool> indices, std::vector<T> &array)
-    {
-        int j = 0;
-        std::vector<T> tmp(array.size());
-        for(unsigned int i=0; i<array.size(); i++)
-        {
-            if(indices[i] == false)
-                tmp[j++] = array[i];
-            // array[indices[i]] = array.back();
-            // array.pop_back();
-        }
-        tmp.swap(array);
-        array.resize(j);
-    }
+        // globalBBox = computeGlobalBBox(clist, x, y, z);
+        // globalMaxH = computeGlobalMaxH(clist, h);
 
-    void discard(std::vector<ArrayT*> &data)
-    {
-        std::vector<bool> discardList;
-        computeDiscardList(data[0]->size(), discardList);
-        for(unsigned int i=0; i<data.size(); i++)
-            removeIndices(discardList, *data[i]);
-    }
+        // nX = std::max((globalBBox.xmax-globalBBox.xmin) / globalMaxH, 2.0);
+        // nY = std::max((globalBBox.ymax-globalBBox.ymin) / globalMaxH, 2.0);
+        // nZ = std::max((globalBBox.zmax-globalBBox.zmin) / globalMaxH, 2.0);
+        // ncells = nX*nY*nZ;
 
-    void synchronizeHalos(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, std::vector<ArrayT*> &data, bool showGraph = false)
-    {
-        //globalBBox = computeGlobalBBox(clist, x, y, z);
-        //distributeParticles(clist, x, y, z);
+        distributeParticles(clist, x, y, z);
+        //computeGlobalCellCount();
+        //assignRanks(procsize);
+        //synchronize(data);
+        //discard(data);
 
-        // Only now we are allowed to recompute the d BBox
         localBBox = computeBBox(clist, x, y, z);
         localMaxH = computeMaxH(clist, h);
 
@@ -496,6 +513,10 @@ public:
 
         // Use cell boxes and the localbbox to identify halo cells
         computeHaloList(cellBBox, showGraph);
+    }
+
+    void synchronizeHalos(std::vector<ArrayT*> &data)
+    {
         exchangeHalos(data);
     }
 };

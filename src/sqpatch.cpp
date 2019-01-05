@@ -27,7 +27,7 @@ int neighbors_sum(const std::vector<std::vector<int>> &neighbors)
 int main()
 {
     typedef double Real;
-    typedef HTree<Real> Tree;
+    typedef Octree<Real> Tree;
     typedef SqPatch<Real> Dataset;
 
     #ifdef USE_MPI
@@ -50,7 +50,7 @@ int main()
     for(unsigned int i=0; i<d.count; i++)
         clist[i] = i;
 
-    for(int iteration = 0; iteration < 200; iteration++)
+    for(int iteration = 0; iteration <= 10000; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
 
@@ -58,20 +58,13 @@ int main()
 
         #ifdef USE_MPI
             d.resize(d.count);
-            REPORT_TIME(d.rank, mpi.build(clist, d.workload, d.x, d.y, d.z, d.h), "mpi::build");
-            REPORT_TIME(d.rank, mpi.synchronize(d.data), "mpi::synchronize");
-            REPORT_TIME(d.rank, mpi.discard(d.data), "mpi::discard");
+            REPORT_TIME(d.rank, mpi.build(d.workload, d.x, d.y, d.z, d.h, clist, d.data, true), "mpi::build");
             
-            d.count = d.data[0]->size();
+            d.count = clist.size();//d.data[0]->size();
             d.neighbors.resize(d.count);
             clist.resize(d.count);
 
-            for(unsigned int i=0; i<clist.size(); i++)
-                clist[i] = i;
-
-            REPORT_TIME(d.rank, mpi.build(clist, d.workload, d.x, d.y, d.z, d.h), "mpi::build");
-            REPORT_TIME(d.rank, mpi.synchronizeHalos(clist, d.x, d.y, d.z, d.h, d.data, true), "mpi::synchronizeHalos");
-
+            REPORT_TIME(d.rank, mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
             if(d.rank == 0) cout << "ComputeList.size: " << clist.size() << ", Halos: " << mpi.haloCount << endl;
         #endif
 
@@ -83,13 +76,14 @@ int main()
         
         #ifdef USE_MPI
             d.resize(d.count);
-            mpi.synchronizeHalos(clist, d.x, d.y, d.z, d.h, d.data);
+            mpi.synchronizeHalos(d.data);
         #endif
 
         REPORT_TIME(d.rank, momentumEnergy.compute(clist, iteration, d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");
         REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt), "Timestep");
         REPORT_TIME(d.rank, updateQuantities.compute(clist, iteration, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
+        REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
         int totalNeighbors = neighbors_sum(d.neighbors);
 
@@ -99,12 +93,13 @@ int main()
             cout << d.bbox.xmin << " " << d.bbox.xmax << " ";
             cout << d.bbox.ymin << " " << d.bbox.ymax << " ";
             cout << d.bbox.zmin << " " << d.bbox.zmax << endl;
-            cout << "### Check ### Avg. number of neighbours: " << totalNeighbors/d.n << "/" << d.ng0 << endl;
+            //cout << "### Check ### Avg. number of neighbours: " << totalNeighbors/d.n << "/" << d.ng0 << endl;
+            cout << "### Check ### Total number of neighbours: " << totalNeighbors << endl;
             cout << "### Check ### New Time-step: " << d.dt[0] << endl;
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-        if(iteration % 10 == 0)
+        if(iteration % 500 == 0)
         {
             std::ofstream outputFile("output" + to_string(iteration) + ".txt");
             REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");

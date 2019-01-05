@@ -72,24 +72,63 @@ public:
 		for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];
-			int ngi = neighbors[i].size();
+			//int ngi = neighbors[pi].size();
 			
-			if(ngi > 0)
-				h[i] = update_smoothing_length(ng0, ngi, h[i]);
+			// if(ngi > 0)
+			// 	h[i] = update_smoothing_length(ng0, ngi, h[i]);
 
-	        do
-	        {
-	            neighbors[i].resize(0);
-	            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[i], bbox.PBCx, bbox.PBCy, bbox.PBCz);
+	  //       do
+	  //       {
+	            neighbors[pi].resize(0);
+	            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[pi], bbox.PBCx, bbox.PBCy, bbox.PBCz);
+	            
+	            if(neighbors[pi].size() == 0)
+	            	printf("ERRRRRRRR %d %f %f %f, h = %f\n", pi, x[i], y[i], z[i], h[i]);
+	        //     ngi = neighbors[pi].size();
 
-	            ngi = neighbors[i].size();
-
-	            if(ngi < ngmin || ngi > ngmax)
-	                h[i] = update_smoothing_length(ng0, ngi, h[i]);
-	        }
-	        while(ngi < ngmin || ngi > ngmax);
+	        //     if(ngi < ngmin || ngi > ngmax)
+	        //         h[i] = update_smoothing_length(ng0, ngi, h[i]);
+	        // }
+	        // while(ngi < ngmin || ngi > ngmax);
 	    }
 	}
+
+	void updateSmoothingLength(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors, ArrayT &h)
+	{
+		int n = clist.size();
+
+		#pragma omp parallel for
+		for(int pi=0; pi<n; pi++)
+		{
+			int i = clist[pi];
+			int ngi = neighbors[pi].size();
+			
+	        h[i] = update_smoothing_length(ng0, ngi, h[i]);
+
+	        if(std::isinf(h[i]) || std::isnan(h[i]))
+	        	printf("ERROR::h(%d) ngi %d h %f\n", i, ngi, h[i]);
+	    }
+	}
+
+	inline void removeIndices(const std::vector<bool> indices, std::vector<ArrayT*> &data)
+    {
+        for(unsigned int i=0; i<data.size(); i++)
+        {
+            ArrayT &array = *data[i];
+            
+            int j = 0;
+            std::vector<T> tmp(array.size());
+            for(unsigned int i=0; i<array.size(); i++)
+            {
+                if(indices[i] == false)
+                    tmp[j++] = array[i];
+                // array[indices[i]] = array.back();
+                // array.pop_back();
+            }
+            tmp.swap(array);
+            array.resize(j);
+        }
+    }
 
 private:
 	Tree tree;

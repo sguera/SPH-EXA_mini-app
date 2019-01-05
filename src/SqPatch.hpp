@@ -114,7 +114,7 @@ public:
 
     void init()
     {
-        std::fill(h.begin(), h.end(), 2.0);
+        std::fill(h.begin(), h.end(), 3.0);
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(ro_0.begin(), ro_0.end(), 1.0);
         std::fill(ro.begin(), ro.end(), 0.0);
@@ -218,7 +218,11 @@ public:
                 T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
                 outputFile << rad << ' ' << vrad << std::endl;  
             }  
-        } 
+        }
+
+        #ifdef USE_MPI
+            if(rank == 0) resize(count);
+        #endif 
     }
 
     unsigned int n, count; // Number of particles
@@ -254,5 +258,5 @@ public:
     const T K = sphexa::compute_3d_k(6.0);
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
-    const int ngmin = 450, ng0 = 500, ngmax = 550;
+    const unsigned int ngmin = 200, ng0 = 250, ngmax = 300;
 };

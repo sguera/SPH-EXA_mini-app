@@ -220,7 +220,11 @@ public:
                 T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
                 outputFile << rad << ' ' << vrad << std::endl;  
             }  
-        } 
+        }
+
+        #ifdef USE_MPI
+            if(rank == 0) resize(count);
+        #endif
     }
 
     unsigned int n, count; // Number of particles
@@ -259,5 +263,5 @@ public:
     const T K = sphexa::compute_3d_k(5.0);
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = -1;
-    const int ngmin = 50, ng0 = 100, ngmax = 150; // Minimum, target and maximum number of neighbors per particle
+    const unsigned int ngmin = 50, ng0 = 100, ngmax = 150; // Minimum, target and maximum number of neighbors per particle
 };
