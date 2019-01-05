@@ -34,7 +34,7 @@ int main()
     UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
     EnergyConservation<Real> energyConservation;
 
-    std::vector<int> clist(d.count);
+    vector<int> clist(d.count);
     for(unsigned int i=0; i<d.count; i++)
         clist[i] = i;
 
@@ -43,6 +43,28 @@ int main()
         timer::TimePoint start = timer::Clock::now();
 
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
+
+        if(iteration > d.stabilizationTimesteps)
+        {
+            d.resize(d.count);
+
+            int deletedCount = 0;
+            vector<bool> toDelete(d.count, false);
+            for(unsigned int pi=0; pi<d.count; pi++)
+            {
+                if(d.neighbors[pi].size() < d.ngmin)
+                {
+                    toDelete[pi] = true;
+                    deletedCount++;
+                }
+            }
+            if(deletedCount > 0)
+                printf("### Check ### Deleted %d particles\n", deletedCount);
+            
+            domain.removeIndices(toDelete, d.data);
+            d.count -= deletedCount;
+            clist.resize(d.count);
+        }
 
         #ifdef USE_MPI
             d.resize(d.count);
@@ -82,12 +104,12 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-        if(iteration % 100 == 0)
-        {
-            std::ofstream outputFile("output" + to_string(iteration) + ".txt");
-            REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
-            outputFile.close();
-        }
+        // if(iteration % 100 == 0)
+        // {
+        //     std::ofstream outputFile("output" + to_string(iteration) + ".txt");
+        //     REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
+        //     outputFile.close();
+        // }
 
         timer::TimePoint stop = timer::Clock::now();
         

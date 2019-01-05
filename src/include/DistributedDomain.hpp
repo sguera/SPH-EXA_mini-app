@@ -474,7 +474,7 @@ public:
     {   
         globalBBox = computeGlobalBBox(clist, x, y, z);
         globalMaxH = computeGlobalMaxH(clist, h);
-
+        
         nX = std::max((globalBBox.xmax-globalBBox.xmin) / globalMaxH, 2.0);
         nY = std::max((globalBBox.ymax-globalBBox.ymin) / globalMaxH, 2.0);
         nZ = std::max((globalBBox.zmax-globalBBox.zmin) / globalMaxH, 2.0);

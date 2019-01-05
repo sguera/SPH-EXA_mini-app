@@ -34,10 +34,10 @@ int main()
     UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
     EnergyConservation<Real> energyConservation;
 
-    std::vector<int> clist(d.count);
+    vector<int> clist(d.count);
     for(unsigned int i=0; i<d.count; i++)
         clist[i] = i;
-
+    
     for(int iteration = 0; iteration <= 10000; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
@@ -82,12 +82,12 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-        if(iteration % 10 == 0)
-        {
-            std::ofstream outputFile("output" + to_string(iteration) + ".txt");
-            REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
-            outputFile.close();
-        }
+        // if(iteration % 10 == 0)
+        // {
+        //     std::ofstream outputFile("output" + to_string(iteration) + ".txt");
+        //     REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
+        //     outputFile.close();
+        // }
 
         timer::TimePoint stop = timer::Clock::now();
         
