@@ -44,28 +44,6 @@ int main()
 
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
 
-        if(iteration > d.stabilizationTimesteps)
-        {
-            d.resize(d.count);
-
-            int deletedCount = 0;
-            vector<bool> toDelete(d.count, false);
-            for(unsigned int pi=0; pi<d.count; pi++)
-            {
-                if(d.neighbors[pi].size() < d.ngmin)
-                {
-                    toDelete[pi] = true;
-                    deletedCount++;
-                }
-            }
-            if(deletedCount > 0)
-                printf("### Check ### Deleted %d particles\n", deletedCount);
-            
-            domain.removeIndices(toDelete, d.data);
-            d.count -= deletedCount;
-            clist.resize(d.count);
-        }
-
         #ifdef USE_MPI
             d.resize(d.count);
             REPORT_TIME(d.rank, mpi.build(d.workload, d.x, d.y, d.z, d.h, clist, d.data, false), "mpi::build");
