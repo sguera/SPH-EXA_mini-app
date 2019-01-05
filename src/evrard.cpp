@@ -12,20 +12,6 @@ using namespace sphexa;
     if (rank == 0) sphexa::timer::report_time([&](){ expr; }, name); \
     else { expr; }
 
-int neighbors_sum(const std::vector<std::vector<int>> &neighbors)
-{
-    int sum = 0;
-    #pragma omp parallel for reduction (+:sum)
-    for(unsigned int i=0; i<neighbors.size(); i++)
-        sum += neighbors[i].size();
-
-    #ifdef USE_MPI
-        MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    #endif
-
-    return sum;
-}
-
 int main()
 {
     typedef double Real;
@@ -48,9 +34,11 @@ int main()
     UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
     EnergyConservation<Real> energyConservation;
 
-    std::vector<int> clist;
+    std::vector<int> clist(d.count);
+    for(unsigned int i=0; i<d.count; i++)
+        clist[i] = i;
 
-    for(int iteration = 0; iteration <= 200; iteration++)
+    for(int iteration = 0; iteration <= 10000; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
 
@@ -58,18 +46,10 @@ int main()
 
         #ifdef USE_MPI
             d.resize(d.count);
-            clist.resize(d.count);
-            for(unsigned int i=0; i<d.count; i++)
-                clist[i] = i;
-            
-            REPORT_TIME(d.rank, mpi.build(d.workload, d.x, d.y, d.z, d.h, clist, d.data, true), "mpi::build");
-            
-            d.count = clist.size();//d.data[0]->size();
-            d.neighbors.resize(d.count);
-            clist.resize(d.count);
-
+            REPORT_TIME(d.rank, mpi.build(d.workload, d.x, d.y, d.z, d.h, clist, d.data, false), "mpi::build");
             REPORT_TIME(d.rank, mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
-            if(d.rank == 0) cout << "ComputeList.size: " << clist.size() << ", Halos: " << mpi.haloCount << endl;
+            d.count = clist.size();
+            if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << mpi.haloCount << endl;
         #endif
 
         REPORT_TIME(d.rank, domain.buildTree(d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
@@ -89,7 +69,7 @@ int main()
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
         REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
-        int totalNeighbors = neighbors_sum(d.neighbors);
+        int totalNeighbors = domain.neighborsSum(d.neighbors);
 
         if(d.rank == 0)
         {
@@ -97,18 +77,17 @@ int main()
             cout << d.bbox.xmin << " " << d.bbox.xmax << " ";
             cout << d.bbox.ymin << " " << d.bbox.ymax << " ";
             cout << d.bbox.zmin << " " << d.bbox.zmax << endl;
-            //cout << "### Check ### Avg. number of neighbours: " << totalNeighbors/d.n << "/" << d.ng0 << endl;
-            cout << "### Check ### Total number of neighbours: " << totalNeighbors << endl;
+            cout << "### Check ### Avg. number of neighbours: " << totalNeighbors/d.n << "/" << d.ng0 << endl;
             cout << "### Check ### New Time-step: " << d.dt[0] << endl;
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-        // if(iteration % 10 == 0)
-        // {
-        //     std::ofstream outputFile("output" + to_string(iteration) + ".txt");
-        //     REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
-        //     outputFile.close();
-        // }
+        if(iteration % 10 == 0)
+        {
+            std::ofstream outputFile("output" + to_string(iteration) + ".txt");
+            REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
+            outputFile.close();
+        }
 
         timer::TimePoint stop = timer::Clock::now();
         
@@ -121,4 +100,3 @@ int main()
 
     return 0;
 }
-

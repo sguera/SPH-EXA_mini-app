@@ -114,7 +114,7 @@ public:
 
     void init()
     {
-        std::fill(h.begin(), h.end(), 3.0);
+        std::fill(h.begin(), h.end(), 2.0);
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(ro_0.begin(), ro_0.end(), 1.0);
         std::fill(ro.begin(), ro.end(), 0.0);

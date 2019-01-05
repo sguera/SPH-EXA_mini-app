@@ -1,5 +1,11 @@
 #pragma once
 
+#include <vector>
+
+#ifdef USE_MPI
+	#include "mpi.h"
+#endif
+
 namespace sphexa
 {
 
@@ -72,25 +78,28 @@ public:
 		for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];
-			//int ngi = neighbors[pi].size();
-			
-			// if(ngi > 0)
-			// 	h[i] = update_smoothing_length(ng0, ngi, h[i]);
 
-	  //       do
-	  //       {
-	            neighbors[pi].resize(0);
-	            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[pi], bbox.PBCx, bbox.PBCy, bbox.PBCz);
-	            
-	            if(neighbors[pi].size() == 0)
-	            	printf("ERRRRRRRR %d %f %f %f, h = %f\n", pi, x[i], y[i], z[i], h[i]);
-	        //     ngi = neighbors[pi].size();
-
-	        //     if(ngi < ngmin || ngi > ngmax)
-	        //         h[i] = update_smoothing_length(ng0, ngi, h[i]);
-	        // }
-	        // while(ngi < ngmin || ngi > ngmax);
+            neighbors[pi].resize(0);
+            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[pi], bbox.PBCx, bbox.PBCy, bbox.PBCz);
+            
+            if(neighbors[pi].size() == 0)
+            	printf("ERROR::FindNeighbors(%d) x %f y %f z %f h = %f ngi %zu\n", i, x[i], y[i], z[i], h[i], neighbors[pi].size());
 	    }
+	}
+
+	int neighborsSum(const std::vector<std::vector<int>> &neighbors)
+	{
+	    int sum = 0;
+	    #pragma omp parallel for reduction (+:sum)
+	    for(unsigned int i=0; i<neighbors.size(); i++)
+	        sum += neighbors[i].size();
+
+	    #ifdef USE_MPI
+	        MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+	        MPI_Barrier(MPI_COMM_WORLD);
+	    #endif
+
+	    return sum;
 	}
 
 	void updateSmoothingLength(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors, ArrayT &h)
