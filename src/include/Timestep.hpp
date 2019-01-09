@@ -15,7 +15,7 @@ template<typename T = double, typename ArrayT = std::vector<T>>
 class Timestep
 {
 public:
-	Timestep(const T chi = compute_3d_k(5.0), const T maxDtIncrease = 1.1) : chi(chi), maxDtIncrease(maxDtIncrease) {}
+	Timestep(const T Kcour = 0.2, const T maxDtIncrease = 1.1) : Kcour(Kcour), maxDtIncrease(maxDtIncrease) {}
 
 	void compute(const std::vector<int> &clist, const ArrayT &h, const ArrayT &c, const ArrayT &dt_m1, ArrayT &dt)
 	{
@@ -25,7 +25,7 @@ public:
 		for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];
-		    dt[i] = chi * (h[i]/c[i]);
+		    dt[i] = Kcour * (h[i]/c[i]);
 		}
 
         T min = INFINITY;
@@ -51,7 +51,7 @@ public:
 	}
 
 private:
-	const T chi, maxDtIncrease;
+	const T Kcour, maxDtIncrease;
 };
 
 }
