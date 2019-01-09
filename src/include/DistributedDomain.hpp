@@ -231,6 +231,7 @@ public:
     {
         std::map<int,std::vector<int>> toSend;
         std::vector<std::vector<T>> buff;
+        std::vector<int> counts;
 
         int needed = 0;
 
@@ -244,28 +245,29 @@ public:
         }
 
         std::vector<MPI_Request> requests;
+        counts.resize(comm_size);
         for(int rank=0; rank<comm_size; rank++)
         {
             if(toSend[rank].size() > 0)
             {
                 int rcount = requests.size();
                 int bcount = buff.size();
-                int count = toSend[rank].size();
+                counts[rank] = toSend[rank].size();
 
                 requests.resize(rcount+data.size()+2);
                 buff.resize(bcount+data.size());
 
                 MPI_Isend(&comm_rank, 1, MPI_INT, rank, 0, comm, &requests[rcount]);
-                MPI_Isend(&count, 1, MPI_INT, rank, 1, comm, &requests[rcount+1]);
+                MPI_Isend(&counts[rank], 1, MPI_INT, rank, 1, comm, &requests[rcount+1]);
 
                 for(unsigned int i=0; i<data.size(); i++)
                 {
-                    buff[bcount+i].resize(count);
+                    buff[bcount+i].resize(counts[rank]);
 
-                    for(int j=0; j<count; j++)
+                    for(int j=0; j<counts[rank]; j++)
                         buff[bcount+i][j] = (*data[i])[toSend[rank][j]];
 
-                    MPI_Isend(&buff[bcount+i][0], count, MPI_DOUBLE, rank, 2+i, comm, &requests[rcount+2+i]);
+                    MPI_Isend(&buff[bcount+i][0], counts[rank], MPI_DOUBLE, rank, 2+i, comm, &requests[rcount+2+i]);
                 }
             }
         }
@@ -359,7 +361,7 @@ public:
             printf("};\n");
             fflush(stdout);
         }
-
+        
         std::vector<MPI_Request> requests(indegree);
 
         // Ask sources a list of cells
