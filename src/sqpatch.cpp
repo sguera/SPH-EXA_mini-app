@@ -47,8 +47,8 @@ int main()
         #ifdef USE_MPI
             d.resize(d.count);
             REPORT_TIME(d.rank, mpi.build(d.workload, d.x, d.y, d.z, d.h, clist, d.data, false), "mpi::build");
-            REPORT_TIME(d.rank, mpi.synchronizeHalos(d.data), "mpi::synchronizeHalos");
-            d.count = clist.size();//d.data[0]->size();
+            REPORT_TIME(d.rank, mpi.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);, "mpi::synchronizeHalos");
+            d.count = clist.size();
             if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << mpi.haloCount << endl;
         #endif
 
@@ -60,7 +60,7 @@ int main()
         
         #ifdef USE_MPI
             d.resize(d.count);
-            mpi.synchronizeHalos(d.data);
+            mpi.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c);
         #endif
 
         REPORT_TIME(d.rank, momentumEnergy.compute(clist, iteration, d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");

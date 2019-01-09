@@ -112,7 +112,7 @@ public:
         return hmax;
     }
 
-    inline void distributeParticles(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z)
+    void distributeParticles(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z)
     {
         cellList.clear();
         cellList.resize(ncells);
@@ -143,7 +143,7 @@ public:
         }
     }
 
-    inline void computeGlobalCellCount()
+    void computeGlobalCellCount()
     {
         globalCellCount.clear();
         globalCellCount.resize(ncells);
@@ -159,7 +159,7 @@ public:
         MPI_Allreduce(&localCount[0], &globalCellCount[0], ncells, MPI_INT, MPI_SUM, comm);
     }
 
-    inline void assignRanks(const std::vector<int> &procsize)
+    void assignRanks(const std::vector<int> &procsize)
     {
         assignedRanks.resize(ncells);
         for(unsigned int i=0; i<assignedRanks.size(); i++)
@@ -182,7 +182,7 @@ public:
         }
     }
 
-    inline void computeBBoxes(std::vector<BBox<T>> &cellBBox)
+    void computeBBoxes(std::vector<BBox<T>> &cellBBox)
     {
         for(int hz=0; hz<nZ; hz++)
         {
@@ -205,7 +205,7 @@ public:
         }
     }
 
-    inline void computeDiscardList(const int count, std::vector<bool> &discardList)
+    void computeDiscardList(const int count, std::vector<bool> &discardList)
     {
         discardList.resize(count, false);
         for(int i=0; i<ncells; i++)
@@ -227,7 +227,7 @@ public:
             data[i]->resize(size);
     }
 
-    inline void synchronize(std::vector<ArrayT*> &data)
+    void synchronize(std::vector<ArrayT*> &data)
     {
         std::map<int,std::vector<int>> toSend;
         std::vector<std::vector<T>> buff;
@@ -297,7 +297,7 @@ public:
         }
     }
 
-    inline void computeHaloList(const std::vector<BBox<T>> &cellBBox, bool showGraph = false)
+    void computeHaloList(const std::vector<BBox<T>> &cellBBox, bool showGraph = false)
     {
         sendHaloList.clear();
         recvHaloList.clear();
@@ -361,7 +361,7 @@ public:
             printf("};\n");
             fflush(stdout);
         }
-        
+
         std::vector<MPI_Request> requests(indegree);
 
         // Ask sources a list of cells
@@ -393,7 +393,27 @@ public:
         }
     }
 
-    inline void exchangeHalos(std::vector<ArrayT*> &data)
+    void makeDataArray(std::vector<ArrayT*> &data, ArrayT* d)
+    {
+        data.push_back(d);
+    }
+
+    template<typename... Args>
+    void makeDataArray(std::vector<ArrayT*> &data, ArrayT* first, Args... args)
+    {
+        data.push_back(first);
+        makeDataArray(data, args...);
+    }
+
+    template<typename... Args>
+    void synchronizeHalos(Args... args)
+    {
+        std::vector<ArrayT*> data;
+        makeDataArray(data, args...);
+        synchronizeHalos(data);
+    }
+
+    void synchronizeHalos(std::vector<ArrayT*> &data)
     {
         std::vector<std::vector<T>> buff;
         std::vector<MPI_Request> requests;
@@ -492,19 +512,7 @@ public:
         for(unsigned int i=0; i<clist.size(); i++)
             clist[i] = i;
 
-        // globalBBox = computeGlobalBBox(clist, x, y, z);
-        // globalMaxH = computeGlobalMaxH(clist, h);
-
-        // nX = std::max((globalBBox.xmax-globalBBox.xmin) / globalMaxH, 2.0);
-        // nY = std::max((globalBBox.ymax-globalBBox.ymin) / globalMaxH, 2.0);
-        // nZ = std::max((globalBBox.zmax-globalBBox.zmin) / globalMaxH, 2.0);
-        // ncells = nX*nY*nZ;
-
         distributeParticles(clist, x, y, z);
-        //computeGlobalCellCount();
-        //assignRanks(procsize);
-        //synchronize(data);
-        //discard(data);
 
         localBBox = computeBBox(clist, x, y, z);
         localMaxH = computeMaxH(clist, h);
@@ -515,11 +523,6 @@ public:
 
         // Use cell boxes and the localbbox to identify halo cells
         computeHaloList(cellBBox, showGraph);
-    }
-
-    void synchronizeHalos(std::vector<ArrayT*> &data)
-    {
-        exchangeHalos(data);
     }
 };
 
