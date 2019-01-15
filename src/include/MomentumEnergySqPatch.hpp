@@ -13,7 +13,7 @@ public:
     MomentumEnergySqPatch(const int stabilizationTimesteps = -1, const T K = compute_3d_k(5.0)) : 
     stabilizationTimesteps(stabilizationTimesteps), K(K) {}
 
-    void compute(const std::vector<int> &clist, const int iteration, const std::vector<std::vector<int>> &neighbors, 
+    void compute(const std::vector<int> &clist, const BBox<T> &bbox, const int iteration, const std::vector<std::vector<int>> &neighbors, 
         const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
         const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, 
         const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m,
@@ -47,6 +47,15 @@ public:
                 T r_ijx = (x[i] - x[nid]);
                 T r_ijy = (y[i] - y[nid]);
                 T r_ijz = (z[i] - z[nid]);
+
+                if(r_ijx > 2*h[i]) r_ijx -= (bbox.xmax-bbox.xmin);
+                else if(r_ijx < -2*h[i]) r_ijx += (bbox.xmax-bbox.xmin);
+                
+                if(r_ijy > 2*h[i]) r_ijy -= (bbox.ymax-bbox.ymin);
+                else if(r_ijy < -2*h[i]) r_ijy += (bbox.ymax-bbox.ymin);
+                
+                if(r_ijz > 2*h[i]) r_ijz -= (bbox.zmax-bbox.zmin);
+                else if(r_ijz < -2*h[i]) r_ijz += (bbox.zmax-bbox.zmin);
 
                 T v_ijx = (vx[i] - vx[nid]);
                 T v_ijy = (vy[i] - vy[nid]);
@@ -127,7 +136,7 @@ public:
                     + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_z_j) 
                     + viscosity_ij * grad_v_kernel_z_i_j + repulsive_force_z;
                 
-                energy +=  m[nid] * (1 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
+                energy +=  m[nid] * (1.0 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
             }
 
             if(std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))

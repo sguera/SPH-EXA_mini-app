@@ -8,13 +8,32 @@
 namespace sphexa
 {
 
+template<typename T>
+inline T distance(const BBox<T> &bbox, const T hi, const T x1, const T y1, const T z1, const T x2, const T y2, const T z2)
+{
+    T xx = x1 - x2;
+    T yy = y1 - y2;
+    T zz = z1 - z2;
+
+    if(xx > 2*hi) xx -= (bbox.xmax-bbox.xmin);
+    else if(xx < -2*hi) xx += (bbox.xmax-bbox.xmin);
+    
+    if(yy > 2*hi) yy -= (bbox.ymax-bbox.ymin);
+    else if(yy < -2*hi) yy += (bbox.ymax-bbox.ymin);
+    
+    if(zz > 2*hi) zz -= (bbox.zmax-bbox.zmin);
+    else if(zz < -2*hi) zz += (bbox.zmax-bbox.zmin);
+
+    return sqrt(xx*xx + yy*yy + zz*zz);
+}
+
 template<typename T, typename ArrayT = std::vector<T>>
 class Density
 {
 public:
 	Density(T K = compute_3d_k(5.0)) : K(K) {}
 
-	void compute(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, const ArrayT &m, ArrayT &ro)
+	void compute(const std::vector<int> &clist, const BBox<T> &bbox, const std::vector<std::vector<int>> &neighbors, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, const ArrayT &m, ArrayT &ro)
 	{
 		int n = clist.size();
 
@@ -33,7 +52,7 @@ public:
 		        if(nid == i) continue;
 
 		        // later can be stores into an array per particle
-		        T dist =  distance(x[i], y[i], z[i], x[nid], y[nid], z[nid]); //store the distance from each neighbor
+		        T dist =  distance(bbox, h[i], x[i], y[i], z[i], x[nid], y[nid], z[nid]); //store the distance from each neighbor
 
 		        // calculate the v as ratio between the distance and the smoothing length
 		        T vloc = dist / h[i];
@@ -46,9 +65,7 @@ public:
 		    ro[i] = roloc + m[i] * K/(h[i]*h[i]*h[i]);
 
 		    if(std::isnan(ro[i]))
-		    {
 		    	printf("ERROR::Density(%d) density %f, position: (%f %f %f), h: %f\n", i, ro[i], x[i], y[i], z[i], h[i]);
-		    }
 		}
 	}
 

@@ -152,6 +152,12 @@ public:
         bbox.PBCz = true;
         bbox.zmin = -50;
         bbox.zmax = 50;
+
+        etot = ecin = eint = 0.0;
+        ttot = 0.0;
+        
+        for(auto i : neighbors)
+            i.reserve(ngmax);
     }
 
     void writeFile(const std::vector<int> &clist, std::ofstream &outputFile)
@@ -241,6 +247,7 @@ public:
     std::vector<T> dt, dt_m1;
 
     T etot, ecin, eint;
+    T ttot;
 
     sphexa::BBox<T> bbox;
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
@@ -256,7 +263,8 @@ public:
 
     std::vector<std::vector<T>*> data;
     const T K = sphexa::compute_3d_k(6.0);
+    const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
-    const unsigned int ngmin = 200, ng0 = 250, ngmax = 300;
+    const unsigned int ngmin = 50, ng0 = 150, ngmax = 500;
 };

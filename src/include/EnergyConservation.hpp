@@ -13,8 +13,6 @@ template<typename T = double, typename ArrayT = std::vector<T>>
 class EnergyConservation
 {
 public:
-	EnergyConservation() {}
-
 	void compute(const std::vector<int> &clist, const ArrayT &u, const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, const ArrayT &m, T &etot, T &ecin, T &eint)
 	{
 		int n = clist.size();
@@ -35,7 +33,7 @@ public:
             //MPI_Allreduce(MPI_IN_PLACE, &etot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(MPI_IN_PLACE, &ecin, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(MPI_IN_PLACE, &eint, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	   #endif
+        #endif
 
         etot = ecin + eint;
     }

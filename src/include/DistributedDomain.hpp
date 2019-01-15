@@ -77,18 +77,25 @@ public:
         return BBox<T>(xmin, xmax, ymin, ymax, zmin, zmax);
     }
 
-    inline BBox<T> computeGlobalBBox(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z)
+    inline BBox<T> computeGlobalBBox(const std::vector<int> &clist, const BBox<T> &bbox, const ArrayT &x, const ArrayT &y, const ArrayT &z)
     {
-        BBox<T> bbox = computeBBox(clist, x, y, z);
+        BBox<T> lbbox = computeBBox(clist, x, y, z);
 
-        MPI_Allreduce(MPI_IN_PLACE, &bbox.xmin, 1, MPI_DOUBLE, MPI_MIN, comm);
-        MPI_Allreduce(MPI_IN_PLACE, &bbox.ymin, 1, MPI_DOUBLE, MPI_MIN, comm);
-        MPI_Allreduce(MPI_IN_PLACE, &bbox.zmin, 1, MPI_DOUBLE, MPI_MIN, comm);
-        MPI_Allreduce(MPI_IN_PLACE, &bbox.xmax, 1, MPI_DOUBLE, MPI_MAX, comm);
-        MPI_Allreduce(MPI_IN_PLACE, &bbox.ymax, 1, MPI_DOUBLE, MPI_MAX, comm);
-        MPI_Allreduce(MPI_IN_PLACE, &bbox.zmax, 1, MPI_DOUBLE, MPI_MAX, comm);
+        if(bbox.PBCx) lbbox.xmin = bbox.xmin;
+        if(bbox.PBCx) lbbox.xmax = bbox.xmax;
+        if(bbox.PBCy) lbbox.ymin = bbox.ymin;
+        if(bbox.PBCy) lbbox.ymax = bbox.ymax;
+        if(bbox.PBCz) lbbox.zmin = bbox.zmin;
+        if(bbox.PBCz) lbbox.zmax = bbox.zmax;
 
-        return bbox;
+        MPI_Allreduce(MPI_IN_PLACE, &lbbox.xmin, 1, MPI_DOUBLE, MPI_MIN, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &lbbox.ymin, 1, MPI_DOUBLE, MPI_MIN, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &lbbox.zmin, 1, MPI_DOUBLE, MPI_MIN, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &lbbox.xmax, 1, MPI_DOUBLE, MPI_MAX, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &lbbox.ymax, 1, MPI_DOUBLE, MPI_MAX, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &lbbox.zmax, 1, MPI_DOUBLE, MPI_MAX, comm);
+
+        return lbbox;
     }
 
     inline T computeMaxH(const std::vector<int> &clist, const ArrayT &h)
@@ -297,7 +304,15 @@ public:
         }
     }
 
-    void computeHaloList(const std::vector<BBox<T>> &cellBBox, bool showGraph = false)
+    bool checkBoxOverlap(const std::vector<BBox<T>> &cellBBox, T xmin, T xmax, T ymin, T ymax, T zmin, T zmax, T ri, int l)
+    {
+        return (assignedRanks[l] != comm_rank) && (globalCellCount[l] > 0) 
+            && overlap(cellBBox[l].xmin, cellBBox[l].xmax, xmin-ri, xmax+ri)
+            && overlap(cellBBox[l].ymin, cellBBox[l].ymax, ymin-ri, ymax+ri)
+            && overlap(cellBBox[l].zmin, cellBBox[l].zmax, zmin-ri, zmax+ri);
+    }
+
+    void computeHaloList(const BBox<T> &bbox, const std::vector<BBox<T>> &cellBBox, bool showGraph = false)
     {
         sendHaloList.clear();
         recvHaloList.clear();
@@ -308,21 +323,41 @@ public:
         std::map<int,std::vector<int>> msources;
 
         {
+            std::vector<bool> visited(ncells, false);
             std::vector<int> sources, weights, degrees, dests;
 
-            for(int i=0; i<ncells; i++)
+            int mix = (int)floor(normalize(localBBox.xmin-2*localMaxH, globalBBox.xmin, globalBBox.xmax)*nX);
+            int miy = (int)floor(normalize(localBBox.ymin-2*localMaxH, globalBBox.ymin, globalBBox.ymax)*nY);
+            int miz = (int)floor(normalize(localBBox.zmin-2*localMaxH, globalBBox.zmin, globalBBox.zmax)*nZ);
+            int max = (int)floor(normalize(localBBox.xmax+2*localMaxH, globalBBox.xmin, globalBBox.xmax)*nX);
+            int may = (int)floor(normalize(localBBox.ymax+2*localMaxH, globalBBox.ymin, globalBBox.ymax)*nY);
+            int maz = (int)floor(normalize(localBBox.zmax+2*localMaxH, globalBBox.zmin, globalBBox.zmax)*nZ);
+
+            for(int hz=miz; hz<=maz; hz++)
             {
-                if(assignedRanks[i] != comm_rank && globalCellCount[i] > 0)
+                for(int hy=miy; hy<=may; hy++)
                 {
-                    // maxH is an overrapproximation
-                    if(overlap(cellBBox[i].xmin, cellBBox[i].xmax, localBBox.xmin-2*localMaxH, localBBox.xmax+2*localMaxH) &&
-                        overlap(cellBBox[i].ymin, cellBBox[i].ymax, localBBox.ymin-2*localMaxH, localBBox.ymax+2*localMaxH) &&
-                        overlap(cellBBox[i].zmin, cellBBox[i].zmax, localBBox.zmin-2*localMaxH, localBBox.zmax+2*localMaxH))
+                    for(int hx=mix; hx<=max; hx++)
                     {
-                        int rank = assignedRanks[i];
-                        msources[rank].push_back(i);
-                        recvHaloList[rank] += globalCellCount[i];
-                        haloCount += globalCellCount[i];
+                        T displz = bbox.PBCz? ((hz < 0) - (hz >= nZ)) * (globalBBox.zmax-globalBBox.zmin) : 0;
+                        T disply = bbox.PBCy? ((hy < 0) - (hy >= nY)) * (globalBBox.ymax-globalBBox.ymin) : 0;
+                        T displx = bbox.PBCx? ((hx < 0) - (hx >= nX)) * (globalBBox.xmax-globalBBox.xmin) : 0;
+
+                        int hzz = (hz + nZ) % nZ;
+                        int hyy = (hy + nY) % nY;
+                        int hxx = (hx + nX) % nX;
+
+                        unsigned int l = hzz*nY*nX+hyy*nX+hxx;
+
+                        if(!visited[l] && checkBoxOverlap(cellBBox, localBBox.xmin+displx, localBBox.xmax+displx, localBBox.ymin+disply, localBBox.ymax+disply, localBBox.zmin+displz, localBBox.zmax+displz, 2*localMaxH, l))
+                        {
+                            int rank = assignedRanks[l];
+                            msources[rank].push_back(l);
+                            recvHaloList[rank] += globalCellCount[l];
+                            haloCount += globalCellCount[l];
+                        }
+
+                        visited[l] = true;
                     }
                 }
             }
@@ -476,8 +511,6 @@ public:
             {
                 if(indices[i] == false)
                     tmp[j++] = array[i];
-                // array[indices[i]] = array.back();
-                // array.pop_back();
             }
             tmp.swap(array);
             array.resize(j);
@@ -492,9 +525,10 @@ public:
             removeIndices(discardList, data);
     }
 
-    void build(const std::vector<int> &procsize, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, std::vector<int> &clist, std::vector<ArrayT*> &data, bool showGraph = false)
+    void build(const std::vector<int> &procsize, const BBox<T> &bbox, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, std::vector<int> &clist, std::vector<ArrayT*> &data, bool showGraph = false)
     {   
-        globalBBox = computeGlobalBBox(clist, x, y, z);
+        /* The 'bbox' here is is only used to test PBC. If PBC is activated, the globalBBox will take the corresponding bbox.x{min,max} values */
+        globalBBox = computeGlobalBBox(clist, bbox, x, y, z);
         globalMaxH = computeGlobalMaxH(clist, h);
         
         nX = std::max((globalBBox.xmax-globalBBox.xmin) / globalMaxH, 2.0);
@@ -522,7 +556,7 @@ public:
         computeBBoxes(cellBBox);
 
         // Use cell boxes and the localbbox to identify halo cells
-        computeHaloList(cellBBox, showGraph);
+        computeHaloList(bbox, cellBBox, showGraph);
     }
 };
 

@@ -17,7 +17,7 @@ class Timestep
 public:
 	Timestep(const T Kcour = 0.2, const T maxDtIncrease = 1.1) : Kcour(Kcour), maxDtIncrease(maxDtIncrease) {}
 
-	void compute(const std::vector<int> &clist, const ArrayT &h, const ArrayT &c, const ArrayT &dt_m1, ArrayT &dt)
+	void compute(const std::vector<int> &clist, const ArrayT &h, const ArrayT &c, const ArrayT &dt_m1, ArrayT &dt, T &ttot)
 	{
 		int n =  clist.size();
 
@@ -48,6 +48,8 @@ public:
 			int i = clist[pi];
         	dt[i] = min;
         }
+
+        ttot += min;
 	}
 
 private:

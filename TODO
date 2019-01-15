@@ -3,9 +3,16 @@ CHECK:
 - K in square patch has two different values in Density and Momentum (temporarily set to the same in SqPatch.hpp)
 
 TODO:
+- Use a tree instead of a grid to distribute the work in DistributedDomain.hpp
+- Check each assigned cells'box individually instead of checking the entire local domain box to drastically reduce the number of halo particles
 - DistributedDomain.hpp has no openmp but some parts are easy to parallelize
 - build() in Octree or Htree has no openmp but is also easy to parallelize
 - use MPI_IO to read the file instead of standard reading + scatterv
 - give a global idea to the particles in DistributedDomain; that way when we assign particles to nodes and we build the list of halo particles, we can refer to the global idea. We need an additional array that map the global idea of a particle to its actual position in the array. This will enable us to reorder particles every iteration for a 20% performance boost.
 - merge Domain.hpp and DistributedDomain.hpp (DistributedDomain.hpp can inherit Domain.hpp)
-- When PBC is activated, bbox migh be fixed or flexible (default fixed as of now) 
+- When PBC is activated, bbox migh be fixed or flexible (default fixed as of now)
+
+IMPORTANT:
+GlobalBBox in Distributed domain must take into account the bbox PBC!!!!!
+=> replace localBBox in DistributedDomain by bbox in parameters
+=> merge Distributed Domain with domain... (inherits), build is more complicated!

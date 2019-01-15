@@ -78,21 +78,13 @@ public:
 	{
 		for(unsigned int i=0; i<list.size(); i++)
 		{
-			T xx = std::max(std::min(ax[list[i]],bbox.xmax),bbox.xmin);
-			T yy = std::max(std::min(ay[list[i]],bbox.ymax),bbox.ymin);
-			T zz = std::max(std::min(az[list[i]],bbox.zmax),bbox.zmin);
+			T xx = ax[list[i]];
+			T yy = ay[list[i]];
+			T zz = az[list[i]];
 
-			T posx = normalize(xx, bbox.xmin, bbox.xmax);
-			T posy = normalize(yy, bbox.ymin, bbox.ymax);
-			T posz = normalize(zz, bbox.zmin, bbox.zmax);
-
-			int hx = posx*nX;
-			int hy = posy*nY;
-			int hz = posz*nZ;
-
-			hx = std::min(hx,nX-1);
-			hy = std::min(hy,nY-1);
-			hz = std::min(hz,nZ-1);
+			T hx = std::min(std::max((int)(normalize(xx, bbox.xmin, bbox.xmax)*nX),0),nX-1);
+			T hy = std::min(std::max((int)(normalize(yy, bbox.ymin, bbox.ymax)*nY),0),nY-1);
+			T hz = std::min(std::max((int)(normalize(zz, bbox.zmin, bbox.zmax)*nZ),0),nZ-1);
 
 			unsigned int l = hz*nX*nY+hy*nX+hx;
 
@@ -165,6 +157,9 @@ public:
 
 		for(int i=0; i<ncells; i++)
 		{
+			start[i] = ptr+padding[i];
+			count[i] = cellList[i].size();
+
 			if(cellList[i].size() > bucketSize)// && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
 			{
 				cells[i] = std::make_shared<Octree>();
@@ -246,9 +241,6 @@ public:
 			int max = (int)floor(normalize(xi+ri, bbox.xmin, bbox.xmax)*nX);
 			int may = (int)floor(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY);
 			int maz = (int)floor(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ);
-
-			//printf("%f %f %f %f %f %f for %f %f %f with %f\n", bbox.xmin, bbox.xmax, bbox.ymin, bbox.ymax, bbox.zmin, bbox.zmax, xi, yi, zi, ri);
-			//printf("%d %d %d %d %d %d for %f %f %f\n", mix, miy, miz, max, may, maz, xi, yi, zi);
 
 			for(int hz=miz; hz<=maz; hz++)
 			{

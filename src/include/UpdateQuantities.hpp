@@ -67,11 +67,11 @@ public:
 		    z[i] = z_loc + t_0 * valz + (vz_loc - valz) * t_0 * deltaB / deltaA;
 
 		    if(bbox.PBCx && x[i] < bbox.xmin) x[i] += (bbox.xmax-bbox.xmin);
-		    if(bbox.PBCx && x[i] > bbox.xmax) x[i] -= (bbox.xmax-bbox.xmin);
+		    else if(bbox.PBCx && x[i] > bbox.xmax) x[i] -= (bbox.xmax-bbox.xmin);
 		    if(bbox.PBCy && y[i] < bbox.ymin) y[i] += (bbox.ymax-bbox.ymin);
-		    if(bbox.PBCy && y[i] > bbox.ymax) y[i] -= (bbox.ymax-bbox.ymin);
+		    else if(bbox.PBCy && y[i] > bbox.ymax) y[i] -= (bbox.ymax-bbox.ymin);
 		    if(bbox.PBCz && z[i] < bbox.zmin) z[i] += (bbox.zmax-bbox.zmin);
-		    if(bbox.PBCz && z[i] > bbox.zmax) z[i] -= (bbox.zmax-bbox.zmin);
+		    else if(bbox.PBCz && z[i] > bbox.zmax) z[i] -= (bbox.zmax-bbox.zmin);
 
 		    //update the energy according to Adams-Bashforth (2nd order)
 		    deltaA = 0.5 * t_0 * t_0 / t_m1;
