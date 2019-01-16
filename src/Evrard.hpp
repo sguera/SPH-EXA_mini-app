@@ -152,7 +152,7 @@ public:
 
         etot = ecin = eint = 0.0;
         ttot = 0.0;
-        
+
         for(auto i : neighbors)
             i.reserve(ngmax);
     }

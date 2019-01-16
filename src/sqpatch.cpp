@@ -45,7 +45,7 @@ int main()
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
         
         #ifdef USE_MPI
-            d.resize(d.count);
+            //d.resize(d.count);
             REPORT_TIME(d.rank, mpi.build(d.workload, d.bbox, d.x, d.y, d.z, d.h, clist, d.data, false), "mpi::build");
             REPORT_TIME(d.rank, mpi.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
             d.count = clist.size();
@@ -82,7 +82,7 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-        if(iteration > 0 && iteration % 500 == 0)
+        if(iteration % 250 == 0)
         {
             std::ofstream outputFile("output" + to_string(iteration) + ".txt");
             REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
@@ -100,3 +100,5 @@ int main()
 
     return 0;
 }
+
+// Is the energy supposed to be different with different number of neighbors?

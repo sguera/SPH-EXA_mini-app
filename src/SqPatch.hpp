@@ -114,7 +114,7 @@ public:
 
     void init()
     {
-        std::fill(h.begin(), h.end(), 2.0);
+        std::fill(h.begin(), h.end(), 2.5);
         std::fill(temp.begin(), temp.end(), 1.0);
         std::fill(ro_0.begin(), ro_0.end(), 1.0);
         std::fill(ro.begin(), ro.end(), 0.0);
@@ -266,5 +266,5 @@ public:
     const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
-    const unsigned int ngmin = 50, ng0 = 150, ngmax = 500;
+    const unsigned int ngmin = 400, ng0 = 500, ngmax = 600;
 };

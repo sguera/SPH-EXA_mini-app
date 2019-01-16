@@ -16,11 +16,11 @@ public:
 	EquationOfStateSqPatch(const int stabilizationTimesteps = -1) : 
 		stabilizationTimesteps(stabilizationTimesteps) {}
 
-	void compute(const std::vector<int> &clist, const int iteration, const ArrayT &ro_0, const ArrayT &p_0, ArrayT &ro, ArrayT &p, ArrayT &u, ArrayT &c)
+	void compute(const std::vector<int> &clist, const int iteration, ArrayT &ro_0, const ArrayT &p_0, ArrayT &ro, ArrayT &p, ArrayT &u, ArrayT &c)
 	{
 		int n = clist.size();
 
-		const T chi = (1 / 7) * (3500 * 3500);
+		const T chi = (1.0 / 7.0) * (3500.0 * 3500.0);
 
 		#pragma omp parallel for
 		for(int pi=0; pi<n; pi++)
@@ -34,7 +34,7 @@ public:
 		    else if(iteration == stabilizationTimesteps)
 		    {
 		        p[i] = p_0[i];
-		        ro[i] = ro_0[i];
+		        ro_0[i] = ro[i];
 		    }
 		    else
 		    {

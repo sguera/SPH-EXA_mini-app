@@ -95,12 +95,10 @@ public:
                    force_i_j_r = 0.0;
 
                 T A_j = 0.0;
-
                 if(p[nid] < 0.0)
                     A_j = 1.0;
 
                 T delta_pos_i_j = 0.0;
-
                 if(p[i] > 0.0 && p[nid] > 0.0)
                     delta_pos_i_j = 1.0;
 

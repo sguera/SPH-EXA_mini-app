@@ -37,7 +37,7 @@ int main()
     vector<int> clist(d.count);
     for(unsigned int i=0; i<d.count; i++)
         clist[i] = i;
-    
+
     for(int iteration = 0; iteration <= 10000; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
@@ -45,7 +45,7 @@ int main()
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
 
         #ifdef USE_MPI
-            d.resize(d.count);
+            //d.resize(d.count);
             REPORT_TIME(d.rank, mpi.build(d.workload, d.bbox, d.x, d.y, d.z, d.h, clist, d.data, false), "mpi::build");
             REPORT_TIME(d.rank, mpi.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
             d.count = clist.size();
@@ -57,6 +57,23 @@ int main()
         REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
         REPORT_TIME(d.rank, density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
         REPORT_TIME(d.rank, equationOfState.compute(clist, d.ro, d.mui, d.temp, d.u, d.p, d.c, d.cv), "EquationOfState");
+
+        // std::vector<int> newclist;
+        // for(unsigned int pi=0; pi<clist.size(); pi++)
+        // {
+        //     int i = clist[pi];
+        //     if(! (d.neighbors[pi].size() < d.ngmin || d.ro[i] < 0.02 || std::isnan(d.ro[i]) || std::isnan(d.c[i])) )
+        //         newclist.push_back(clist[pi]);
+        // }
+        // newclist.swap(clist);
+        // printf("### clist.size: %zu\n", clist.size()); fflush(stdout);
+
+        // if(clist.size() == 0)
+        // {
+        //     printf("THIS IS THE END\n");
+        //     fflush(stdout);
+        //     break;
+        // }
 
         #ifdef USE_MPI
             d.resize(d.count);
@@ -82,12 +99,12 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-        // if(iteration % 10 == 0)
-        // {
-        //     std::ofstream outputFile("output" + to_string(iteration) + ".txt");
-        //     REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
-        //     outputFile.close();
-        // }
+        if(iteration % 10 == 0)
+        {
+            std::ofstream outputFile("output" + to_string(iteration) + ".txt");
+            REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
+            outputFile.close();
+        }
 
         timer::TimePoint stop = timer::Clock::now();
         

@@ -152,13 +152,9 @@ public:
 
     void computeGlobalCellCount()
     {
-        globalCellCount.clear();
         globalCellCount.resize(ncells);
 
         std::vector<int> localCount(ncells);
-
-        for(unsigned int i=0; i<localCount.size(); i++)
-            localCount[i] = globalCellCount[i] = 0;
 
         for(int i=0; i<ncells; i++)
             localCount[i] = cellList[i].size();
@@ -207,22 +203,6 @@ public:
                     unsigned int i = hz*nX*nY+hy*nX+hx;
 
                     cellBBox[i] = BBox<T>(ax, bx, ay, by, az, bz);
-                }
-            }
-        }
-    }
-
-    void computeDiscardList(const int count, std::vector<bool> &discardList)
-    {
-        discardList.resize(count, false);
-        for(int i=0; i<ncells; i++)
-        {
-            if(assignedRanks[i] != comm_rank)
-            {
-                for(unsigned j=0; j<cellList[i].size(); j++)
-                {
-                    // discardList.push_back(cellList[i][j]);
-                    discardList[cellList[i][j]] = true;
                 }
             }
         }
@@ -333,6 +313,13 @@ public:
             int may = (int)floor(normalize(localBBox.ymax+2*localMaxH, globalBBox.ymin, globalBBox.ymax)*nY);
             int maz = (int)floor(normalize(localBBox.zmax+2*localMaxH, globalBBox.zmin, globalBBox.zmax)*nZ);
 
+            if(!bbox.PBCx) mix = std::max(mix, 0);
+            if(!bbox.PBCy) miy = std::max(miy, 0);
+            if(!bbox.PBCz) miz = std::max(miz, 0);
+            if(!bbox.PBCx) max = std::min(max, nX-1);
+            if(!bbox.PBCy) may = std::min(may, nY-1);
+            if(!bbox.PBCz) maz = std::min(maz, nZ-1);
+
             for(int hz=miz; hz<=maz; hz++)
             {
                 for(int hy=miy; hy<=may; hy++)
@@ -343,9 +330,9 @@ public:
                         T disply = bbox.PBCy? ((hy < 0) - (hy >= nY)) * (globalBBox.ymax-globalBBox.ymin) : 0;
                         T displx = bbox.PBCx? ((hx < 0) - (hx >= nX)) * (globalBBox.xmax-globalBBox.xmin) : 0;
 
-                        int hzz = (hz + nZ) % nZ;
-                        int hyy = (hy + nY) % nY;
-                        int hxx = (hx + nX) % nX;
+                        int hzz = (hz % nZ) + (hz < 0) * nZ;
+                        int hyy = (hy % nY) + (hy < 0) * nY;
+                        int hxx = (hx % nX) + (hx < 0) * nX;
 
                         unsigned int l = hzz*nY*nX+hyy*nX+hxx;
 
@@ -517,6 +504,39 @@ public:
         }
     }
 
+    inline void keepIndices(const std::vector<int> indices, std::vector<ArrayT*> &data)
+    {
+        for(unsigned int i=0; i<data.size(); i++)
+        {
+            ArrayT &array = *data[i];
+            
+            int j = 0;
+            std::vector<T> tmp(indices.size());
+            for(unsigned int i=0; i<indices.size(); i++)
+            {
+                tmp[j++] = array[indices[i]];
+            }
+            tmp.swap(array);
+            array.resize(j);
+        }
+    }
+
+    void computeDiscardList(const int count, std::vector<bool> &discardList)
+    {
+        discardList.resize(count, false);
+        for(int i=0; i<ncells; i++)
+        {
+            if(assignedRanks[i] != comm_rank)
+            {
+                for(unsigned j=0; j<cellList[i].size(); j++)
+                {
+                    // discardList.push_back(cellList[i][j]);
+                    discardList[cellList[i][j]] = true;
+                }
+            }
+        }
+    }
+
     void discard(std::vector<ArrayT*> &data)
     {
         std::vector<bool> discardList;
@@ -527,6 +547,10 @@ public:
 
     void build(const std::vector<int> &procsize, const BBox<T> &bbox, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, std::vector<int> &clist, std::vector<ArrayT*> &data, bool showGraph = false)
     {   
+        keepIndices(clist, data);
+        for(unsigned int i=0; i<clist.size(); i++)
+            clist[i] = i;
+
         /* The 'bbox' here is is only used to test PBC. If PBC is activated, the globalBBox will take the corresponding bbox.x{min,max} values */
         globalBBox = computeGlobalBBox(clist, bbox, x, y, z);
         globalMaxH = computeGlobalMaxH(clist, h);
@@ -542,12 +566,11 @@ public:
         synchronize(data);
         discard(data);
 
+
         clist.resize(data[0]->size());
         for(unsigned int i=0; i<clist.size(); i++)
             clist[i] = i;
-
         distributeParticles(clist, x, y, z);
-
         localBBox = computeBBox(clist, x, y, z);
         localMaxH = computeMaxH(clist, h);
 

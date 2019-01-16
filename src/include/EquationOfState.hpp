@@ -29,7 +29,7 @@ public:
 		    c[i] = sqrt(tmp);
 
 			if(std::isnan(c[i]) || std::isnan(cv[i]))
-	        	printf("ERROR:equation_of_state c %f cv %f temp %f u %f p %f\n", c[i], cv[i], temp[i], u[i], p[i]);
+	        	printf("ERROR:equation_of_state(%d) c %f cv %f temp %f u %f p %f\n", i, c[i], cv[i], temp[i], u[i], p[i]);
 		}
 	}
 };
