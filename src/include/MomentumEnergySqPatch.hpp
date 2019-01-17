@@ -113,14 +113,15 @@ public:
                     + (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_z_j) 
                     + grad_v_kernel_z_i_j * (viscosity_ij + partial_repulsive_force);
                 
-                energy +=  m[nid] * (1.0 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
+                energy += m[nid] * (1.0 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
             }
 
             if(std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))
                 printf("ERROR::MomentumEnergy(%d) MomentumEnergy (%f %f %f)\n", i, momentum_x, momentum_y, momentum_z);
 
             // 2.0 * p[i]???
-            du[i] =  energy * (-p[i]/(gradh_i * ro[i] * ro[i]));
+            du[i] = energy;
+            //du[i] =  energy * (-p[i]/(gradh_i * ro[i] * ro[i]));
 
             if(std::isnan(du[i]))
                 printf("ERROR:Energy du %f energy %f p_i %f gradh_i %f ro_i %f\n", du[i], energy, p[i], gradh_i, ro[i]);

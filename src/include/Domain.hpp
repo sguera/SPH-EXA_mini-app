@@ -87,11 +87,11 @@ public:
 	    }
 	}
 
-	int neighborsSum(const std::vector<std::vector<int>> &neighbors)
+	int neighborsSum(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors)
 	{
 	    int sum = 0;
 	    #pragma omp parallel for reduction (+:sum)
-	    for(unsigned int i=0; i<neighbors.size(); i++)
+	    for(unsigned int i=0; i<clist.size(); i++)
 	        sum += neighbors[i].size();
 
 	    #ifdef USE_MPI

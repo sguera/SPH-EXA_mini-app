@@ -34,6 +34,7 @@ inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
     // extra h at the bottom comes from the chain rule of the partial derivative
     T kernel = wharmonic(v, h, sincIndex, K);
 
+    //return sincIndex * (PI/2.0) * kernel / (h * h) / v * ((1.0 / tan(value)) - (1.0 / value));
     return sincIndex * (PI/2.0) * kernel / (h * h) / v * ((1.0 / tan(value)) - (1.0 / value));
 }
 

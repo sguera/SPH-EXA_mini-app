@@ -57,23 +57,6 @@ int main()
         REPORT_TIME(d.rank, density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
         REPORT_TIME(d.rank, equationOfState.compute(clist, d.ro, d.mui, d.temp, d.u, d.p, d.c, d.cv), "EquationOfState");
 
-        // std::vector<int> newclist;
-        // for(unsigned int pi=0; pi<clist.size(); pi++)
-        // {
-        //     int i = clist[pi];
-        //     if(! (d.neighbors[pi].size() < d.ngmin || d.ro[i] < 0.02 || std::isnan(d.ro[i]) || std::isnan(d.c[i])) )
-        //         newclist.push_back(clist[pi]);
-        // }
-        // newclist.swap(clist);
-        // printf("### clist.size: %zu\n", clist.size()); fflush(stdout);
-
-        // if(clist.size() == 0)
-        // {
-        //     printf("THIS IS THE END\n");
-        //     fflush(stdout);
-        //     break;
-        // }
-
         #ifdef USE_MPI
             d.resize(d.count);
             REPORT_TIME(d.rank, mpi.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.mui, &d.temp, &d.p, &d.c, &d.cv), "mpi::synchronizeHalos");
@@ -85,7 +68,7 @@ int main()
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
         REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
-        int totalNeighbors = domain.neighborsSum(d.neighbors);
+        int totalNeighbors = domain.neighborsSum(clist, d.neighbors);
 
         if(d.rank == 0)
         {

@@ -68,7 +68,7 @@ int main()
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
         REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
-        int totalNeighbors = domain.neighborsSum(d.neighbors);
+        int totalNeighbors = domain.neighborsSum(clist, d.neighbors);
 
         if(d.rank == 0)
         {

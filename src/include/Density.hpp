@@ -57,7 +57,7 @@ public:
 		        // calculate the v as ratio between the distance and the smoothing length
 		        T vloc = dist / h[i];
 		        
-		        //assert(vloc<=2);
+		        //assert(vloc<=2 && vloc >= 0);
 		        T value = wharmonic(vloc, h[i], sincIndex, K);
 		        roloc += value * m[nid];
 		    }
