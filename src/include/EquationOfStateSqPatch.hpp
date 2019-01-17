@@ -38,7 +38,7 @@ public:
 		    }
 		    else
 		    {
-		        p[i] = chi * (pow((ro[i] / ro_0[i]), 7) - 1) + p_0[i];
+		        p[i] = chi * (pow((ro[i] / ro_0[i]), 7) - 1.0) + p_0[i];
 		    }
 
 		    c[i] = 3500.0;

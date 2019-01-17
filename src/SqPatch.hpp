@@ -262,7 +262,8 @@ public:
     int rank = 0;
 
     std::vector<std::vector<T>*> data;
-    const T K = sphexa::compute_3d_k(6.0);
+    const T sincIndex = 6.0;
+    const T K = sphexa::compute_3d_k(sincIndex);
     const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;

@@ -27,9 +27,9 @@ int main()
     #endif
 
     Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
-    Density<Real> density(d.K);
+    Density<Real> density(d.sincIndex, d.K);
     EquationOfStateSqPatch<Real> equationOfState(d.stabilizationTimesteps);
-    MomentumEnergySqPatch<Real> momentumEnergy(d.stabilizationTimesteps, d.K);
+    MomentumEnergySqPatch<Real> momentumEnergy(d.stabilizationTimesteps, d.sincIndex, d.K);
     Timestep<Real> timestep(d.Kcour, d.maxDtIncrease);
     UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
     EnergyConservation<Real> energyConservation;
@@ -45,7 +45,6 @@ int main()
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
         
         #ifdef USE_MPI
-            //d.resize(d.count);
             REPORT_TIME(d.rank, mpi.build(d.workload, d.bbox, d.x, d.y, d.z, d.h, clist, d.data, false), "mpi::build");
             REPORT_TIME(d.rank, mpi.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
             d.count = clist.size();

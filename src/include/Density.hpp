@@ -31,7 +31,7 @@ template<typename T, typename ArrayT = std::vector<T>>
 class Density
 {
 public:
-	Density(T K = compute_3d_k(5.0)) : K(K) {}
+	Density(T sincIndex = 5.0, T K = compute_3d_k(5.0)) : sincIndex(sincIndex), K(K) {}
 
 	void compute(const std::vector<int> &clist, const BBox<T> &bbox, const std::vector<std::vector<int>> &neighbors, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, const ArrayT &m, ArrayT &ro)
 	{
@@ -58,7 +58,7 @@ public:
 		        T vloc = dist / h[i];
 		        
 		        //assert(vloc<=2);
-		        T value = wharmonic(vloc, h[i], K);
+		        T value = wharmonic(vloc, h[i], sincIndex, K);
 		        roloc += value * m[nid];
 		    }
 
@@ -70,7 +70,7 @@ public:
 	}
 
 private:
-	const double K;
+	const T sincIndex, K;
 };
 
 }

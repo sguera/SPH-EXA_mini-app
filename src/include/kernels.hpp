@@ -20,21 +20,21 @@ inline T compute_3d_k(T n)
 }
 
 template<typename T>
-inline T wharmonic(T v, T h, T K)
+inline T wharmonic(T v, T h, T sincIndex, T K)
 {
     T value = (PI/2.0) * v;
-    return K/(h*h*h) * pow((sin(value)/value), 5);
+    return K/(h*h*h) * pow((sin(value)/value), (int)sincIndex);
 }
 
 template<typename T>
-inline T wharmonic_derivative(T v, T h, T K)
+inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
 {
     T value = (PI/2.0) * v;
     // r_ih = v * h
     // extra h at the bottom comes from the chain rule of the partial derivative
-    T kernel = wharmonic(v, h, K);
+    T kernel = wharmonic(v, h, sincIndex, K);
 
-    return 5.0 * (PI/2.0) * kernel / (h * h) / v * ((1.0 / tan(value)) - (1.0 / value));
+    return sincIndex * (PI/2.0) * kernel / (h * h) / v * ((1.0 / tan(value)) - (1.0 / value));
 }
 
 template<typename T>

@@ -10,7 +10,7 @@ template<typename T = double, typename ArrayT = std::vector<T>>
 class MomentumEnergy
 {
 public:
-	MomentumEnergy(const T K = compute_3d_k(5.0)) : K(K) {}
+	MomentumEnergy(const T sincIndex = 5.0, const T K = compute_3d_k(5.0)) : sincIndex(sincIndex), K(K) {}
 
 	void compute(const std::vector<int> &clist, const BBox<T> &bbox, const std::vector<std::vector<int>> &neighbors, 
 		const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
@@ -41,13 +41,14 @@ public:
 		        T r_ijy = (y[i] - y[nid]);
 		        T r_ijz = (z[i] - z[nid]);
 
-		        if(r_ijx > 2*h[i]) r_ijx -= (bbox.xmax-bbox.xmin);
+                // Handling PBC
+                if(bbox.PBCx && r_ijx > 2*h[i]) r_ijx -= (bbox.xmax-bbox.xmin);
                 else if(r_ijx < -2*h[i]) r_ijx += (bbox.xmax-bbox.xmin);
                 
-                if(r_ijy > 2*h[i]) r_ijy -= (bbox.ymax-bbox.ymin);
+                if(bbox.PBCy && r_ijy > 2*h[i]) r_ijy -= (bbox.ymax-bbox.ymin);
                 else if(r_ijy < -2*h[i]) r_ijy += (bbox.ymax-bbox.ymin);
                 
-                if(r_ijz > 2*h[i]) r_ijz -= (bbox.zmax-bbox.zmin);
+                if(bbox.PBCz && r_ijz > 2*h[i]) r_ijz -= (bbox.zmax-bbox.zmin);
                 else if(r_ijz < -2*h[i]) r_ijz += (bbox.zmax-bbox.zmin);
 
 		        T v_ijx = (vx[i] - vx[nid]);
@@ -60,16 +61,12 @@ public:
 
 		        T viscosity_ij = artificial_viscosity(ro[i], ro[nid], h[i], h[nid], c[i], c[nid], rv, r_square);
 		        
-		        // if(isnan(viscosity_ij))
-	        	//     printf("ERROR::MomentumEnergy::artificial_viscosity(%d %d) c_i %f c_j %f h_i %f h_j %f rv %f r_square %f ro_i %f ro_j %f\n", 
-	        	//     	i, nid, c[i], c[nid], h_i, h_j, rv, r_square, ro_i, ro_j);
-
 		        T r_ij = sqrt(r_square);
 		        T rv_i = r_ij / h[i];
 		        T rv_j = r_ij / h[nid];
 
-		        T derivative_kernel_i = wharmonic_derivative(rv_i, h[i], K);
-		        T derivative_kernel_j = wharmonic_derivative(rv_j, h[nid], K);
+		        T derivative_kernel_i = wharmonic_derivative(rv_i, h[i], sincIndex, K);
+		        T derivative_kernel_j = wharmonic_derivative(rv_j, h[nid], sincIndex, K);
 		        
 		        T grad_v_kernel_x_i = r_ijx * derivative_kernel_i;
 		        T grad_v_kernel_x_j = r_ijx * derivative_kernel_j;
@@ -77,18 +74,22 @@ public:
 		        T grad_v_kernel_y_j = r_ijy * derivative_kernel_j;
 		        T grad_v_kernel_z_i = r_ijz * derivative_kernel_i;
 		        T grad_v_kernel_z_j = r_ijz * derivative_kernel_j;
+
+		        T grad_v_kernel_x_i_j = (grad_v_kernel_x_i + grad_v_kernel_x_j)/2.0;
+                T grad_v_kernel_y_i_j = (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0;
+                T grad_v_kernel_z_i_j = (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0;
 				
 				momentum_x +=  (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_x_i) 
 					+ (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_x_j) 
-					+ viscosity_ij * (grad_v_kernel_x_i + grad_v_kernel_x_j)/2.0;
+					+ grad_v_kernel_x_i_j * viscosity_ij;
 		        momentum_y +=  (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_y_i) 
 		        	+ (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_y_j) 
-		        	+ viscosity_ij * (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0;
+		        	+ grad_v_kernel_y_i_j * viscosity_ij;
 		        momentum_z +=  (p[i]/(gradh_i * ro[i] * ro[i]) * grad_v_kernel_z_i) 
 		        	+ (p[nid]/(gradh_j * ro[nid] * ro[nid]) * grad_v_kernel_z_j) 
-		        	+ viscosity_ij * (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0;
+		        	+ grad_v_kernel_z_i_j * viscosity_ij;
 		    	
-		    	energy +=  m[nid] * (1 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
+		    	energy +=  m[nid] * (1.0 + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
 		    }
 
 		    if(std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))
@@ -106,6 +107,7 @@ public:
 	}
 
 private:
+	const T sincIndex;
 	const T K;
 };
 
