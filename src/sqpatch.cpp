@@ -38,7 +38,8 @@ int main()
     for(unsigned int i=0; i<d.count; i++)
         clist[i] = i;
 
-    for(int iteration = 0; iteration <= 10000; iteration++)
+    for(int iteration = 0; iteration < 1; iteration++)
+    //cscs: for(int iteration = 0; iteration <= 10000; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
 
@@ -81,12 +82,12 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-        if(iteration % 250 == 0)
-        {
-            std::ofstream outputFile("output" + to_string(iteration) + ".txt");
-            REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
-            outputFile.close();
-        }
+//cscs        if(iteration % 250 == 0)
+//cscs        {
+//cscs            std::ofstream outputFile("output" + to_string(iteration) + ".txt");
+//cscs            REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
+//cscs            outputFile.close();
+//cscs        }
 
         timer::TimePoint stop = timer::Clock::now();
         

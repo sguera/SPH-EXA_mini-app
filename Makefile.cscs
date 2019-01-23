@@ -1,4 +1,6 @@
 # https://bitbucket.org/sph_exa/sph-exa_mini-app/issues/
+# make SRC=src/sqpatch.cpp -f Makefile.cscs CXXFLAGS=-I./src/include
+# ~/sbatch.sh dom 2 $PWD/bin/dom_INTEL_18.0.2.199.exe 1 1 12 12 1 -Cmc "" "cd $SCRATCH;" "" "" $SCRATCH/
 CXX			:= CC
 OBJDIR		:= obj
 BINDIR 		:= bin
@@ -9,6 +11,12 @@ HPP 		:= $(wildcard $(SRCDIR)/*.hpp)
 HPP 		+= $(wildcard $(SRCDIR)/tree/*.hpp)
 HH 			:= $(shell uname -n |cut -c1-3 )
 DEBUGFLAGS 	= 
+CXXFLAGS    := -I./src/include
+
+define makefile_help
+PE_ENV=$(PE_ENV)
+endef
+$(info $(makefile_help))
 
 #{{{
 # see timings in compilers.md
