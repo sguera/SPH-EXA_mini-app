@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <iostream>
 
 #ifdef USE_MPI
     #include "mpi.h"
@@ -18,7 +19,11 @@ public:
 		int n = clist.size();
 
 		etot = ecin = eint = 0.0;
+#if defined(__PGI) || defined(_CRAYC)
+        std::cout << "#cscs: turning off pragma omp with pgi" << endl;
+#else
 		#pragma omp parallel for reduction (+:ecin,eint)
+#endif
         for(int pi=0; pi<n; pi++)
         {
             int i = clist[pi];
