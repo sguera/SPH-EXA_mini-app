@@ -20,7 +20,7 @@ inline T distance(const BBox<T> &bbox, const T hi, const T x1, const T y1, const
     
     if(yy > 2*hi) yy -= (bbox.ymax-bbox.ymin);
     else if(yy < -2*hi) yy += (bbox.ymax-bbox.ymin);
-    
+	
     if(zz > 2*hi) zz -= (bbox.zmax-bbox.zmin);
     else if(zz < -2*hi) zz += (bbox.zmax-bbox.zmin);
 
@@ -54,6 +54,7 @@ public:
 		        // later can be stores into an array per particle
 		        T dist =  distance(bbox, h[i], x[i], y[i], z[i], x[nid], y[nid], z[nid]); //store the distance from each neighbor
 
+		        if(dist < 0.1) {printf("%d, %f\n", i, dist); fflush(stdout); }
 		        // calculate the v as ratio between the distance and the smoothing length
 		        T vloc = dist / h[i];
 		        
