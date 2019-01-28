@@ -1,17 +1,17 @@
 # https://bitbucket.org/sph_exa/sph-exa_mini-app/issues/
 # make SRC=src/sqpatch.cpp -f Makefile.cscs CXXFLAGS=-I./src/include
 # ~/sbatch.sh dom 2 $PWD/bin/dom_INTEL_18.0.2.199.exe 1 1 12 12 1 -Cmc "" "cd $SCRATCH;" "" "" $SCRATCH/
-CXX			:= CC
-OBJDIR		:= obj
-BINDIR 		:= bin
-SRCDIR		:= src
-SRC			:= $(SRCDIR)/main.cpp
-OBJ			:= $(SRC:.cpp=.o)
-HPP 		:= $(wildcard $(SRCDIR)/*.hpp)
-HPP 		+= $(wildcard $(SRCDIR)/tree/*.hpp)
-HH 			:= $(shell uname -n |cut -c1-3 )
-DEBUGFLAGS 	= 
-CXXFLAGS    := -I./src/include
+CXX := CC
+OBJDIR := obj
+BINDIR := bin
+SRCDIR := src
+SRC := $(SRCDIR)/main.cpp
+OBJ := $(SRC:.cpp=.o)
+HPP := $(wildcard $(SRCDIR)/*.hpp)
+HPP += $(wildcard $(SRCDIR)/tree/*.hpp)
+HH := $(shell uname -n |cut -c1-3 )
+DEBUGFLAGS = 
+CXXFLAGS := -I./src/include
 
 define makefile_help
 PE_ENV=$(PE_ENV)
@@ -22,11 +22,18 @@ $(info $(makefile_help))
 # see timings in compilers.md
 # src/TaskLoop.hpp(24): #pragma omp parallel for
 ifeq ($(PE_ENV),GNU)
-	CXX=CC
+	CXX = CC
 	#CXX=g++
 	COMPILER_VERSION = $(GNU_VERSION)
 	CXXFLAGS += -O3 -std=c++14 -g -fopenmp
 	LDFLAGS += $(CXXFLAGS) -dynamic
+endif
+
+ifeq ($(PE_ENV),CLANG)
+	CXX = clang++
+	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
+	CXXFLAGS += -O3 -std=c++14 -g -fopenmp
+	LDFLAGS += $(CXXFLAGS) 
 endif
 
 ifeq ($(PE_ENV),PGI)
@@ -52,12 +59,6 @@ ifeq ($(PE_ENV),INTEL)
 	LDFLAGS += $(CXXFLAGS) -dynamic
 endif
 
-ifeq ($(CXX),clang++)
-	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
-	CXXFLAGS = -std=c++14 -g -fopenmp=libomp
-	PE_ENV = CLANG
-	LDFLAGS += $(CXXFLAGS) -dynamic
-endif
 #}}}
 EXECUTABLE 	:= $(HH)_$(PE_ENV)_$(COMPILER_VERSION).exe
 
