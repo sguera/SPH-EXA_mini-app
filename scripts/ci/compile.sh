@@ -31,19 +31,19 @@ function git_ci_branch() {
 function sbatchjg() {
     module list -l
     rm -f $SCRATCH/ci/*
-#ok      ./scripts/ci/sbatch.sh -h
-#ok      # --- OMP_PLACES={sockets,threads}:
-#ok      for ompp in sockets threads ; do
-#ok          echo openmp=$ompp
-#ok          mkdir -p $SCRATCH/ci/$ompp
-#ok          ./scripts/ci/sbatch.sh dom 5 $PWD/bin/*exe 1 1 36 36 1 "-dsingleton -Cmc --wait" noarg "cd $SCRATCH/ci/$ompp;OMP_PLACES=$ompp " "" $ompp "$SCRATCH/ci/"
-#ok          cat $SCRATCH/ci/effo_*$ompp
-#ok      done
+    # ./scripts/ci/sbatch.sh -help
+    # --- OMP_PLACES={sockets,threads}:
+    for ompp in sockets threads ; do
+        echo openmp=$ompp
+        mkdir -p $SCRATCH/ci/$ompp
+        ./scripts/ci/sbatch.sh dom 5 $PWD/bin/*exe 1 1 36 36 1 "-dsingleton -Cmc --wait" noarg "cd $SCRATCH/ci/$ompp;cp -u /project/c16/ci/sph-exa_mini-app.git/bigfiles/ .;OMP_PLACES=$ompp " "" $ompp "$SCRATCH/ci/"
+        cat $SCRATCH/ci/effo_*$ompp
+    done
     # --- default:
     ompp=default
     echo openmp=$ompp
     mkdir -p $SCRATCH/ci/$ompp
-    ./scripts/ci/sbatch.sh dom 5 $PWD/bin/*exe 1 1 36 36 1 "-dsingleton -Cmc --wait" noarg "cd $SCRATCH/ci/$ompp;                 " "" $ompp "$SCRATCH/ci/"
+    ./scripts/ci/sbatch.sh dom 5 $PWD/bin/*exe 1 1 36 36 1 "-dsingleton -Cmc --wait" noarg "cd $SCRATCH/ci/$ompp;cp -u /project/c16/ci/sph-exa_mini-app.git/bigfiles/ .;" "" $ompp "$SCRATCH/ci/"
     cat $SCRATCH/ci/effo_*$ompp
 
 
@@ -88,8 +88,8 @@ function compile_and_run_BB() {
     make SRC=src/sqpatch.cpp -f Makefile.cscs
     sbatchjg
 }
-
-#TODO: /apps/common/UES/sandbox/jgp/production.git/easybuild/easyconfigs/g/GCC/73
+ 
+# TODO: /apps/common/UES/sandbox/jgp/production.git/easybuild/easyconfigs/g/GCC/73
 function compile_and_run_HH() {
     # GNU/7.3.0 + OpenMP/4.5
     module swap PrgEnv-cray PrgEnv-gnu
@@ -103,7 +103,7 @@ function compile_and_run_HH() {
     make SRC=src/sqpatch.cpp -f Makefile.cscs
     sbatchjg
 }
-#}}}
+#}}} 
 
 #{{{ # INTEL: 
 #*#   #     # ####### ####### #

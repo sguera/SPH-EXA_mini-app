@@ -20,7 +20,7 @@ public:
 
 		etot = ecin = eint = 0.0;
 #if defined(__PGI) || defined(_CRAYC)
-        std::cout << "#cscs: turning off pragma omp with pgi" << endl;
+        std::cout << "#cscs: turning off pragma omp in EnergyConservation.hpp with pgi/cce" << endl;
 #else
 		#pragma omp parallel for reduction (+:ecin,eint)
 #endif
