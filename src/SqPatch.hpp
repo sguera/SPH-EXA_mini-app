@@ -263,5 +263,5 @@ public:
     const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
-    const unsigned int ngmin = 5, ng0 = 150, ngmax = 200;
+    const unsigned int ngmin = 5, ng0 = 500, ngmax = 750;
 };

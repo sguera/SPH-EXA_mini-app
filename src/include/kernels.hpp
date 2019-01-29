@@ -39,8 +39,8 @@ inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
 template<typename T>
 inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, T r_square)
 {
-    T alpha = 1.0;
-    T beta = 2.0;
+    T alpha = 1.5;
+    T beta = 3.0;
     T epsilon = 0.01;
 
     T ro_ij = (ro_i + ro_j) / 2.0;
