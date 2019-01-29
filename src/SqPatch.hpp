@@ -5,17 +5,16 @@
 #include <fstream>
 #include <sstream>
 
-#include "sphexa.hpp"
+#include "BBox.hpp"
 
 template<typename T>
-class Evrard
+class SqPatch
 {
 public:
     #ifdef USE_MPI
-        Evrard(int n, const std::string &filename, MPI_Comm comm) : 
+        SqPatch(int n, const std::string &filename, MPI_Comm comm) : 
             n(n), count(n), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &u, &p, &h, &m, &c, &cv, &temp, &mue, &mui, 
-                &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
         {
             MPI_Comm_size(comm, &nrank);
             MPI_Comm_rank(comm, &rank);
@@ -24,10 +23,9 @@ public:
             init();
         }
     #else
-         Evrard(int n, const std::string &filename) : 
+         SqPatch(int n, const std::string &filename) : 
             n(n), count(n), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &u, &p, &h, &m, &c, &cv, &temp, &mue, &mui, 
-                &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
         {
             resize(n);
             load(filename);
@@ -40,6 +38,26 @@ public:
         for(unsigned int i=0; i<data.size(); i++)
             data[i]->resize(size);
         neighbors.resize(size);
+    }
+
+    void load(const std::string &filename)
+    {
+        // input file stream
+        std::ifstream inputfile(filename, std::ios::binary);
+
+        if(inputfile.is_open())
+        {
+            // read the contents of the file into the vectors
+            inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
+            inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
+            inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
+            inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
+            inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
+            inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
+            inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(T)*p_0.size());
+        }
+        else
+            std::cout << "ERROR: " << "in opening file " << filename << std::endl;
     }
 
     #ifdef USE_MPI
@@ -73,11 +91,7 @@ public:
             MPI_Scatterv(&vx[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
             MPI_Scatterv(&vy[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
             MPI_Scatterv(&vz[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&ro[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&u[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&p[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&h[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&m[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(&p_0[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
 
             resize(count);
         }
@@ -91,47 +105,29 @@ public:
             MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vx[0], count, MPI_DOUBLE, 0, comm);
             MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vy[0], count, MPI_DOUBLE, 0, comm);
             MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vz[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &ro[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &u[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &p[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &h[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &m[0], count, MPI_DOUBLE, 0, comm);
+            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &p_0[0], count, MPI_DOUBLE, 0, comm);
         }
     }
     #endif
 
-    void load(const std::string &filename)
-    {
-        // input file stream
-        std::ifstream inputfile(filename, std::ios::binary);
-
-        if(inputfile.is_open())
-        {
-            // read the contents of the file into the vectors
-            inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
-            inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
-            inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
-            inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
-            inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
-            inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
-            inputfile.read(reinterpret_cast<char*>(ro.data()), sizeof(T)*ro.size());
-            inputfile.read(reinterpret_cast<char*>(u.data()), sizeof(T)*u.size());
-            inputfile.read(reinterpret_cast<char*>(p.data()), sizeof(T)*p.size());
-            inputfile.read(reinterpret_cast<char*>(h.data()), sizeof(T)*h.size());
-            inputfile.read(reinterpret_cast<char*>(m.data()), sizeof(T)*m.size());
-        }
-        else
-            std::cout << "ERROR: " << "in opening file " << filename << std::endl;
-    }
-
     void init()
     {
-        std::fill(temp.begin(), temp.end(), 1.0);
-        std::fill(mue.begin(), mue.end(), 2.0);
-        std::fill(mui.begin(), mui.end(), 10.0);
-        std::fill(vx.begin(), vx.end(), 0.0);
-        std::fill(vy.begin(), vy.end(), 0.0);
-        std::fill(vz.begin(), vz.end(), 0.0);
+        std::fill(h.begin(), h.end(), 2);
+        std::fill(ro_0.begin(), ro_0.end(), 1.0);
+        std::fill(ro.begin(), ro.end(), 0.0);
+        std::fill(c.begin(), c.end(), 3500.0);
+        std::fill(m.begin(), m.end(), 1.0);
+
+        for(unsigned int i=0; i<count; i++)
+        {
+            p_0[i] = p_0[i] * 10.0;
+            x[i] = x[i] * 100.0;
+            y[i] = y[i] * 100.0;
+            z[i] = z[i] * 100.0;
+            vx[i] = vx[i] * 100.0;
+            vy[i] = vy[i] * 100.0;
+            vz[i] = vz[i] * 100.0;
+        }
 
         std::fill(grad_P_x.begin(), grad_P_x.end(), 0.0);
         std::fill(grad_P_y.begin(), grad_P_y.end(), 0.0);
@@ -140,8 +136,8 @@ public:
         std::fill(du.begin(), du.end(), 0.0);
         std::fill(du_m1.begin(), du_m1.end(), 0.0);
 
-        std::fill(dt.begin(), dt.end(), 0.0001);
-        std::fill(dt_m1.begin(), dt_m1.end(), 0.0001);
+        std::fill(dt.begin(), dt.end(), 1e-6);
+        std::fill(dt_m1.begin(), dt_m1.end(), 1e-6);
 
         for(unsigned int i=0; i<count; i++)
         {
@@ -150,9 +146,13 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
+        bbox.PBCz = true;
+        bbox.zmin = -50;
+        bbox.zmax = 50;
+
         etot = ecin = eint = 0.0;
         ttot = 0.0;
-
+        
         for(auto i : neighbors)
             i.reserve(ngmax);
     }
@@ -220,27 +220,24 @@ public:
                 T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
                 T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
                 outputFile << rad << ' ' << vrad << std::endl;  
-            }  
+            }
         }
 
         #ifdef USE_MPI
             if(rank == 0) resize(count);
-        #endif
+        #endif 
     }
 
     unsigned int n, count; // Number of particles
     std::vector<T> x, y, z, x_m1, y_m1, z_m1; // Positions
     std::vector<T> vx, vy, vz; // Velocities
-    std::vector<T> ro; // Density
+    std::vector<T> ro, ro_0; // Density
     std::vector<T> u; // Internal Energy
-    std::vector<T> p; // Pressure
+    std::vector<T> p, p_0; // Pressure
     std::vector<T> h; // Smoothing Length
     std::vector<T> m; // Mass
     std::vector<T> c; // Speed of sound
-    std::vector<T> cv; // Specific heat
-    std::vector<T> temp; // Temperature
-    std::vector<T> mue; // Mean molecular weigh of electrons
-    std::vector<T> mui; // Mean molecular weight of ions
+
     std::vector<T> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
     std::vector<T> du, du_m1; //variation of the energy
     std::vector<T> dt, dt_m1;
@@ -261,11 +258,10 @@ public:
     int rank = 0;
 
     std::vector<std::vector<T>*> data;
-
     const T sincIndex = 6.0;
     const T K = sphexa::compute_3d_k(sincIndex);
     const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
-    const int stabilizationTimesteps = -1;
-    const unsigned int ngmin = 50, ng0 = 100, ngmax = 150; // Minimum, target and maximum number of neighbors per particle
+    const int stabilizationTimesteps = 15;
+    const unsigned int ngmin = 5, ng0 = 500, ngmax = 750;
 };

@@ -2,49 +2,19 @@
 
 #include <cmath>
 #include <memory>
+#include <vector>
 
 #include "../BBox.hpp"
 
 namespace sphexa
 {
 template<typename T = double, class ArrayT = std::vector<T>>
-class HTree
+class Octree
 {
 public:
-	struct Params
-	{
-		Params(unsigned int ngmax = 150, unsigned int bucketSize = 128) :
-			ngmax(ngmax), bucketSize(bucketSize) {}
-		unsigned int ngmax, bucketSize;
-	};
-
-public:
-	const ArrayT &ax, &ay, &az, &ah;
-	const Params params;
-
-	T maxH;
-
-	int ncells;
-	int nX, nY, nZ;
-
-	BBox bbox;
-
-	std::vector<std::shared_ptr<HTree>> cells;
-
-	std::vector<int> start, count;
-	std::shared_ptr<std::vector<int>> ordering;
-	std::shared_ptr<std::vector<T>> x, y, z;
-
-	HTree() = delete;
-	
-	~HTree() = default;
-
-	HTree(const ArrayT &ax, const ArrayT &ay, const ArrayT &az, const ArrayT &ah, const Params params = Params()): 
-		ax(ax), ay(ay), az(az), ah(ah), params(params) {}
-
 	int cellCount() const
 	{
-		int c = 1;//  C*C*C;
+		int c = 1;
 		for(int i=0; i<ncells; i++)
 			if(cells[i] != nullptr) c += cells[i]->cellCount();
 		return c;
@@ -92,37 +62,29 @@ public:
 		}
 	}
 
-	inline T computeMaxH()
-	{
-		T hmax = 0.0;
-		for(unsigned int i=0; i<ax.size(); i++)
-		{
-			T h = ah[i];
-			if(h > hmax)
-				hmax = h;
-		}
-		return hmax;
-	}
+	// inline T computeMaxH()
+	// {
+	// 	T hmax = 0.0;
+	// 	for(unsigned int i=0; i<ax.size(); i++)
+	// 	{
+	// 		T h = ah.getH(i);
+	// 		if(h > hmax)
+	// 			hmax = h;
+	// 	}
+	// 	return hmax;
+	// }
 
-	inline void distributeParticles(const std::vector<int> &list, std::vector<std::vector<int>> &cellList)
+	inline void distributeParticles(const std::vector<int> &list, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, std::vector<std::vector<int>> &cellList)
 	{
 		for(unsigned int i=0; i<list.size(); i++)
 		{
-			T xx = std::max(std::min(ax[list[i]],bbox.xmax),bbox.xmin);
-			T yy = std::max(std::min(ay[list[i]],bbox.ymax),bbox.ymin);
-			T zz = std::max(std::min(az[list[i]],bbox.zmax),bbox.zmin);
+			T xx = ax[list[i]];
+			T yy = ay[list[i]];
+			T zz = az[list[i]];
 
-			T posx = normalize(xx, bbox.xmin, bbox.xmax);
-			T posy = normalize(yy, bbox.ymin, bbox.ymax);
-			T posz = normalize(zz, bbox.zmin, bbox.zmax);
-
-			int hx = posx*nX;
-			int hy = posy*nY;
-			int hz = posz*nZ;
-
-			hx = std::min(hx,nX-1);
-			hy = std::min(hy,nY-1);
-			hz = std::min(hz,nZ-1);
+			T hx = std::min(std::max((int)(normalize(xx, bbox.xmin, bbox.xmax)*nX),0),nX-1);
+			T hy = std::min(std::max((int)(normalize(yy, bbox.ymin, bbox.ymax)*nY),0),nY-1);
+			T hz = std::min(std::max((int)(normalize(zz, bbox.zmin, bbox.zmax)*nZ),0),nZ-1);
 
 			unsigned int l = hz*nX*nY+hy*nX+hx;
 
@@ -130,7 +92,7 @@ public:
 		}
 	}
 
-	inline void computeBBoxes(std::vector<BBox> &cellBBox)
+	inline void computeBBoxes(std::vector<BBox<T>> &cellBBox)
 	{
 		for(int hz=0; hz<nZ; hz++)
 		{
@@ -147,7 +109,7 @@ public:
 
 					unsigned int i = hz*nX*nY+hy*nX+hx;
 
-					cellBBox[i] = BBox(ax, bx, ay, by, az, bz);
+					cellBBox[i] = BBox<T>(ax, bx, ay, by, az, bz);
 				}
 			}
 		}
@@ -170,20 +132,20 @@ public:
 		}
 	}
 
- 	void buildRec(const std::vector<int> &list, const BBox &bbox, int ptr)
+ 	void buildRec(const std::vector<int> &list, const BBox<T> &bbox, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, const ArrayT &ah, const unsigned int bucketSize, int ptr)
 	{	
 		this->bbox = bbox;
-	   	maxH = computeMaxH();
+	   	//maxH = computeMaxH();
 
-		nX = std::max((bbox.xmax-bbox.xmin) / maxH, 2.0);
-		nY = std::max((bbox.ymax-bbox.ymin) / maxH, 2.0);
-		nZ = std::max((bbox.zmax-bbox.zmin) / maxH, 2.0);
+		nX = 2;//std::max((bbox.xmax-bbox.xmin) / maxH, 2.0);
+		nY = 2;//std::max((bbox.ymax-bbox.ymin) / maxH, 2.0);
+		nZ = 2;//std::max((bbox.zmax-bbox.zmin) / maxH, 2.0);
 		ncells = nX*nY*nZ;
 
 		std::vector<std::vector<int>> cellList(ncells);
-		distributeParticles(list, cellList);
+		distributeParticles(list, ax, ay, az, cellList);
 
-		std::vector<BBox> cellBBox(ncells);
+		std::vector<BBox<T>> cellBBox(ncells);
 		computeBBoxes(cellBBox);
 
 		std::vector<int> padding(ncells);
@@ -195,14 +157,17 @@ public:
 
 		for(int i=0; i<ncells; i++)
 		{
-			if(cellList[i].size() > params.bucketSize)// && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
+			start[i] = ptr+padding[i];
+			count[i] = cellList[i].size();
+
+			if(cellList[i].size() > bucketSize)// && bx-ax > PLANCK && by-ay > PLANCK && bz-az > PLANCK)
 			{
-				cells[i] = std::make_shared<HTree>(ax, ay, az, ah, params);
+				cells[i] = std::make_shared<Octree>();
 				cells[i]->x = x;
 				cells[i]->y = y;
 				cells[i]->z = z;
 				cells[i]->ordering = ordering;
-				cells[i]->buildRec(cellList[i], cellBBox[i], ptr+padding[i]);
+				cells[i]->buildRec(cellList[i], cellBBox[i], ax, ay, az, ah, bucketSize, ptr+padding[i]);
 			}
 			else
 			{
@@ -221,7 +186,7 @@ public:
 		}
 	}
 
-	void build(const BBox &bbox)
+	void build(const BBox<T> &bbox, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, const ArrayT &ah, const unsigned int bucketSize = 128)
 	{
 		int count = ax.size();
 
@@ -236,7 +201,7 @@ public:
 		for(int i=0; i<count; i++)
 			list[i] = i;
 
-		buildRec(list, bbox, 0);
+		buildRec(list, bbox, ax, ay, az, ah, bucketSize, 0);
 	}
 
 	void findNeighborsRec(const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors) const
@@ -265,24 +230,17 @@ public:
 		}
 	}
 
-	void findNeighbors(const int i, std::vector<int> &neighbors,
+	void findNeighbors(const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors,
 		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const
 	{
-		const T xi = ax[i];
-		const T yi = ay[i];
-		const T zi = az[i];
-		const T ri = 2*ah[i];
-
-		int ngmax = params.ngmax;
-
 		if((PBCx && (xi-ri < bbox.xmin || xi+ri > bbox.xmax)) || (PBCy && (yi-ri < bbox.ymin || yi+ri > bbox.ymax)) || (PBCz && (zi-ri < bbox.zmin || zi+ri > bbox.zmax)))
 		{
-			int mix = (int)floor(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX) % nX;
-			int miy = (int)floor(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY) % nY;
-			int miz = (int)floor(normalize(zi-ri, bbox.zmin, bbox.zmax)*nZ) % nZ;
-			int max = (int)floor(normalize(xi+ri, bbox.xmin, bbox.xmax)*nX) % nX;
-			int may = (int)floor(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY) % nY;
-			int maz = (int)floor(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ) % nZ;
+			int mix = (int)floor(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX);
+			int miy = (int)floor(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY);
+			int miz = (int)floor(normalize(zi-ri, bbox.zmin, bbox.zmax)*nZ);
+			int max = (int)floor(normalize(xi+ri, bbox.xmin, bbox.xmax)*nX);
+			int may = (int)floor(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY);
+			int maz = (int)floor(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ);
 
 			for(int hz=miz; hz<=maz; hz++)
 			{
@@ -311,6 +269,20 @@ public:
 		else
 			findNeighborsRec(xi, yi, zi, ri, ngmax, neighbors);
 	}
+
+public:
+	std::shared_ptr<std::vector<int>> ordering;
+
+private:
+	int ncells;
+	int nX, nY, nZ;
+
+	BBox<T> bbox;
+
+	std::vector<std::shared_ptr<Octree>> cells;
+
+	std::vector<int> start, count;
+	std::shared_ptr<std::vector<T>> x, y, z;
 };
 
 }
