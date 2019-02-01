@@ -120,7 +120,8 @@ public:
                 printf("ERROR::MomentumEnergy(%d) MomentumEnergy (%f %f %f)\n", i, momentum_x, momentum_y, momentum_z);
 
             // 2.0 * p[i]???
-            du[i] = energy;
+            du[i] = energy * (-p[i]) / (gradh_i * ro[i] * ro[i]);
+
             //du[i] =  energy * (-p[i]/(gradh_i * ro[i] * ro[i]));
 
             if(std::isnan(du[i]))

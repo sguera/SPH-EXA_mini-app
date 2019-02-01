@@ -29,20 +29,18 @@ inline T wharmonic(T v, T h, T sincIndex, T K)
 template<typename T>
 inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
 {
-    T value = (PI/2.0) * v;
-    // r_ih = v * h
-    // extra h at the bottom comes from the chain rule of the partial derivative
-    T kernel = wharmonic(v, h, sincIndex, K);
+    T P = (PI/2.0);
+    T cotv = 1.0 / tan(P * v);
+    T sincnv = pow((sin(P * v)/(P * v)), (int)sincIndex);
 
-    //return sincIndex * (PI/2.0) * kernel / (h * h) / v * ((1.0 / tan(value)) - (1.0 / value));
-    return sincIndex * (PI/2.0) * kernel / (h * h) / v * ((1.0 / tan(value)) - (1.0 / value));
+    return sincIndex * (P * v * cotv - 1.0) * sincnv * (K/(h*h*h*h*h*v*v));
 }
 
 template<typename T>
 inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, T r_square)
 {
-    T alpha = 1.0;
-    T beta = 2.0;
+    T alpha = 1.5;
+    T beta = 3.0;
     T epsilon = 0.01;
 
     T ro_ij = (ro_i + ro_j) / 2.0;

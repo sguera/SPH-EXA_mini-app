@@ -23,13 +23,6 @@ public:
 		{
 			int i = clist[pi];
 
-			T t_m1 = dt_m1[i];
-		    T t_0 = dt[i];
-		    T x_loc = x[i];
-		    T y_loc = y[i];
-		    T z_loc = z[i];
-		    T u_i = u[i];
-
 		    // ADD COMPONENT DUE TO THE GRAVITY HERE
 		    T ax = - (grad_P_x[i]); //-G * fx
 		    T ay = - (grad_P_y[i]); //-G * fy
@@ -46,25 +39,25 @@ public:
 		    	printf("ERROR::UpdateQuantities(%d) acceleration: (%f %f %f)\n", i, ax, ay, az);
 
 		    //update positions according to Press (2nd order)
-		    T deltaA = t_0 + 0.5 * t_m1;
-		    T deltaB = 0.5 * (t_0 + t_m1);
+		    T deltaA = dt[i] + 0.5 * dt_m1[i];
+		    T deltaB = 0.5 * (dt[i] + dt_m1[i]);
 
-		    T valx = (x_loc - x_m1[i]) / t_m1;
-		    T valy = (y_loc - y_m1[i]) / t_m1;
-		    T valz = (z_loc - z_m1[i]) / t_m1;
+		    T valx = (x[i] - x_m1[i]) / dt_m1[i];
+		    T valy = (y[i] - y_m1[i]) / dt_m1[i];
+		    T valz = (z[i] - z_m1[i]) / dt_m1[i];
 
-		    T vx_loc = valx + ax * deltaA;
-		    T vy_loc = valy + ay * deltaA;
-		    T vz_loc = valz + az * deltaA;
-	   
-		    vx[i] = vx_loc;
-		    vy[i] = vy_loc;
-		    vz[i] = vz_loc;
+		    vx[i] = valx + ax * deltaA;
+		    vy[i] = valy + ay * deltaA;
+		    vz[i] = valz + az * deltaA;
 
-		    x[i] = x_loc + t_0 * valx + (vx_loc - valx) * t_0 * deltaB / deltaA;
-		    //x[i] = x + t_0 * valx + ax * t_0 * deltaB;
-		    y[i] = y_loc + t_0 * valy + (vy_loc - valy) * t_0 * deltaB / deltaA;
-		    z[i] = z_loc + t_0 * valz + (vz_loc - valz) * t_0 * deltaB / deltaA;
+		    x_m1[i] = x[i];
+		    y_m1[i] = y[i];
+		    z_m1[i] = z[i];
+
+		   	//x[i] = x + dt[i] * valx + ax * dt[i] * deltaB;
+		    x[i] += dt[i] * valx + (vx[i] - valx) * dt[i] * deltaB / deltaA;
+		    y[i] += dt[i] * valy + (vy[i] - valy) * dt[i] * deltaB / deltaA;
+		    z[i] += dt[i] * valz + (vz[i] - valz) * dt[i] * deltaB / deltaA;
 
 		    if(bbox.PBCx && x[i] < bbox.xmin) x[i] += (bbox.xmax-bbox.xmin);
 		    else if(bbox.PBCx && x[i] > bbox.xmax) x[i] -= (bbox.xmax-bbox.xmin);
@@ -74,22 +67,16 @@ public:
 		    else if(bbox.PBCz && z[i] > bbox.zmax) z[i] -= (bbox.zmax-bbox.zmin);
 
 		    //update the energy according to Adams-Bashforth (2nd order)
-		    deltaA = 0.5 * t_0 * t_0 / t_m1;
-		    deltaB = t_0 + deltaA;
+		    deltaA = 0.5 * dt[i] * dt[i] / dt_m1[i];
+		    deltaB = dt[i] + deltaA;
 
-		    u[i] = u_i + 0.5 * du[i] * deltaB - 0.5 * du_m1[i] * deltaA;
+		    u[i] += 0.5 * du[i] * deltaB - 0.5 * du_m1[i] * deltaA;
 
 		    if(std::isnan(u[i]))
-		    	printf("ERROR::UpdateQuantities(%d) internal energy: new_u %f u %f du %f dB %f du_m1 %f dA %f\n", i, u[i], u_i, du[i], deltaB, du_m1[i], deltaA);
+		    	printf("ERROR::UpdateQuantities(%d) internal energy: u %f du %f dB %f du_m1 %f dA %f\n", i, u[i], du[i], deltaB, du_m1[i], deltaA);
 
 		    du_m1[i] = du[i];
-
-		    //update positions
-		    x_m1[i] = x_loc;
-		    y_m1[i] = y_loc;
-		    z_m1[i] = z_loc;
-
-		    dt_m1[i] = t_0;
+		    dt_m1[i] = dt[i];
 		}
 	}
 

@@ -54,6 +54,28 @@ int main()
         Dataset d(1e6, "bigfiles/squarepatch3D_1M.bin");
     #endif
 
+    // {
+    //     FILE *checkpoint = fopen("output_sqpatch_2/output5750.txt", "r");
+    //     for(int i=0; i<1000000; i++)
+    //     {
+    //         double dmy1, dmy2;
+    //         fscanf(checkpoint, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf", 
+    //             &d.x[i], &d.y[i], &d.z[i],
+    //             &d.vx[i], &d.vy[i], &d.vz[i],
+    //             &d.h[i], &d.ro[i], &d.u[i], &d.p[i], &d.c[i],
+    //             &d.grad_P_x[i], &d.grad_P_y[i], &d.grad_P_z[i],
+    //             &dmy1, &dmy2);
+    //         d.neighbors[i].resize(d.ng0);
+    //     }
+    //     d.stabilizationTimesteps = 1;
+    //     for(unsigned int i=0; i<1000000; i++)
+    //     {
+    //         d.x_m1[i] = d.x[i] - d.vx[i] * d.dt[0];
+    //         d.y_m1[i] = d.y[i] - d.vy[i] * d.dt[0];
+    //         d.z_m1[i] = d.z[i] - d.vz[i] * d.dt[0];
+    //     }
+    // }
+
     Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
     Density<Real> density(d.sincIndex, d.K);
     EquationOfStateSqPatch<Real> equationOfState(d.stabilizationTimesteps);
@@ -90,7 +112,7 @@ int main()
         REPORT_TIME(d.rank, equationOfState.compute(clist, iteration, d.ro_0, d.p_0, d.ro, d.p, d.u, d.c), "EquationOfState");
         
         #ifdef USE_MPI
-            d.resize(d.count);
+            d.resize(d.count); // Discard old neighbors
             REPORT_TIME(d.rank, mpi.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c), "mpi::synchronizeHalos");
         #endif
 
@@ -113,9 +135,10 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
+<<<<<<< HEAD
         
 #ifndef _JENKINS
-        if(iteration % 250 == 0)
+        if(iteration % 100 == 0)
         {
             std::ofstream outputFile("output" + to_string(iteration) + ".txt");
             REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
@@ -135,4 +158,3 @@ int main()
     return 0;
 }
 
-// Is the energy supposed to be different with different number of neighbors?

@@ -14,8 +14,7 @@ public:
     #ifdef USE_MPI
         SqPatch(int n, const std::string &filename, MPI_Comm comm) : 
             n(n), count(n), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &temp, 
-                &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
         {
             MPI_Comm_size(comm, &nrank);
             MPI_Comm_rank(comm, &rank);
@@ -26,8 +25,7 @@ public:
     #else
          SqPatch(int n, const std::string &filename) : 
             n(n), count(n), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &temp, 
-                &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
         {
             resize(n);
             load(filename);
@@ -114,8 +112,7 @@ public:
 
     void init()
     {
-        std::fill(h.begin(), h.end(), 2.5);
-        std::fill(temp.begin(), temp.end(), 1.0);
+        std::fill(h.begin(), h.end(), 2);
         std::fill(ro_0.begin(), ro_0.end(), 1.0);
         std::fill(ro.begin(), ro.end(), 0.0);
         std::fill(c.begin(), c.end(), 3500.0);
@@ -223,7 +220,7 @@ public:
                 T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
                 T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
                 outputFile << rad << ' ' << vrad << std::endl;  
-            }  
+            }
         }
 
         #ifdef USE_MPI
@@ -240,7 +237,6 @@ public:
     std::vector<T> h; // Smoothing Length
     std::vector<T> m; // Mass
     std::vector<T> c; // Speed of sound
-    std::vector<T> temp; // Temperature
 
     std::vector<T> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
     std::vector<T> du, du_m1; //variation of the energy
@@ -267,5 +263,5 @@ public:
     const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
-    const unsigned int ngmin = 400, ng0 = 500, ngmax = 600;
+    const unsigned int ngmin = 5, ng0 = 500, ngmax = 750;
 };

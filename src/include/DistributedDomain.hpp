@@ -286,13 +286,12 @@ public:
 
     bool checkBoxOverlap(const std::vector<BBox<T>> &cellBBox, T xmin, T xmax, T ymin, T ymax, T zmin, T zmax, T ri, int l)
     {
-        return (assignedRanks[l] != comm_rank) && (globalCellCount[l] > 0) 
-            && overlap(cellBBox[l].xmin, cellBBox[l].xmax, xmin-ri, xmax+ri)
+        return overlap(cellBBox[l].xmin, cellBBox[l].xmax, xmin-ri, xmax+ri)
             && overlap(cellBBox[l].ymin, cellBBox[l].ymax, ymin-ri, ymax+ri)
             && overlap(cellBBox[l].zmin, cellBBox[l].zmax, zmin-ri, zmax+ri);
     }
 
-    void computeHaloList(const BBox<T> &bbox, const std::vector<BBox<T>> &cellBBox, bool showGraph = false)
+    void computeHaloList(const BBox<T> &bbox, bool showGraph = false)
     {
         sendHaloList.clear();
         recvHaloList.clear();
@@ -326,9 +325,9 @@ public:
                 {
                     for(int hx=mix; hx<=max; hx++)
                     {
-                        T displz = bbox.PBCz? ((hz < 0) - (hz >= nZ)) * (globalBBox.zmax-globalBBox.zmin) : 0;
-                        T disply = bbox.PBCy? ((hy < 0) - (hy >= nY)) * (globalBBox.ymax-globalBBox.ymin) : 0;
-                        T displx = bbox.PBCx? ((hx < 0) - (hx >= nX)) * (globalBBox.xmax-globalBBox.xmin) : 0;
+                        //T displz = bbox.PBCz? ((hz < 0) - (hz >= nZ)) * (globalBBox.zmax-globalBBox.zmin) : 0;
+                        //T disply = bbox.PBCy? ((hy < 0) - (hy >= nY)) * (globalBBox.ymax-globalBBox.ymin) : 0;
+                        //T displx = bbox.PBCx? ((hx < 0) - (hx >= nX)) * (globalBBox.xmax-globalBBox.xmin) : 0;
 
                         int hzz = (hz % nZ) + (hz < 0) * nZ;
                         int hyy = (hy % nY) + (hy < 0) * nY;
@@ -336,15 +335,14 @@ public:
 
                         unsigned int l = hzz*nY*nX+hyy*nX+hxx;
 
-                        if(!visited[l] && checkBoxOverlap(cellBBox, localBBox.xmin+displx, localBBox.xmax+displx, localBBox.ymin+disply, localBBox.ymax+disply, localBBox.zmin+displz, localBBox.zmax+displz, 2*localMaxH, l))
+                        if(!visited[l] && assignedRanks[l] != comm_rank && globalCellCount[l] > 0)// && checkBoxOverlap(cellBBox, localBBox.xmin+displx, localBBox.xmax+displx, localBBox.ymin+disply, localBBox.ymax+disply, localBBox.zmin+displz, localBBox.zmax+displz, 2*localMaxH, l))
                         {
                             int rank = assignedRanks[l];
                             msources[rank].push_back(l);
                             recvHaloList[rank] += globalCellCount[l];
                             haloCount += globalCellCount[l];
+                            visited[l] = true;
                         }
-
-                        visited[l] = true;
                     }
                 }
             }
@@ -513,9 +511,8 @@ public:
             int j = 0;
             std::vector<T> tmp(indices.size());
             for(unsigned int i=0; i<indices.size(); i++)
-            {
                 tmp[j++] = array[indices[i]];
-            }
+
             tmp.swap(array);
             array.resize(j);
         }
@@ -529,10 +526,7 @@ public:
             if(assignedRanks[i] != comm_rank)
             {
                 for(unsigned j=0; j<cellList[i].size(); j++)
-                {
-                    // discardList.push_back(cellList[i][j]);
                     discardList[cellList[i][j]] = true;
-                }
             }
         }
     }
@@ -566,20 +560,20 @@ public:
         synchronize(data);
         discard(data);
 
-
         clist.resize(data[0]->size());
         for(unsigned int i=0; i<clist.size(); i++)
             clist[i] = i;
+        
         distributeParticles(clist, x, y, z);
         localBBox = computeBBox(clist, x, y, z);
         localMaxH = computeMaxH(clist, h);
 
         // Compute cell boxes using globalBBox
-        std::vector<BBox<T>> cellBBox(ncells);
-        computeBBoxes(cellBBox);
+        //std::vector<BBox<T>> cellBBox(ncells);
+        //computeBBoxes(cellBBox);
 
-        // Use cell boxes and the localbbox to identify halo cells
-        computeHaloList(bbox, cellBBox, showGraph);
+        // Use the localbbox to identify halo cells
+        computeHaloList(bbox, showGraph);
     }
 };
 

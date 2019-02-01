@@ -20,7 +20,7 @@ inline T distance(const BBox<T> &bbox, const T hi, const T x1, const T y1, const
     
     if(yy > 2*hi) yy -= (bbox.ymax-bbox.ymin);
     else if(yy < -2*hi) yy += (bbox.ymax-bbox.ymin);
-    
+	
     if(zz > 2*hi) zz -= (bbox.zmax-bbox.zmin);
     else if(zz < -2*hi) zz += (bbox.zmax-bbox.zmin);
 
