@@ -135,8 +135,6 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
-<<<<<<< HEAD
-        
 #ifndef _JENKINS
         if(iteration % 100 == 0)
         {
