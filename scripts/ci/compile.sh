@@ -35,15 +35,22 @@ function sbatchjg() {
     module list -t
     git_ci_branch
     RUNDIR=$SCRATCH/ci/$PE_ENV
-    rm -f $RUNDIR/*
+    rm -fr $RUNDIR/*
     # ./scripts/ci/sbatch.sh -help
     # --- OMP_PLACES={sockets,threads}:
     #for ompp in sockets threads ; do
     for ompp in threads ; do
         echo openmp=$ompp
         mkdir -p $RUNDIR/$ompp
+        rm -f $RUNDIR/$ompp/effo_*
         ./scripts/ci/sbatch.sh dom 5 $PWD/bin/*exe 1 1 36 36 1 "-dsingleton -Cmc --wait" noarg "cd $RUNDIR/$ompp;cp -a /project/c16/ci/sph-exa_mini-app.git/bigfiles/ .;OMP_PLACES=$ompp " "" $ompp "$RUNDIR/$ompp/"
+        echo -e "\n\n\n\n--- job output ---"
         cat $RUNDIR/$ompp/effo_*$ompp
+        grep -q '=== Total time for iteration' $RUNDIR/$ompp/effo_*$ompp;rc=$?
+        echo "rc=$rc"
+        if [ "$rc" != 0 ]; then
+            exit -1
+        fi
     done
 
 #slower     # --- default:
