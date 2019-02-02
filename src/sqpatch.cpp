@@ -18,6 +18,34 @@ int main()
     typedef Octree<Real> Tree;
     typedef SqPatch<Real> Dataset;
 
+    // compiler version:
+    #ifdef _CRAYC
+    //#define CURRENT_PE_ENV "CRAY"
+    cout << "compiler: CCE/" << _RELEASE << "." << _RELEASE_MINOR << endl;
+    #endif
+
+    //cout << "compiler: GNU/" << <<  << endl;
+
+    #ifdef __GNUC__
+    //#define CURRENT_PE_ENV "GNU"
+    cout << "compiler: GNU/" << __GNUC__ << "." << __GNUC_MINOR__
+        << "." << __GNUC_PATCHLEVEL__
+        << endl;
+    #endif
+
+    #ifdef __INTEL_COMPILER
+    //#define CURRENT_PE_ENV "INTEL"
+    cout << "compiler: INTEL/" << __INTEL_COMPILER << endl;
+    #endif
+
+    #ifdef __PGI
+    //#define CURRENT_PE_ENV "PGI"
+    cout << "compiler: PGI/" << __PGIC__
+         << "." << __PGIC_MINOR__
+         << "." << __PGIC_PATCHLEVEL__
+         << endl;
+    #endif
+
     #ifdef USE_MPI
         MPI_Init(NULL, NULL);
         Dataset d(1e6, "bigfiles/squarepatch3D_1M.bin", MPI_COMM_WORLD);
@@ -60,7 +88,11 @@ int main()
     for(unsigned int i=0; i<d.count; i++)
         clist[i] = i;
 
+#ifndef _JENKINS
     for(int iteration = 0; iteration <= 10000; iteration++)
+#else
+    for(int iteration = 0; iteration < 1; iteration++)
+#endif
     {
         timer::TimePoint start = timer::Clock::now();
 
@@ -103,12 +135,14 @@ int main()
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
 
+#ifndef _JENKINS
         if(iteration % 100 == 0)
         {
             std::ofstream outputFile("output" + to_string(iteration) + ".txt");
             REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");
             outputFile.close();
         }
+#endif
 
         timer::TimePoint stop = timer::Clock::now();
         
@@ -121,3 +155,4 @@ int main()
 
     return 0;
 }
+

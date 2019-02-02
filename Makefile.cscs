@@ -1,38 +1,53 @@
 # https://bitbucket.org/sph_exa/sph-exa_mini-app/issues/
-CXX			:= CC
-OBJDIR		:= obj
-BINDIR 		:= bin
-SRCDIR		:= src
-SRC			:= $(SRCDIR)/main.cpp
-OBJ			:= $(SRC:.cpp=.o)
-HPP 		:= $(wildcard $(SRCDIR)/*.hpp)
-HPP 		+= $(wildcard $(SRCDIR)/tree/*.hpp)
-HH 			:= $(shell uname -n |cut -c1-3 )
-DEBUGFLAGS 	= 
+# make SRC=src/sqpatch.cpp -f Makefile.cscs CXXFLAGS=-I./src/include
+# ~/sbatch.sh dom 2 $PWD/bin/dom_INTEL_18.0.2.199.exe 1 1 12 12 1 -Cmc "" "cd $SCRATCH;" "" "" $SCRATCH/
+CXX := CC
+OBJDIR := obj
+BINDIR := bin
+SRCDIR := src
+SRC := $(SRCDIR)/main.cpp
+OBJ := $(SRC:.cpp=.o)
+HPP := $(wildcard $(SRCDIR)/*.hpp)
+HPP += $(wildcard $(SRCDIR)/tree/*.hpp)
+HH := $(shell uname -n |cut -c1-3 )
+DEBUGFLAGS = 
+CXXFLAGS := -I./src/include
+
+define makefile_help
+PE_ENV=$(PE_ENV)
+endef
+$(info $(makefile_help))
 
 #{{{
 # see timings in compilers.md
 # src/TaskLoop.hpp(24): #pragma omp parallel for
 ifeq ($(PE_ENV),GNU)
-	CXX=CC
+	CXX = CC
 	#CXX=g++
 	COMPILER_VERSION = $(GNU_VERSION)
-	CXXFLAGS += -O3 -std=c++14 -g -fopenmp
+	CXXFLAGS += -O3 -std=c++14 -g -fopenmp -D_JENKINS
 	LDFLAGS += $(CXXFLAGS) -dynamic
+endif
+
+ifeq ($(PE_ENV),CLANG)
+	CXX = clang++
+	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
+	CXXFLAGS += -O3 -std=c++14 -g -fopenmp -D_JENKINS
+	LDFLAGS += $(CXXFLAGS) 
 endif
 
 ifeq ($(PE_ENV),PGI)
 	CXX=CC
 	#CXX=pg++
 	COMPILER_VERSION = $(PGI_VERSION)
-	CXXFLAGS += -O3 -std=c++14 -g # -mp
+	CXXFLAGS += -O3 -std=c++14 -g -mp -D_JENKINS
 	LDFLAGS += $(CXXFLAGS) -dynamic
 endif
 
 ifeq ($(PE_ENV),CRAY)
 	CXX=CC
 	COMPILER_VERSION = $(CRAY_CC_VERSION)
-	CXXFLAGS += -O3 -hstd=c++14 -g -hnoomp # -homp
+	CXXFLAGS += -O3 -hstd=c++14 -g -homp -D_JENKINS # -hnoomp / INTERNAL COMPILER ERROR
 	LDFLAGS += $(CXXFLAGS) -dynamic
 endif
 
@@ -40,16 +55,10 @@ ifeq ($(PE_ENV),INTEL)
 	CXX=CC
 	#CXX=icpc
 	COMPILER_VERSION = $(INTEL_VERSION)
-	CXXFLAGS += -O3 -std=c++14 -g -qopenmp
+	CXXFLAGS += -O3 -std=c++14 -g -qopenmp -D_JENKINS
 	LDFLAGS += $(CXXFLAGS) -dynamic
 endif
 
-ifeq ($(CXX),clang++)
-	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
-	CXXFLAGS = -std=c++14 -g -fopenmp=libomp
-	PE_ENV = CLANG
-	LDFLAGS += $(CXXFLAGS) -dynamic
-endif
 #}}}
 EXECUTABLE 	:= $(HH)_$(PE_ENV)_$(COMPILER_VERSION).exe
 
@@ -81,5 +90,5 @@ clean:
 	rm -fr $(OBJDIR)
 
 distclean:
-	rm -fr $(OBJDIR) $(EXECUTABLE)
+	rm -fr $(OBJDIR) $(EXECUTABLE) $(BINDIR)/*
 

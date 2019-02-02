@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <iostream>
 
 #ifdef USE_MPI
     #include "mpi.h"
@@ -17,16 +18,20 @@ public:
 	{
 		int n = clist.size();
 
-		etot = ecin = eint = 0.0;
-		#pragma omp parallel for reduction (+:ecin,eint)
+//#if defined(__PGI) || defined(_CRAYC)
+//        std::cout << "#cscs: turning off pragma omp in EnergyConservation.hpp with pgi/cce" << endl;
+//#else
+//		#pragma omp parallel for reduction (+:ecin,eint)
+//#endif
+		T ecintmp = 0.0, einttmp = 0.0;
+		#pragma omp parallel for reduction (+:ecintmp,einttmp)
         for(int pi=0; pi<n; pi++)
         {
             int i = clist[pi];
 
-            T vmod2 = 0.0;
-            vmod2 = vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i];
-            ecin += 0.5 * m[i] * vmod2;
-            eint += u[i] * m[i]; 
+            T vmod2 = vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i];
+            ecintmp += 0.5 * m[i] * vmod2;
+            einttmp += u[i] * m[i]; 
         }
 
         #ifdef USE_MPI
@@ -35,6 +40,8 @@ public:
             MPI_Allreduce(MPI_IN_PLACE, &eint, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         #endif
 
+        ecin = ecintmp;
+        eint = einttmp;
         etot = ecin + eint;
     }
 };
