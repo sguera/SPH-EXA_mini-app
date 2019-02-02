@@ -18,11 +18,6 @@ public:
 	{
 		int n = clist.size();
 
-//#if defined(__PGI) || defined(_CRAYC)
-//        std::cout << "#cscs: turning off pragma omp in EnergyConservation.hpp with pgi/cce" << endl;
-//#else
-//		#pragma omp parallel for reduction (+:ecin,eint)
-//#endif
 		T ecintmp = 0.0, einttmp = 0.0;
 		#pragma omp parallel for reduction (+:ecintmp,einttmp)
         for(int pi=0; pi<n; pi++)
@@ -35,7 +30,6 @@ public:
         }
 
         #ifdef USE_MPI
-            //MPI_Allreduce(MPI_IN_PLACE, &etot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(MPI_IN_PLACE, &ecin, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(MPI_IN_PLACE, &eint, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         #endif

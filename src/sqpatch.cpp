@@ -3,6 +3,8 @@
 #include <string>
 
 #include "sphexa.hpp"
+#include "debug.hpp"
+
 #include "SqPatch.hpp"
 
 using namespace std;
@@ -14,37 +16,11 @@ using namespace sphexa;
 
 int main()
 {
+	debug();
+
     typedef double Real;
     typedef Octree<Real> Tree;
     typedef SqPatch<Real> Dataset;
-
-    // compiler version:
-    #ifdef _CRAYC
-    //#define CURRENT_PE_ENV "CRAY"
-    cout << "compiler: CCE/" << _RELEASE << "." << _RELEASE_MINOR << endl;
-    #endif
-
-    //cout << "compiler: GNU/" << <<  << endl;
-
-    #ifdef __GNUC__
-    //#define CURRENT_PE_ENV "GNU"
-    cout << "compiler: GNU/" << __GNUC__ << "." << __GNUC_MINOR__
-        << "." << __GNUC_PATCHLEVEL__
-        << endl;
-    #endif
-
-    #ifdef __INTEL_COMPILER
-    //#define CURRENT_PE_ENV "INTEL"
-    cout << "compiler: INTEL/" << __INTEL_COMPILER << endl;
-    #endif
-
-    #ifdef __PGI
-    //#define CURRENT_PE_ENV "PGI"
-    cout << "compiler: PGI/" << __PGIC__
-         << "." << __PGIC_MINOR__
-         << "." << __PGIC_PATCHLEVEL__
-         << endl;
-    #endif
 
     #ifdef USE_MPI
         MPI_Init(NULL, NULL);
@@ -53,28 +29,6 @@ int main()
     #else
         Dataset d(1e6, "bigfiles/squarepatch3D_1M.bin");
     #endif
-
-    // {
-    //     FILE *checkpoint = fopen("output_sqpatch_2/output5750.txt", "r");
-    //     for(int i=0; i<1000000; i++)
-    //     {
-    //         double dmy1, dmy2;
-    //         fscanf(checkpoint, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf", 
-    //             &d.x[i], &d.y[i], &d.z[i],
-    //             &d.vx[i], &d.vy[i], &d.vz[i],
-    //             &d.h[i], &d.ro[i], &d.u[i], &d.p[i], &d.c[i],
-    //             &d.grad_P_x[i], &d.grad_P_y[i], &d.grad_P_z[i],
-    //             &dmy1, &dmy2);
-    //         d.neighbors[i].resize(d.ng0);
-    //     }
-    //     d.stabilizationTimesteps = 1;
-    //     for(unsigned int i=0; i<1000000; i++)
-    //     {
-    //         d.x_m1[i] = d.x[i] - d.vx[i] * d.dt[0];
-    //         d.y_m1[i] = d.y[i] - d.vy[i] * d.dt[0];
-    //         d.z_m1[i] = d.z[i] - d.vz[i] * d.dt[0];
-    //     }
-    // }
 
     Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
     Density<Real> density(d.sincIndex, d.K);

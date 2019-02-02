@@ -25,7 +25,7 @@ public:
         const T gradh_j = 1.0;
         const T delta_x_i = 1.0;
         const T ep1 = 0.2, ep2 = 0.02, mre = 4.0;
-
+        
         #pragma omp parallel for
         for(int pi=0; pi<n; pi++)
         {
