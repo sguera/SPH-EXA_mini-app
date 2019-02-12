@@ -1,7 +1,6 @@
 #pragma once
 
 #include "tree/Octree.hpp"
-#include "tree/HTree.hpp"
 
 #include "BBox.hpp"
 

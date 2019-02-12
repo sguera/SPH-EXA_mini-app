@@ -21,6 +21,7 @@ public:
 	{
 		int n =  clist.size();
 
+		// Time-scheme according to Press (2nd order)
 		#pragma omp parallel for
 		for(int pi=0; pi<n; pi++)
 		{
@@ -36,7 +37,7 @@ public:
                 min = dt[i];
         }
 
-        min = std::min(min, maxDtIncrease * dt_m1[0]);
+        min = 4e-5;//std::min(min, maxDtIncrease * dt_m1[0]);
 
         #ifdef USE_MPI
         	MPI_Allreduce(MPI_IN_PLACE, &min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);

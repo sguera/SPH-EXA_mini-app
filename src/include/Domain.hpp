@@ -80,7 +80,7 @@ public:
 			int i = clist[pi];
 
             neighbors[pi].resize(0);
-            tree.findNeighbors(x[i], y[i], z[i], 2*h[i], ngmax, neighbors[pi], bbox.PBCx, bbox.PBCy, bbox.PBCz);
+            tree.findNeighbors(i, x[i], y[i], z[i], 2*h[i], ngmax, neighbors[pi], bbox.PBCx, bbox.PBCy, bbox.PBCz);
             
             if(neighbors[pi].size() == 0)
             	printf("ERROR::FindNeighbors(%d) x %f y %f z %f h = %f ngi %zu\n", i, x[i], y[i], z[i], h[i], neighbors[pi].size());

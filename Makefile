@@ -11,9 +11,10 @@ BINDIR := bin
 HPP := $(wildcard src/include/*.hpp)
 HPP += $(wildcard src/include/tree/*.hpp)
 
-
-CXXFLAGS += -I src/include
+RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
+
+CXXFLAGS += $(RELEASE) -I src/include
 
 ifeq ($(ENV),gnu)
 	CXXFLAGS += -std=c++14 -O2 -s -g -Wall -Wextra -fopenmp -march=native -mtune=native

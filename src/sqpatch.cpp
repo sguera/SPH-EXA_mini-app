@@ -39,11 +39,11 @@ int main()
     EnergyConservation<Real> energyConservation;
 
     vector<int> clist(d.count);
-    for(unsigned int i=0; i<d.count; i++)
+    for(int i=0; i<d.count; i++)
         clist[i] = i;
 
 #ifndef _JENKINS
-    for(int iteration = 0; iteration <= 10000; iteration++)
+    for(int iteration = 0; iteration <= 100000; iteration++)
 #else
     for(int iteration = 0; iteration < 1; iteration++)
 #endif
@@ -90,7 +90,7 @@ int main()
         }
 
 #ifndef _JENKINS
-        if(iteration % 100 == 0)
+        if(iteration % 250 == 0)
         {
             std::ofstream outputFile("output" + to_string(iteration) + ".txt");
             REPORT_TIME(d.rank, d.writeFile(clist, outputFile), "writeFile");

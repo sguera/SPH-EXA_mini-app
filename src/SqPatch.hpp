@@ -112,43 +112,36 @@ public:
 
     void init()
     {
-        std::fill(h.begin(), h.end(), 2);
-        std::fill(ro_0.begin(), ro_0.end(), 1.0);
-        std::fill(ro.begin(), ro.end(), 0.0);
-        std::fill(c.begin(), c.end(), 3500.0);
-        std::fill(m.begin(), m.end(), 1.0);
-
-        for(unsigned int i=0; i<count; i++)
+        for(int i=0; i<count; i++)
         {
-            p_0[i] = p_0[i] * 10.0;
+            // CGS
             x[i] = x[i] * 100.0;
             y[i] = y[i] * 100.0;
             z[i] = z[i] * 100.0;
             vx[i] = vx[i] * 100.0;
             vy[i] = vy[i] * 100.0;
             vz[i] = vz[i] * 100.0;
-        }
+            p_0[i] = p_0[i] * 10.0;
 
-        std::fill(grad_P_x.begin(), grad_P_x.end(), 0.0);
-        std::fill(grad_P_y.begin(), grad_P_y.end(), 0.0);
-        std::fill(grad_P_z.begin(), grad_P_z.end(), 0.0);
+            m[i] = 1.0;//0.001;//0.001;//1.0;
+            c[i] = 3500.0;//35.0;//35.0;//35000
+            h[i] = 2.0;//0.02;//0.02;
+            ro[i] = 1.0;//1e3;//1e3;
+            ro_0[i] = 1.0;//1e3;//1e3;
 
-        std::fill(du.begin(), du.end(), 0.0);
-        std::fill(du_m1.begin(), du_m1.end(), 0.0);
+            du[i] = du_m1[i] = 0.0;
+            dt[i] = dt_m1[i] = 1e-7;
 
-        std::fill(dt.begin(), dt.end(), 1e-6);
-        std::fill(dt_m1.begin(), dt_m1.end(), 1e-6);
+            grad_P_x[i] = grad_P_y[i] = grad_P_z[i] = 0.0;
 
-        for(unsigned int i=0; i<count; i++)
-        {
             x_m1[i] = x[i] - vx[i] * dt[0];
             y_m1[i] = y[i] - vy[i] * dt[0];
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
         bbox.PBCz = true;
-        bbox.zmin = -50;
-        bbox.zmax = 50;
+        bbox.zmin = -50;//-0.5;//-50
+        bbox.zmax = 50;//0.5;//50
 
         etot = ecin = eint = 0.0;
         ttot = 0.0;
@@ -211,7 +204,7 @@ public:
 
         if(rank == 0)
         {
-            for(unsigned int i=0; i<n; i++)
+            for(int i=0; i<n; i++)
             {
                 outputFile << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
                 outputFile << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
@@ -219,7 +212,9 @@ public:
                 outputFile << grad_P_x[i] << ' ' << grad_P_y[i] << ' ' << grad_P_z[i] << ' ';
                 T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
                 T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
-                outputFile << rad << ' ' << vrad << std::endl;  
+                outputFile << rad << ' ' << vrad;// << std::endl;
+
+                outputFile << " " << neighbors[i].size() << std::endl;
             }
         }
 
@@ -228,7 +223,7 @@ public:
         #endif 
     }
 
-    unsigned int n, count; // Number of particles
+    int n, count; // Number of particles
     std::vector<T> x, y, z, x_m1, y_m1, z_m1; // Positions
     std::vector<T> vx, vy, vz; // Velocities
     std::vector<T> ro, ro_0; // Density
@@ -263,5 +258,5 @@ public:
     const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
-    const unsigned int ngmin = 5, ng0 = 500, ngmax = 750;
+    const unsigned int ngmin = 5, ng0 = 500, ngmax = 800;
 };
