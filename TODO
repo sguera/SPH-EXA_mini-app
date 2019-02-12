@@ -24,12 +24,8 @@ USE VECTOR3 FOR VECTOR OPERATIONS
 
 use boost:simd
 
-add macro around prints
-
 remove ifs as much as possible
-	- exclude particle from its neighbor lists
 	- replace ifs with min
-	- use integers for indexes? bug in intel/gcc/cray?
 
 reorder particles in memory
 

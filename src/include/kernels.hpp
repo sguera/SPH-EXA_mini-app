@@ -65,7 +65,7 @@ inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, 
 }
 
 template<typename T>
-void applyPBC(const BBox<T> &bbox, const T r, T &xx, T &yy, T &zz)
+inline void applyPBC(const BBox<T> &bbox, const T r, T &xx, T &yy, T &zz)
 {
     if(bbox.PBCx && xx > r) xx -= (bbox.xmax-bbox.xmin);
     else if(bbox.PBCx && xx < -r) xx += (bbox.xmax-bbox.xmin);

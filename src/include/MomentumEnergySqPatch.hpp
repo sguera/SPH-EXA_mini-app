@@ -19,7 +19,7 @@ public:
         const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m,
         ArrayT &grad_P_x, ArrayT &grad_P_y, ArrayT &grad_P_z, ArrayT &du)
     {
-        int n = clist.size();
+        const int n = clist.size();
 
         const T gradh_i = 1.0;
         const T gradh_j = 1.0;
@@ -30,7 +30,8 @@ public:
         #pragma omp parallel for
         for(int pi=0; pi<n; pi++)
         {
-            int i = clist[pi];
+            const int i = clist[pi];
+            const int nn = neighbors[pi].size();
 
             T momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0, energy = 0.0;
             
@@ -38,9 +39,10 @@ public:
             if(p[i] < 0.0)
                 A_i = 1.0;
 
-            for(unsigned int pj=0; pj<neighbors[pi].size(); pj++)
+            // int converstion to avoid a bug that prevents vectorization with some compilers
+            for(int pj=0; pj<nn; pj++)
             {
-                int j = neighbors[pi][pj];
+                const int j = neighbors[pi][pj];
 
                 // calculate the scalar product rv = rij * vij
                 T r_ijx = (x[i] - x[j]);
@@ -94,7 +96,6 @@ public:
 
                 T r_force_i_j = R_i_j * pow(force_i_j_r, mre);
 
-                // mj???
                 T partial_repulsive_force = (r_force_i_j / (ro[i] * ro[j]));
 
                 T pro_i = p[i]/(gradh_i * ro[i] * ro[i]);
@@ -104,23 +105,10 @@ public:
                 momentum_y += m[j] * (pro_i * grad_v_kernel_y_i + pro_j * grad_v_kernel_y_j + (partial_repulsive_force + viscosity_ij) * grad_v_kernel_y_ij);
                 momentum_z += m[j] * (pro_i * grad_v_kernel_z_i + pro_j * grad_v_kernel_z_j + (partial_repulsive_force + viscosity_ij) * grad_v_kernel_z_ij);
 
-                // momentum_x += m[j] * (pro_i * grad_v_kernel_x_i + pro_j * grad_v_kernel_x_j
-                //     + grad_v_kernel_x_ij * (viscosity_ij + partial_repulsive_force));
-                // momentum_y += m[j] * (pro_i * grad_v_kernel_y_i + pro_j * grad_v_kernel_y_j
-                //     + grad_v_kernel_y_ij * (viscosity_ij + partial_repulsive_force));
-                // momentum_z += m[j] * (pro_i * grad_v_kernel_z_i + pro_j * grad_v_kernel_z_j
-                //     + grad_v_kernel_z_ij * (viscosity_ij + partial_repulsive_force));
-                
                 energy += m[j] * (pro_i + 0.5 * viscosity_ij) * (v_ijx * grad_v_kernel_x_i + v_ijy * grad_v_kernel_y_i + v_ijz * grad_v_kernel_z_i);
-                // if(i == 0)
-                // {
-                //     printf("id %d pro_i %f av %f v_ijx %f v_ijy %f v_ijz %f dWxi %f dWyi %f dWzi %f\n", j, pro_i, viscosity_ij, v_ijx, v_ijy, v_ijz, grad_v_kernel_x_i, grad_v_kernel_y_i, grad_v_kernel_z_i);
-                //     fflush(stdout);
-                // }
             }
 
             du[i] = energy;
-            //du[i] = energy * (-p[i]) / (gradh_i * ro[i] * ro[i]);
 
             #ifndef NDEBUG
                 if(std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))

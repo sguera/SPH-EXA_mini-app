@@ -37,7 +37,7 @@ public:
                 min = dt[i];
         }
 
-        min = 4e-5;//std::min(min, maxDtIncrease * dt_m1[0]);
+        min = std::min(min, maxDtIncrease * dt_m1[0]);
 
         #ifdef USE_MPI
         	MPI_Allreduce(MPI_IN_PLACE, &min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);

@@ -17,19 +17,21 @@ public:
 
 	void compute(const std::vector<int> &clist, const BBox<T> &bbox, const std::vector<std::vector<int>> &neighbors, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, const ArrayT &m, ArrayT &ro)
 	{
-		int n = clist.size();
+		const int n = clist.size();
 
 		#pragma omp parallel for
 		for(int pi=0; pi<n; pi++)
 		{
-			int i = clist[pi];
-
+			const int i = clist[pi];
+			const int nn = (int)neighbors[pi].size();
+		
 		    T roloc = 0.0;
 		    ro[i] = 0.0;
 
-		    for(unsigned int pj=0; pj<neighbors[pi].size(); pj++)
+		    // int converstion to avoid a bug that prevents vectorization with some compilers
+		    for(int pj=0; pj<nn; pj++)
 		    {
-		    	int j = neighbors[pi][pj];
+		    	const int j = neighbors[pi][pj];
 
 		        // later can be stores into an array per particle
 		        T dist =  distancePBC(bbox, h[i], x[i], y[i], z[i], x[j], y[j], z[j]); //store the distance from each neighbor
