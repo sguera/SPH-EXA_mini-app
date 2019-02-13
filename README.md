@@ -36,7 +36,7 @@ You can use the following commands to compile and run the SquarePatch example:
 ## Authors
 
 * **Danilo Guerrera**
-* **Aurélien Cavelan**
+* **Aurelien Cavelan**
 * **jg piccinali**
 * **David Imbert**
 * **Ruben Cabezon**
