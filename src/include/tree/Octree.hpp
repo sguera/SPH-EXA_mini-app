@@ -42,22 +42,21 @@ public:
 		return xx*xx + yy*yy + zz*zz;
 	}
 
-	inline void check_add_start(const int start, const int count, const T xi, const T yi, const T zi, const T r, const unsigned int ngmax, std::vector<int> &neighbors) const
+	inline void check_add_start(const int start, const int count, const int id, const T xi, const T yi, const T zi, const T r, const unsigned int ngmax, std::vector<int> &neighbors) const
 	{
 		T dists[count];
 		for(int i=0; i<count; i++)
 		{
-			int id = start+i;
-			T xx = (*x)[id];
-			T yy = (*y)[id];
-			T zz = (*z)[id];
+			T xx = (*x)[start+i];
+			T yy = (*y)[start+i];
+			T zz = (*z)[start+i];
 
 			dists[i] = distancesq(xi, yi, zi, xx, yy, zz);
 		}
 
 		for(int i=0; i<count; i++)
 		{
-			if(neighbors.size() < ngmax && dists[i] < r*r)//distancesq(xi, yi, zi, xx, yy, zz) < r2)
+			if(neighbors.size() < ngmax && dists[i] < r*r && (*ordering)[start+i] != id)
 				neighbors.push_back((*ordering)[start+i]);
 		}
 	}
@@ -154,7 +153,7 @@ public:
 		cells.resize(ncells);
 		start.resize(ncells);
 		count.resize(ncells);
-
+		
 		for(int i=0; i<ncells; i++)
 		{
 			start[i] = ptr+padding[i];
@@ -204,7 +203,7 @@ public:
 		buildRec(list, bbox, ax, ay, az, ah, bucketSize, 0);
 	}
 
-	void findNeighborsRec(const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors) const
+	void findNeighborsRec(const int id, const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors) const
 	{
 		int mix = std::max((int)(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX),0);
 		int miy = std::max((int)(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY),0);
@@ -222,15 +221,15 @@ public:
 					unsigned int l = hz*nX*nY+hy*nX+hx;
 					
 					if(cells[l] != nullptr)
-		 				cells[l]->findNeighborsRec(xi, yi, zi, ri, ngmax, neighbors);
+		 				cells[l]->findNeighborsRec(id, xi, yi, zi, ri, ngmax, neighbors);
 		 			else
-		 				check_add_start(start[l], count[l], xi, yi, zi, ri, ngmax, neighbors);
+		 				check_add_start(start[l], count[l], id, xi, yi, zi, ri, ngmax, neighbors);
 				}
 			}
 		}
 	}
 
-	void findNeighbors(const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors,
+	void findNeighbors(const int id, const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors,
 		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const
 	{
 		if((PBCx && (xi-ri < bbox.xmin || xi+ri > bbox.xmax)) || (PBCy && (yi-ri < bbox.ymin || yi+ri > bbox.ymax)) || (PBCz && (zi-ri < bbox.zmin || zi+ri > bbox.zmax)))
@@ -259,15 +258,15 @@ public:
 						unsigned int l = hzz*nY*nX+hyy*nX+hxx;
 
 						if(cells[l] != nullptr)
-			 				cells[l]->findNeighborsRec(xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors);
+			 				cells[l]->findNeighborsRec(id, xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors);
 			 			else
-			 				check_add_start(start[l], count[l], xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors);
+			 				check_add_start(start[l], count[l], id, xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors);
 			 		}
 				}
 			}
 		}
 		else
-			findNeighborsRec(xi, yi, zi, ri, ngmax, neighbors);
+			findNeighborsRec(id, xi, yi, zi, ri, ngmax, neighbors);
 	}
 
 public:

@@ -5,12 +5,13 @@
 #include <map>
 
 #include "BBox.hpp"
+#include "Domain.hpp"
 
 namespace sphexa
 {
 
-template<typename T, class ArrayT = std::vector<T>>
-class DistributedDomain
+template<typename T, class Tree = Octree<T>>
+class DistributedDomain : public Domain<T, Tree>
 {
 public:
     MPI_Comm comm;
@@ -34,7 +35,8 @@ public:
     int comm_size, comm_rank, name_len;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
 
-    DistributedDomain(MPI_Comm comm) : comm(comm), ncells(0)
+    DistributedDomain(int ngmin, int ng0, int ngmax, int bucketSize = 128, MPI_Comm comm = MPI_COMM_WORLD) 
+        : Domain<T, Tree>(ngmin, ng0, ngmax, bucketSize), comm(comm), ncells(0)
     {
         MPI_Comm_size(comm, &comm_size);
         MPI_Comm_rank(comm, &comm_rank);
@@ -51,7 +53,7 @@ public:
         return leftA < rightB && rightA > leftB;
     }
 
-    inline BBox<T> computeBBox(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z)
+    inline BBox<T> computeBBox(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z)
     {
         T xmin = INFINITY;
         T xmax = -INFINITY;
@@ -77,7 +79,7 @@ public:
         return BBox<T>(xmin, xmax, ymin, ymax, zmin, zmax);
     }
 
-    inline BBox<T> computeGlobalBBox(const std::vector<int> &clist, const BBox<T> &bbox, const ArrayT &x, const ArrayT &y, const ArrayT &z)
+    inline BBox<T> computeGlobalBBox(const std::vector<int> &clist, const BBox<T> &bbox, const Array<T> &x, const Array<T> &y, const Array<T> &z)
     {
         BBox<T> lbbox = computeBBox(clist, x, y, z);
 
@@ -98,7 +100,7 @@ public:
         return lbbox;
     }
 
-    inline T computeMaxH(const std::vector<int> &clist, const ArrayT &h)
+    inline T computeMaxH(const std::vector<int> &clist, const Array<T> &h)
     {
         T hmax = 0.0;
         for(unsigned int i=0; i<clist.size(); i++)
@@ -110,7 +112,7 @@ public:
         return hmax;
     }
 
-    inline T computeGlobalMaxH(const std::vector<int> &clist, const ArrayT &h)
+    inline T computeGlobalMaxH(const std::vector<int> &clist, const Array<T> &h)
     {
         T hmax = computeMaxH(clist, h);
 
@@ -119,7 +121,7 @@ public:
         return hmax;
     }
 
-    void distributeParticles(const std::vector<int> &clist, const ArrayT &x, const ArrayT &y, const ArrayT &z)
+    void distributeParticles(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z)
     {
         cellList.clear();
         cellList.resize(ncells);
@@ -208,13 +210,13 @@ public:
         }
     }
 
-    inline void resize(unsigned int size, std::vector<ArrayT*> &data)
+    inline void resize(unsigned int size, std::vector<Array<T>*> &data)
     {
         for(unsigned int i=0; i<data.size(); i++)
             data[i]->resize(size);
     }
 
-    void synchronize(std::vector<ArrayT*> &data)
+    void synchronize(std::vector<Array<T>*> &data)
     {
         std::map<int,std::vector<int>> toSend;
         std::vector<std::vector<T>> buff;
@@ -413,13 +415,13 @@ public:
         }
     }
 
-    void makeDataArray(std::vector<ArrayT*> &data, ArrayT* d)
+    void makeDataArray(std::vector<Array<T>*> &data, Array<T>* d)
     {
         data.push_back(d);
     }
 
     template<typename... Args>
-    void makeDataArray(std::vector<ArrayT*> &data, ArrayT* first, Args... args)
+    void makeDataArray(std::vector<Array<T>*> &data, Array<T>* first, Args... args)
     {
         data.push_back(first);
         makeDataArray(data, args...);
@@ -428,12 +430,12 @@ public:
     template<typename... Args>
     void synchronizeHalos(Args... args)
     {
-        std::vector<ArrayT*> data;
+        std::vector<Array<T>*> data;
         makeDataArray(data, args...);
         synchronizeHalos(data);
     }
 
-    void synchronizeHalos(std::vector<ArrayT*> &data)
+    void synchronizeHalos(std::vector<Array<T>*> &data)
     {
         std::vector<std::vector<T>> buff;
         std::vector<MPI_Request> requests;
@@ -484,11 +486,11 @@ public:
         }
     }
 
-    inline void removeIndices(const std::vector<bool> indices, std::vector<ArrayT*> &data)
+    inline void removeIndices(const std::vector<bool> indices, std::vector<Array<T>*> &data)
     {
         for(unsigned int i=0; i<data.size(); i++)
         {
-            ArrayT &array = *data[i];
+            Array<T> &array = *data[i];
             
             int j = 0;
             std::vector<T> tmp(array.size());
@@ -502,11 +504,11 @@ public:
         }
     }
 
-    inline void keepIndices(const std::vector<int> indices, std::vector<ArrayT*> &data)
+    inline void keepIndices(const std::vector<int> indices, std::vector<Array<T>*> &data)
     {
         for(unsigned int i=0; i<data.size(); i++)
         {
-            ArrayT &array = *data[i];
+            Array<T> &array = *data[i];
             
             int j = 0;
             std::vector<T> tmp(indices.size());
@@ -531,7 +533,7 @@ public:
         }
     }
 
-    void discard(std::vector<ArrayT*> &data)
+    void discard(std::vector<Array<T>*> &data)
     {
         std::vector<bool> discardList;
         computeDiscardList(data[0]->size(), discardList);
@@ -539,7 +541,7 @@ public:
             removeIndices(discardList, data);
     }
 
-    void build(const std::vector<int> &procsize, const BBox<T> &bbox, const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, std::vector<int> &clist, std::vector<ArrayT*> &data, bool showGraph = false)
+    void build(const std::vector<int> &procsize, const BBox<T> &bbox, const Array<T> &x, const Array<T> &y, const Array<T> &z, const Array<T> &h, std::vector<int> &clist, std::vector<Array<T>*> &data, bool showGraph = false)
     {   
         keepIndices(clist, data);
         for(unsigned int i=0; i<clist.size(); i++)

@@ -21,6 +21,7 @@ public:
 	{
 		int n =  clist.size();
 
+		// Time-scheme according to Press (2nd order)
 		#pragma omp parallel for
 		for(int pi=0; pi<n; pi++)
 		{

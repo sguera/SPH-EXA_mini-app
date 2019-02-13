@@ -38,7 +38,7 @@ public:
 		    if(std::isnan(ax) || std::isnan(ay) || std::isnan(az))
 		    	printf("ERROR::UpdateQuantities(%d) acceleration: (%f %f %f)\n", i, ax, ay, az);
 
-		    //update positions according to Press (2nd order)
+		    // Update positions according to Press (2nd order)
 		    T deltaA = dt[i] + 0.5 * dt_m1[i];
 		    T deltaB = 0.5 * (dt[i] + dt_m1[i]);
 
@@ -66,7 +66,7 @@ public:
 		    if(bbox.PBCz && z[i] < bbox.zmin) z[i] += (bbox.zmax-bbox.zmin);
 		    else if(bbox.PBCz && z[i] > bbox.zmax) z[i] -= (bbox.zmax-bbox.zmin);
 
-		    //update the energy according to Adams-Bashforth (2nd order)
+		    // Update the energy according to Adams-Bashforth (2nd order)
 		    deltaA = 0.5 * dt[i] * dt[i] / dt_m1[i];
 		    deltaB = dt[i] + deltaA;
 

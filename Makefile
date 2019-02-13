@@ -11,24 +11,25 @@ BINDIR := bin
 HPP := $(wildcard src/include/*.hpp)
 HPP += $(wildcard src/include/tree/*.hpp)
 
-
-CXXFLAGS += -I src/include
+RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 
+CXXFLAGS += $(RELEASE) -I src/include
+
 ifeq ($(ENV),gnu)
-	CXXFLAGS += -std=c++14 -O2 -s -g -Wall -Wextra -fopenmp -march=native -mtune=native
+	CXXFLAGS += -std=c++14 -O2 -Wall -Wextra -fopenmp -march=native -mtune=native 
 endif
 
 ifeq ($(ENV),pgi)
-	CXXFLAGS += -O2 -std=c++14 -g -mp -dynamic
+	CXXFLAGS += -O2 -std=c++14 -mp -dynamic
 endif
 
 ifeq ($(ENV),cray)
-	CXXFLAGS += -O2 -hstd=c++14 -g -homp -dynamic
+	CXXFLAGS += -O2 -hstd=c++14 -homp -dynamic
 endif
 
 ifeq ($(ENV),intel)
-	CXXFLAGS += -O2 -std=c++14 -g -qopenmp -dynamic
+	CXXFLAGS += -O2 -std=c++14 -qopenmp -dynamic
 endif
 
 ifeq ($(CXX),clang++)

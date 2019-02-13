@@ -30,7 +30,7 @@ public:
 
 			T momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0, energy = 0.0;
 			
-			for(unsigned int j=0; j<neighbors[pi].size(); j++)
+			for(int j=0; j<neighbors[pi].size(); j++)
 			{
 				// retrive the id of a neighbor
 	        	int nid = neighbors[pi][j];

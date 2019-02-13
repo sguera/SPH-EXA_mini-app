@@ -1,7 +1,6 @@
 #pragma once
 
 #include "tree/Octree.hpp"
-#include "tree/HTree.hpp"
 
 #include "BBox.hpp"
 
@@ -22,3 +21,7 @@
     #include "mpi.h"
 	#include "DistributedDomain.hpp"
 #endif
+
+#include "ArgParser.hpp"
+
+#include "config.hpp"
