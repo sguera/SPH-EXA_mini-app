@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     int writeFrequency = parser.getInt("-w", 250);
     std::string inputFilename = parser.getString("-f", "bigfiles/squarepatch3D_1M.bin");
 
-    #ifndef _JENKINS
+    #ifdef _JENKINS
         maxStep = 0;
         writeFrequency = -1;
     #endif
@@ -47,8 +47,8 @@ int main(int argc, char **argv)
     UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
     EnergyConservation<Real> energyConservation;
 
-    vector<int> clist(d.count);
-    for(int i=0; i<d.count; i++)
+    vector<int> clist(d.x.size());
+    for(int i=0; i<(int)clist.size(); i++)
         clist[i] = i;
 
     for(int iteration = 0; iteration <= maxStep; iteration++)
@@ -65,6 +65,8 @@ int main(int argc, char **argv)
         #endif
 
         REPORT_TIME(d.rank, domain.buildTree(d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
+
+
         // REPORT_TIME(d.rank, mpi.reorder(d.data), "ReorderParticles");
         REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
         REPORT_TIME(d.rank, density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
@@ -89,7 +91,7 @@ int main(int argc, char **argv)
             cout << d.bbox.xmin << " " << d.bbox.xmax << " ";
             cout << d.bbox.ymin << " " << d.bbox.ymax << " ";
             cout << d.bbox.zmin << " " << d.bbox.zmax << endl;
-            cout << "### Check ### Avg. number of neighbours: " << totalNeighbors << endl;
+            cout << "### Check ### Total number of neighbours: " << totalNeighbors << endl;
             cout << "### Check ### Total time: " << d.ttot << ", current time-step: " << d.dt[0] << endl;
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
