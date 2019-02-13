@@ -12,7 +12,7 @@ class SqPatch
 {
 public:
     #ifdef USE_MPI
-        SqPatch(int n, const std::string &filename, MPI_Comm comm) : 
+        SqPatch(int n, const std::string &filename, MPI_Comm comm = MPI_COMM_WORLD) : 
             n(n), count(n), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
                 &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
         {

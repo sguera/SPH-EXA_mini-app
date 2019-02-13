@@ -16,9 +16,28 @@ BEING TO SORT PARTICLES AND REPLACE HALO EASILY
 	- find haloCells
 	- if rank not us and cell is halo, mpi recv asynch with pointer to this part of the data (the start)
 
+TREE CHANGES:
+	- remove padding
+	- tree still stores copy of x, y, z (mapped to tree)
+	- use an integer ptr instead that references points to the first particle of that cell
+	- then use the ordering built by the tree to order all the data
+	- reorder all data according to the ordering
+	=> FindNeighbors become
+		- cell->[x,y,z]
+		- cell->ptr
+		- cell->ordering/id
+
+REMOVE STABILIZATION TIME_STEPS
+
+SIMPLIFY EQUATION OF STATE
+
+MAKE KERNEL A MODULE WHICH TAKES VLOC, HI, KernelParameters
+
 ADD OpenACC
 
 USE VECTOR3 FOR VECTOR OPERATIONS
+
+
 
 
 

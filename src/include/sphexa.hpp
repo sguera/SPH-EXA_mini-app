@@ -21,3 +21,7 @@
     #include "mpi.h"
 	#include "DistributedDomain.hpp"
 #endif
+
+#include "ArgParser.hpp"
+
+#include "config.hpp"

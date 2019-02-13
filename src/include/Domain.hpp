@@ -6,6 +6,8 @@
 	#include "mpi.h"
 #endif
 
+#include "config.hpp"
+
 namespace sphexa
 {
 
@@ -20,14 +22,14 @@ static inline T update_smoothing_length(const int ng0, const int ngi, const T hi
     return hi * 0.5 * ka;
 }
 
-template<typename T, class Tree = Octree<T>, class ArrayT = std::vector<T>>
+template<typename T, class Tree = Octree<T>>
 class Domain
 {
 public:
 	Domain(int ngmin, int ng0, int ngmax, unsigned int bucketSize = 128) : 
 		ngmin(ngmin), ng0(ng0), ngmax(ngmax), bucketSize(bucketSize) {}
 
-	void computeBBox(const ArrayT &x, const ArrayT &y, const ArrayT &z, BBox<T> &bbox)
+	void computeBBox(const Array<T> &x, const Array<T> &y, const Array<T> &z, BBox<T> &bbox)
 	{
 		int n = x.size();
 
@@ -49,7 +51,7 @@ public:
         }
 	}
 
-    void reorderSwap(const std::vector<int> &ordering, ArrayT &data)
+    void reorderSwap(const std::vector<int> &ordering, Array<T> &data)
     {
         std::vector<T> tmp(ordering.size());
         for(unsigned int i=0; i<ordering.size(); i++)
@@ -57,19 +59,19 @@ public:
         tmp.swap(data);
     }
 
-	void reorder(std::vector<ArrayT*> &data)
+	void reorder(std::vector<Array<T>*> &data)
     {
         for(unsigned int i=0; i<data.size(); i++)
             reorderSwap(*tree.ordering, *data[i]);
     }
 
-	void buildTree(const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h, BBox<T> &bbox)
+	void buildTree(const Array<T> &x, const Array<T> &y, const Array<T> &z, const Array<T> &h, BBox<T> &bbox)
 	{
 		computeBBox(x, y, z, bbox);
 		tree.build(bbox, x, y, z, h, bucketSize);
 	}
 
-	void findNeighbors(const std::vector<int> &clist, const BBox<T> &bbox, const ArrayT &x, const ArrayT &y, const ArrayT &z, ArrayT &h, std::vector<std::vector<int>> &neighbors)
+	void findNeighbors(const std::vector<int> &clist, const BBox<T> &bbox, const Array<T> &x, const Array<T> &y, const Array<T> &z, Array<T> &h, std::vector<std::vector<int>> &neighbors)
 	{
 		int n = clist.size();
 		neighbors.resize(n);
@@ -102,7 +104,7 @@ public:
 	    return sum;
 	}
 
-	void updateSmoothingLength(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors, ArrayT &h)
+	void updateSmoothingLength(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors, Array<T> &h)
 	{
 		int n = clist.size();
 
@@ -119,11 +121,11 @@ public:
 	    }
 	}
 
-	inline void removeIndices(const std::vector<bool> indices, std::vector<ArrayT*> &data)
+	inline void removeIndices(const std::vector<bool> indices, std::vector<Array<T>*> &data)
     {
         for(unsigned int i=0; i<data.size(); i++)
         {
-            ArrayT &array = *data[i];
+            Array<T> &array = *data[i];
             
             int j = 0;
             std::vector<T> tmp(array.size());
