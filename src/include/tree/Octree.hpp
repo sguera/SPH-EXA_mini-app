@@ -8,26 +8,11 @@
 
 namespace sphexa
 {
+
 template<typename T = double, class ArrayT = std::vector<T>>
 class Octree
 {
 public:
-	int cellCount() const
-	{
-		int c = 1;
-		for(int i=0; i<ncells; i++)
-			if(cells[i] != nullptr) c += cells[i]->cellCount();
-		return c;
-	}
-
-	int bucketCount() const
-	{
-		int c = ncells;
-		for(int i=0; i<ncells; i++)
-			if(cells[i] != nullptr) c += cells[i]->bucketCount();
-		return c;
-	}
-
 	inline T normalize(T d, T min, T max) const
 	{
 		return (d-min)/(max-min);
@@ -60,18 +45,6 @@ public:
 				neighbors.push_back((*ordering)[start+i]);
 		}
 	}
-
-	// inline T computeMaxH()
-	// {
-	// 	T hmax = 0.0;
-	// 	for(unsigned int i=0; i<ax.size(); i++)
-	// 	{
-	// 		T h = ah.getH(i);
-	// 		if(h > hmax)
-	// 			hmax = h;
-	// 	}
-	// 	return hmax;
-	// }
 
 	inline void distributeParticles(const std::vector<int> &list, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, std::vector<std::vector<int>> &cellList)
 	{

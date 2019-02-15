@@ -237,8 +237,7 @@ public:
     std::vector<T> du, du_m1; //variation of the energy
     std::vector<T> dt, dt_m1;
 
-    T etot, ecin, eint;
-    T ttot;
+    T ttot, etot, ecin, eint;
 
     sphexa::BBox<T> bbox;
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
@@ -258,5 +257,5 @@ public:
     const T Kcour = 0.2;
     const T maxDtIncrease = 1.1;
     const int stabilizationTimesteps = 15;
-    const unsigned int ngmin = 5, ng0 = 500, ngmax = 800;
+    const unsigned int ngmin = 5, ng0 = 100, ngmax = 800;
 };

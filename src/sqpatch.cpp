@@ -39,7 +39,11 @@ int main(int argc, char **argv)
     #endif
 
     Dataset d(n, inputFilename);
-    DistributedDomain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
+    #ifdef USE_MPI
+        DistributedDomain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
+    #else
+        Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
+    #endif
     Density<Real> density(d.sincIndex, d.K);
     EquationOfStateSqPatch<Real> equationOfState(d.stabilizationTimesteps);
     MomentumEnergySqPatch<Real> momentumEnergy(d.stabilizationTimesteps, d.sincIndex, d.K);
@@ -47,7 +51,7 @@ int main(int argc, char **argv)
     UpdateQuantities<Real> updateQuantities(d.stabilizationTimesteps);
     EnergyConservation<Real> energyConservation;
 
-    vector<int> clist(d.x.size());
+    vector<int> clist(d.count);
     for(int i=0; i<(int)clist.size(); i++)
         clist[i] = i;
 
@@ -58,14 +62,14 @@ int main(int argc, char **argv)
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
         
         #ifdef USE_MPI
-            REPORT_TIME(d.rank, domain.build(d.workload, d.bbox, d.x, d.y, d.z, d.h, clist, d.data, false), "mpi::build");
-            REPORT_TIME(d.rank, domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
+            REPORT_TIME(d.rank, domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false), "mpi::build");
+            REPORT_TIME(d.rank, domain.synchronizeHalos(&d.m), "mpi::synchronizeHalos");
             d.count = clist.size();
             if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << domain.haloCount << endl;
+        #else
+            REPORT_TIME(d.rank, domain.build(clist, d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
+            REPORT_TIME(d.rank, domain.reorder(d.data), "ReorderParticles");
         #endif
-
-        REPORT_TIME(d.rank, domain.buildTree(d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
-
 
         // REPORT_TIME(d.rank, mpi.reorder(d.data), "ReorderParticles");
         REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
