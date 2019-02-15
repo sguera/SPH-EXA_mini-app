@@ -18,10 +18,11 @@ int main(int argc, char **argv)
 {
     ArgParser parser(argc, argv);
 
-    int n = parser.getInt("-n", 1e6);
+    int cubeSide = parser.getInt("-n", 100);
+    int targetNeighbors = parser.getInt("-nn", 500);
     int maxStep = parser.getInt("-s", 1e5);
     int writeFrequency = parser.getInt("-w", 250);
-    std::string inputFilename = parser.getString("-f", "bigfiles/squarepatch3D_1M.bin");
+    //std::string inputFilename = parser.getString("-f", "bigfiles/squarepatch3D_1M.bin");
 
     #ifdef _JENKINS
         maxStep = 0;
@@ -38,7 +39,7 @@ int main(int argc, char **argv)
         MPI_Init(NULL, NULL);
     #endif
 
-    Dataset d(n, inputFilename);
+    Dataset d(cubeSide, targetNeighbors);
     #ifdef USE_MPI
         DistributedDomain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
     #else
@@ -68,7 +69,6 @@ int main(int argc, char **argv)
             if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << domain.haloCount << endl;
         #else
             REPORT_TIME(d.rank, domain.build(clist, d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
-            REPORT_TIME(d.rank, domain.reorder(d.data), "ReorderParticles");
         #endif
 
         // REPORT_TIME(d.rank, mpi.reorder(d.data), "ReorderParticles");

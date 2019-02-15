@@ -12,23 +12,24 @@ class SqPatch
 {
 public:
     #ifdef USE_MPI
-        SqPatch(int n, const std::string &filename, MPI_Comm comm = MPI_COMM_WORLD) : 
-            n(n), count(n), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+        SqPatch(int side, int ng0, MPI_Comm comm = MPI_COMM_WORLD) : 
+            n(side*side*side), side(side), count(side*side*side), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(1.2*ng0)
         {
             MPI_Comm_size(comm, &nrank);
             MPI_Comm_rank(comm, &rank);
             MPI_Get_processor_name(pname, &pnamelen);
-            loadMPI(filename);
+            loadMPI();
             init();
         }
     #else
-         SqPatch(int n, const std::string &filename) : 
-            n(n), count(n), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})
+         SqPatch(int side, int ng0) : 
+            n(side*side*side), side(side), count(side*side*side), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(1.2*ng0)
         {
+            std::cout << n << std::endl;
             resize(n);
-            load(filename);
+            load();
             init();
         }
     #endif
@@ -40,28 +41,69 @@ public:
         neighbors.resize(size);
     }
 
-    void load(const std::string &filename)
+    //void load(const std::string &filename)
+    void load()
     {
         // input file stream
-        std::ifstream inputfile(filename, std::ios::binary);
+        // std::ifstream inputfile(filename, std::ios::binary);
 
-        if(inputfile.is_open())
+        // if(inputfile.is_open())
+        // {
+        //     // read the contents of the file into the vectors
+        //     inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
+        //     inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
+        //     inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
+        //     inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
+        //     inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
+        //     inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
+        //     inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(T)*p_0.size());
+        // }
+        // else
+        //     std::cout << "ERROR: " << "in opening file " << filename << std::endl;
+        const double omega = 5.0;
+        const double myPI = std::acos(-1.0);
+
+        #pragma omp parallel for
+        for (int i = 0; i < side; ++i)
         {
-            // read the contents of the file into the vectors
-            inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
-            inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
-            inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
-            inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
-            inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
-            inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
-            inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(T)*p_0.size());
+            double lz = -0.5 + 1.0 / (2.0 * side) + (double)i / (double)side;
+
+            for (int j = 0; j < side; ++j)
+            {
+                double lx = -0.5 + 1.0 / (2 * side) + (double)j / (double)side;
+
+                for (int k = 0; k < side; ++k)
+                {
+                    double ly = -0.5 + 1.0 / (2 * side) + (double)k / (double)side;
+                    
+                    double lvx = omega * ly;
+                    double lvy = -omega * lx;
+                    double lvz = 0.;
+                    double lp_0 = 0.;
+
+                    for (int m = 1; m < 39; m+=2)
+                        for (int l = 1; l < 39; l+=2)
+                            lp_0 = lp_0 - 32.0 * (omega * omega) / ((double)m * (double)l * (myPI * myPI)) / (((double)m * myPI) * ((double)m * myPI) + ((double)l * myPI) * ((double)l * myPI)) * sin((double)m * myPI * (lx + 0.5)) * sin((double)l * myPI * (ly + 0.5));
+
+                    //lp_0 *= 1000.0;
+
+                    //add to the vectors the current calculated values
+                    int lindex = i*side*side + j*side + k;
+
+                    z[lindex] = lz;
+                    y[lindex] = ly;
+                    x[lindex] = lx;
+                    vx[lindex] = lvx;
+                    vy[lindex] = lvy;
+                    vz[lindex] = lvz;
+                    p_0[lindex] = lp_0;
+                }
+            }
         }
-        else
-            std::cout << "ERROR: " << "in opening file " << filename << std::endl;
     }
 
     #ifdef USE_MPI
-    void loadMPI(const std::string &filename)
+    void loadMPI()
     {
         count = n / nrank;
         int offset = n % count;
@@ -83,7 +125,7 @@ public:
             count += offset;
 
             resize(n);
-            load(filename);
+            load();
 
             MPI_Scatterv(&x[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
             MPI_Scatterv(&y[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
@@ -223,7 +265,7 @@ public:
         #endif 
     }
 
-    int n, count; // Number of particles
+    int n, side, count; // Number of particles
     std::vector<T> x, y, z, x_m1, y_m1, z_m1; // Positions
     std::vector<T> vx, vy, vz; // Velocities
     std::vector<T> ro, ro_0; // Density
@@ -252,10 +294,10 @@ public:
     int rank = 0;
 
     std::vector<std::vector<T>*> data;
-    const T sincIndex = 6.0;
-    const T K = sphexa::compute_3d_k(sincIndex);
-    const T Kcour = 0.2;
-    const T maxDtIncrease = 1.1;
-    const int stabilizationTimesteps = 15;
-    const unsigned int ngmin = 5, ng0 = 100, ngmax = 800;
+    T sincIndex = 6.0;
+    T K = sphexa::compute_3d_k(sincIndex);
+    T Kcour = 0.2;
+    T maxDtIncrease = 1.1;
+    int stabilizationTimesteps = 15;
+    unsigned int ngmin = 5, ng0 = 500, ngmax = 800;
 };
