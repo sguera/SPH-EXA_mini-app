@@ -10,10 +10,9 @@ template<typename T = double, typename ArrayT = std::vector<T>>
 class MomentumEnergySqPatch
 {
 public:
-    MomentumEnergySqPatch(const int stabilizationTimesteps = -1, const T sincIndex = 6.0, const T K = compute_3d_k(6.0)) : 
-    stabilizationTimesteps(stabilizationTimesteps), sincIndex(sincIndex), K(K) {}
+    MomentumEnergySqPatch(const T sincIndex = 6.0, const T K = compute_3d_k(6.0)) : sincIndex(sincIndex), K(K) {}
 
-    void compute(const std::vector<int> &clist, const BBox<T> &bbox, const int iteration, const std::vector<std::vector<int>> &neighbors, 
+    void compute(const std::vector<int> &clist, const BBox<T> &bbox, const std::vector<std::vector<int>> &neighbors, 
         const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
         const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, 
         const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m,
@@ -24,7 +23,7 @@ public:
         const T gradh_i = 1.0;
         const T gradh_j = 1.0;
         //const T delta_x_i = 0.01; // Initial inter-particule distance
-        const T delta_x_i = 1.0;
+        const T delta_x_i = 0.01;//1.0;
         const T ep1 = 0.2, ep2 = 0.02, mre = 4.0;
         
         #pragma omp parallel for
@@ -83,9 +82,6 @@ public:
 
                 T force_i_j_r = exp(-(rv_i * rv_i)) * exp((delta_x_i*delta_x_i) / (h[i] * h[i]));
 
-                if(iteration < stabilizationTimesteps)
-                   force_i_j_r = 0.0;
-
                 T A_j = 0.0;
                 if(p[j] < 0.0) A_j = 1.0;
 
@@ -124,7 +120,6 @@ public:
     }
 
 private:
-    const int stabilizationTimesteps;
     const T sincIndex, K;
 };
 
