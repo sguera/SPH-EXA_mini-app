@@ -488,10 +488,11 @@ public:
         // Use the localbbox to identify halo cells
         computeHaloList(localBBox, globalBBox, showGraph);
 
-        synchronizeHalos(&x, &y, &z, &h);
+        //synchronizeHalos(&x, &y, &z, &h);
+        //globalBBox.computeGlobal(clist, x, y, z, comm);
 
         // Domain::tree
-        Domain<T, Tree>::buildTree(globalBBox, x, y, z, h);
+        //Domain<T, Tree>::buildTree(globalBBox, x, y, z, h);
     }
 
 public:

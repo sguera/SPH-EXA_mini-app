@@ -14,7 +14,7 @@ public:
     #ifdef USE_MPI
         SqPatch(int side, int ng0, MPI_Comm comm = MPI_COMM_WORLD) : 
             n(side*side*side), side(side), count(side*side*side), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(1.2*ng0)
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(std::max((int)1.2*ng0, 400))
         {
             MPI_Comm_size(comm, &nrank);
             MPI_Comm_rank(comm, &rank);
@@ -25,9 +25,8 @@ public:
     #else
          SqPatch(int side, int ng0) : 
             n(side*side*side), side(side), count(side*side*side), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(1.2*ng0)
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(std::max((int)1.2*ng0, 400))
         {
-            std::cout << n << std::endl;
             resize(n);
             load();
             init();
@@ -70,22 +69,27 @@ public:
 
             for (int j = 0; j < side; ++j)
             {
-                double lx = -0.5 + 1.0 / (2 * side) + (double)j / (double)side;
+                //double ly = -0.5 + 1.0 / (2.0 * side) +  (double)j / (double)side;
+                double lx = -0.5 + 1.0 / (2.0 * side) + (double)j / (double)side;
 
                 for (int k = 0; k < side; ++k)
                 {
-                    double ly = -0.5 + 1.0 / (2 * side) + (double)k / (double)side;
+                    double ly = -0.5 + 1.0 / (2.0 * side) +  (double)k / (double)side;
+                    //double lx = -0.5 + 1.0 / (2.0 * side) + (double)k / (double)side;
                     
                     double lvx = omega * ly;
                     double lvy = -omega * lx;
                     double lvz = 0.;
                     double lp_0 = 0.;
 
-                    for (int m = 1; m < 39; m+=2)
-                        for (int l = 1; l < 39; l+=2)
-                            lp_0 = lp_0 - 32.0 * (omega * omega) / ((double)m * (double)l * (myPI * myPI)) / (((double)m * myPI) * ((double)m * myPI) + ((double)l * myPI) * ((double)l * myPI)) * sin((double)m * myPI * (lx + 0.5)) * sin((double)l * myPI * (ly + 0.5));
+                    for (int m = 1; m <= 39; m+=2)
+                        for (int l = 1; l <= 39; l+=2)
+                            lp_0 = lp_0 - 32.0 * (omega * omega) / (m * l * (myPI * myPI)) / ((m * myPI) * (m * myPI) + (l * myPI) * (l * myPI)) * sin(m * myPI * (lx + 0.5)) * sin(l * myPI * (ly + 0.5));
 
-                    //lp_0 *= 1000.0;
+                    lp_0 *= 1000.0;
+
+                    if(k == 0 && i == 0)
+                        std::cout << lp_0 << std::endl;
 
                     //add to the vectors the current calculated values
                     int lindex = i*side*side + j*side + k;
@@ -157,22 +161,22 @@ public:
         for(int i=0; i<count; i++)
         {
             // CGS
-            x[i] = x[i] * 100.0;
-            y[i] = y[i] * 100.0;
-            z[i] = z[i] * 100.0;
-            vx[i] = vx[i] * 100.0;
-            vy[i] = vy[i] * 100.0;
-            vz[i] = vz[i] * 100.0;
-            p_0[i] = p_0[i] * 10.0;
+            x[i] = x[i];// * 100.0;
+            y[i] = y[i];// * 100.0;
+            z[i] = z[i];// * 100.0;
+            vx[i] = vx[i];// * 100.0;
+            vy[i] = vy[i];// * 100.0;
+            vz[i] = vz[i];// * 100.0;
+            p[i] = p_0[i];// = p_0[i] * 10.0;
 
-            m[i] = 1.0;//0.001;//0.001;//1.0;
-            c[i] = 3500.0;//35.0;//35.0;//35000
-            h[i] = 2.0;//0.02;//0.02;
-            ro[i] = 1.0;//1e3;//1e3;
-            ro_0[i] = 1.0;//1e3;//1e3;
+            m[i] = 0.001;//0.001;//0.001;//1.0;
+            c[i] = 35.0;//35.0;//35.0;//35000
+            h[i] = 0.02;//0.02;//0.02;
+            ro[i] = 1.0e3;//.0;//1e3;//1e3;
+            ro_0[i] = 1.0e3;//.0;//1e3;//1e3;
 
             du[i] = du_m1[i] = 0.0;
-            dt[i] = dt_m1[i] = 1e-7;
+            dt[i] = dt_m1[i] = 1e-6;
 
             grad_P_x[i] = grad_P_y[i] = grad_P_z[i] = 0.0;
 
@@ -182,8 +186,8 @@ public:
         }
 
         bbox.PBCz = true;
-        bbox.zmin = -50;//-0.5;//-50
-        bbox.zmax = 50;//0.5;//50
+        bbox.zmin = -0.5;//-50
+        bbox.zmax = 0.5;//50
 
         etot = ecin = eint = 0.0;
         ttot = 0.0;
@@ -192,7 +196,7 @@ public:
             i.reserve(ngmax);
     }
 
-    void writeFile(const std::vector<int> &clist, std::ofstream &outputFile)
+    void writeData(const std::vector<int> &clist, std::ofstream &dump)
     {
         #ifdef USE_MPI
             std::vector<int> workload(nrank);
@@ -248,21 +252,28 @@ public:
         {
             for(int i=0; i<n; i++)
             {
-                outputFile << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
-                outputFile << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
-                outputFile << h[i] << ' ' << ro[i] << ' ' << u[i] << ' ' << p[i] << ' ' << c[i] << ' ';
-                outputFile << grad_P_x[i] << ' ' << grad_P_y[i] << ' ' << grad_P_z[i] << ' ';
+                dump << x[i] << ' ' << y[i] << ' ' << z[i] << ' ';
+                dump << vx[i] << ' ' << vy[i] << ' ' << vz[i] << ' ';
+                dump << h[i] << ' ' << ro[i] << ' ' << u[i] << ' ' << p[i] << ' ' << c[i] << ' ';
+                dump << grad_P_x[i] << ' ' << grad_P_y[i] << ' ' << grad_P_z[i] << ' ';
                 T rad = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
                 T vrad = (vx[i] *  x[i] + vy[i] * y[i] + vz[i] * z[i]) / rad;
-                outputFile << rad << ' ' << vrad;// << std::endl;
-
-                outputFile << " " << neighbors[i].size() << std::endl;
+                dump << rad << ' ' << vrad << std::endl;
             }
         }
 
         #ifdef USE_MPI
             if(rank == 0) resize(count);
         #endif 
+    }
+
+    void writeConstants(const int iteration, const int nntot, std::ofstream &constants)
+    {
+        if(rank == 0)
+        {
+            constants << iteration << ' ' << ttot << ' ' << dt[0] << ' ' << etot << ' ' << ecin << ' ' << eint << ' '  << nntot << ' ' << std::endl;
+            constants.flush();
+        }
     }
 
     int n, side, count; // Number of particles
@@ -298,6 +309,5 @@ public:
     T K = sphexa::compute_3d_k(sincIndex);
     T Kcour = 0.2;
     T maxDtIncrease = 1.1;
-    int stabilizationTimesteps = 15;
-    unsigned int ngmin = 5, ng0 = 500, ngmax = 800;
+    unsigned int ngmin = 5, ng0 = 250, ngmax = 1500;
 };

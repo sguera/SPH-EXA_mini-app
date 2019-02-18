@@ -88,7 +88,7 @@ public:
 		for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];
-			int ngi = neighbors[pi].size();
+			int ngi = std::max((int)neighbors[pi].size(),1);
 			
 		    h[i] = h[i] * 0.5 * pow((1.0 + c0 * ng0 / ngi), exp);
 
