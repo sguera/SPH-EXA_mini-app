@@ -72,6 +72,7 @@ int main(int argc, char **argv)
         domain.buildTree(d.bbox, d.x, d.y, d.z, d.h);
         domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors);
         density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro);
+
         #pragma omp parallel for
         for(int pi=0; pi<(int)clist.size(); pi++)
             d.ro_0[clist[pi]] = d.ro[clist[pi]];
@@ -85,7 +86,7 @@ int main(int argc, char **argv)
         
         #ifdef USE_MPI
             REPORT_TIME(d.rank, domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false), "mpi::build");
-            REPORT_TIME(d.rank, domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);, "mpi::synchronizeHalos");
+            REPORT_TIME(d.rank, domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
             d.count = clist.size();
             if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << domain.haloCount << endl;
         #else
