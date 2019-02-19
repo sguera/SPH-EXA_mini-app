@@ -85,15 +85,14 @@ int main(int argc, char **argv)
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
         
         #ifdef USE_MPI
-            REPORT_TIME(d.rank, domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false), "mpi::build");
+            REPORT_TIME(d.rank, domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false), "domain::build");
             REPORT_TIME(d.rank, domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
+            REPORT_TIME(d.rank, domain.buildTree(d.bbox, d.x, d.y, d.z, d.h), "BuildTree");
             d.count = clist.size();
             if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << domain.haloCount << endl;
         #else
             REPORT_TIME(d.rank, domain.build(clist, d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
         #endif
-
-        REPORT_TIME(d.rank, domain.buildTree(d.bbox, d.x, d.y, d.z, d.h), "BuildTree");
 
         // REPORT_TIME(d.rank, mpi.reorder(d.data), "ReorderParticles");
         REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
