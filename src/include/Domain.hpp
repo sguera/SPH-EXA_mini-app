@@ -61,7 +61,6 @@ public:
 
 	    #ifdef USE_MPI
 	        MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-	        MPI_Barrier(MPI_COMM_WORLD);
 	    #endif
 
 	    return sum;

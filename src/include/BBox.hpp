@@ -25,11 +25,35 @@ public:
         if(!PBCz) zmin = INFINITY;
         if(!PBCz) zmax = -INFINITY;
 
-        for(unsigned int i=0; i<clist.size(); i++)
+        for(int i=0; i<(int)clist.size(); i++)
         {
             T xx = x[clist[i]];
             T yy = y[clist[i]];
             T zz = z[clist[i]];
+
+            if(!PBCx && xx < xmin) xmin = xx;
+            if(!PBCx && xx > xmax) xmax = xx;
+            if(!PBCy && yy < ymin) ymin = yy;
+            if(!PBCy && yy > ymax) ymax = yy;
+            if(!PBCz && zz < zmin) zmin = zz;
+            if(!PBCz && zz > zmax) zmax = zz;
+        }
+    }
+
+    inline void compute(const Array<T> &x, const Array<T> &y, const Array<T> &z)
+    {
+        if(!PBCx) xmin = INFINITY;
+        if(!PBCx) xmax = -INFINITY;
+        if(!PBCy) ymin = INFINITY;
+        if(!PBCy) ymax = -INFINITY;
+        if(!PBCz) zmin = INFINITY;
+        if(!PBCz) zmax = -INFINITY;
+
+        for(int i=0; i<(int)x.size(); i++)
+        {
+            T xx = x[i];
+            T yy = y[i];
+            T zz = z[i];
 
             if(!PBCx && xx < xmin) xmin = xx;
             if(!PBCx && xx > xmax) xmax = xx;

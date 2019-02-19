@@ -17,26 +17,20 @@ class Timestep
 public:
 	Timestep(const T Kcour = 0.2, const T maxDtIncrease = 1.1) : Kcour(Kcour), maxDtIncrease(maxDtIncrease) {}
 
-	void compute(const std::vector<int> &clist, const ArrayT &h, const ArrayT &c, const ArrayT &dt_m1, ArrayT &dt, T &ttot)
+	void compute(const std::vector<int> &clist, const ArrayT &h, const ArrayT &c, const ArrayT &dt_m1, ArrayT &dt)
 	{
-		const int n =  clist.size();
+		const int n = clist.size();
 
-		// Time-scheme according to Press (2nd order)
-		#pragma omp parallel for
+		T mini = INFINITY;
+		#pragma omp parallel for reduction(min:mini)
 		for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];
+			// Time-scheme according to Press (2nd order)
 		    dt[i] = Kcour * (h[i]/c[i]);
-		}
-
-        T mini = INFINITY;
-        #pragma omp parallel for reduction(min:mini)
-        for(int pi=0; pi<n; pi++)
-		{
-			int i = clist[pi];
-            if(dt[i] < mini)
+		    if(dt[i] < mini)
                 mini = dt[i];
-        }
+		}
 
         mini = std::min(mini, maxDtIncrease * dt_m1[0]);
 
@@ -50,8 +44,6 @@ public:
 			int i = clist[pi];
         	dt[i] = mini;
         }
-
-        ttot += mini;
 	}
 
 private:

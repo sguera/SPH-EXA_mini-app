@@ -12,9 +12,9 @@ class SqPatch
 {
 public:
     #ifdef USE_MPI
-        SqPatch(int side, int ng0, MPI_Comm comm = MPI_COMM_WORLD) : 
+        SqPatch(int side, MPI_Comm comm = MPI_COMM_WORLD) : 
             n(side*side*side), side(side), count(side*side*side), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(std::max((int)1.2*ng0, 400))
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})//, ng0(ng0), ngmax(1.5*ng0)
         {
             MPI_Comm_size(comm, &nrank);
             MPI_Comm_rank(comm, &rank);
@@ -23,9 +23,9 @@ public:
             init();
         }
     #else
-         SqPatch(int side, int ng0) : 
+         SqPatch(int side) : 
             n(side*side*side), side(side), count(side*side*side), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1}), ng0(ng0), ngmax(std::max((int)1.2*ng0, 400))
+                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})//, ng0(ng0), ngmax(1.5*ng0)
         {
             resize(n);
             load();
@@ -65,16 +65,16 @@ public:
         #pragma omp parallel for
         for (int i = 0; i < side; ++i)
         {
-            double lz = -0.5 + 1.0 / (2.0 * side) + (double)i / (double)side;
-
+            double lz = -0.5 + 1.0 / (2.0 * side) + i * 1.0 / side;
+  
             for (int j = 0; j < side; ++j)
             {
                 //double ly = -0.5 + 1.0 / (2.0 * side) +  (double)j / (double)side;
-                double lx = -0.5 + 1.0 / (2.0 * side) + (double)j / (double)side;
+                double lx = -0.5 + 1.0 / (2.0 * side) + j * 1.0 / side;
 
                 for (int k = 0; k < side; ++k)
                 {
-                    double ly = -0.5 + 1.0 / (2.0 * side) +  (double)k / (double)side;
+                    double ly = -0.5 + 1.0 / (2.0 * side) + k * 1.0 / side;
                     //double lx = -0.5 + 1.0 / (2.0 * side) + (double)k / (double)side;
                     
                     double lvx = omega * ly;
@@ -88,8 +88,8 @@ public:
 
                     lp_0 *= 1000.0;
 
-                    if(k == 0 && i == 0)
-                        std::cout << lp_0 << std::endl;
+                    // if(k == 0 && i == 0)
+                    //     std::cout << lp_0 << std::endl;
 
                     //add to the vectors the current calculated values
                     int lindex = i*side*side + j*side + k;
@@ -158,22 +158,24 @@ public:
 
     void init()
     {
+        dx = 100.0/side;
+
         for(int i=0; i<count; i++)
         {
             // CGS
-            x[i] = x[i];// * 100.0;
-            y[i] = y[i];// * 100.0;
-            z[i] = z[i];// * 100.0;
-            vx[i] = vx[i];// * 100.0;
-            vy[i] = vy[i];// * 100.0;
-            vz[i] = vz[i];// * 100.0;
-            p[i] = p_0[i];// = p_0[i] * 10.0;
+            x[i] = x[i] * 100.0;
+            y[i] = y[i] * 100.0;
+            z[i] = z[i] * 100.0;
+            vx[i] = vx[i] * 100.0;
+            vy[i] = vy[i] * 100.0;
+            vz[i] = vz[i] * 100.0;
+            p[i] = p_0[i] = p_0[i] * 10.0;
 
-            m[i] = 0.001;//0.001;//0.001;//1.0;
-            c[i] = 35.0;//35.0;//35.0;//35000
-            h[i] = 0.02;//0.02;//0.02;
-            ro[i] = 1.0e3;//.0;//1e3;//1e3;
-            ro_0[i] = 1.0e3;//.0;//1e3;//1e3;
+            m[i] = 1000000.0/n;//1.0;//1000000.0/n;//1.0;//0.001;//0.001;//0.001;//1.0;
+            c[i] = 3500.0;//35.0;//35.0;//35000
+            h[i] = 2.0*dx;//0.02;//0.02;
+            ro[i] = 1.0;//1.0e3;//.0;//1e3;//1e3;
+            ro_0[i] = 1.0;//1.0e3;//.0;//1e3;//1e3;
 
             du[i] = du_m1[i] = 0.0;
             dt[i] = dt_m1[i] = 1e-6;
@@ -185,9 +187,10 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
+        bbox.compute(x, y, z);
         bbox.PBCz = true;
-        bbox.zmin = -0.5;//-50
-        bbox.zmax = 0.5;//50
+        bbox.zmax += dx/2.0;
+        bbox.zmin -= dx/2.0;
 
         etot = ecin = eint = 0.0;
         ttot = 0.0;
@@ -309,5 +312,6 @@ public:
     T K = sphexa::compute_3d_k(sincIndex);
     T Kcour = 0.2;
     T maxDtIncrease = 1.1;
-    unsigned int ngmin = 5, ng0 = 250, ngmax = 1500;
+    T dx = 0.01;
+    int ngmin = 5, ng0 = 250, ngmax = 500;
 };

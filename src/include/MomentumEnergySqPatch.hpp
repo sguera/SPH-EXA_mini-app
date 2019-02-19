@@ -10,7 +10,7 @@ template<typename T = double, typename ArrayT = std::vector<T>>
 class MomentumEnergySqPatch
 {
 public:
-    MomentumEnergySqPatch(const T sincIndex = 6.0, const T K = compute_3d_k(6.0)) : sincIndex(sincIndex), K(K) {}
+    MomentumEnergySqPatch(const T dx, const T sincIndex = 6.0, const T K = compute_3d_k(6.0)) : dx(dx), sincIndex(sincIndex), K(K) {}
 
     void compute(const std::vector<int> &clist, const BBox<T> &bbox, const std::vector<std::vector<int>> &neighbors, 
         const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
@@ -23,7 +23,7 @@ public:
         const T gradh_i = 1.0;
         const T gradh_j = 1.0;
         //const T delta_x_i = 0.01; // Initial inter-particule distance
-        const T delta_x_i = 0.01;//1.0;
+        //const T delta_x_i = 1.0;//0.01;
         const T ep1 = 0.2, ep2 = 0.02, mre = 4.0;
         
         #pragma omp parallel for
@@ -80,7 +80,7 @@ public:
                 T grad_v_kernel_y_ij = (grad_v_kernel_y_i + grad_v_kernel_y_j)/2.0;
                 T grad_v_kernel_z_ij = (grad_v_kernel_z_i + grad_v_kernel_z_j)/2.0;
 
-                T force_i_j_r = exp(-(rv_i * rv_i)) * exp((delta_x_i*delta_x_i) / (h[i] * h[i]));
+                T force_i_j_r = exp(-(rv_i * rv_i)) * exp((dx*dx) / (h[i] * h[i]));
 
                 T A_j = 0.0;
                 if(p[j] < 0.0) A_j = 1.0;
@@ -96,7 +96,7 @@ public:
 
                 T pro_i = p[i]/(gradh_i * ro[i] * ro[i]);
                 T pro_j = p[j]/(gradh_j * ro[j] * ro[j]);
-
+                
                 momentum_x += m[j] * (pro_i * grad_v_kernel_x_i + pro_j * grad_v_kernel_x_j + (partial_repulsive_force + viscosity_ij) * grad_v_kernel_x_ij);
                 momentum_y += m[j] * (pro_i * grad_v_kernel_y_i + pro_j * grad_v_kernel_y_j + (partial_repulsive_force + viscosity_ij) * grad_v_kernel_y_ij);
                 momentum_z += m[j] * (pro_i * grad_v_kernel_z_i + pro_j * grad_v_kernel_z_j + (partial_repulsive_force + viscosity_ij) * grad_v_kernel_z_ij);
@@ -120,7 +120,7 @@ public:
     }
 
 private:
-    const T sincIndex, K;
+    const T dx, sincIndex, K;
 };
 
 }

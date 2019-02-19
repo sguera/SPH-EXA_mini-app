@@ -19,9 +19,9 @@ int main(int argc, char **argv)
     ArgParser parser(argc, argv);
 
     int cubeSide = parser.getInt("-n", 100);
-    int targetNeighbors = parser.getInt("-nn", 500);
     int maxStep = parser.getInt("-s", 1e5);
     int writeFrequency = parser.getInt("-w", 250);
+    //int targetNeighbors = parser.getInt("-nn", 500);
     //std::string inputFilename = parser.getString("-f", "bigfiles/squarepatch3D_1M.bin");
 
     #ifdef _JENKINS
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
         writeFrequency = -1;
     #endif
 
-	debug();
+	//debug();
 
     typedef double Real;
     typedef Octree<Real> Tree;
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
         MPI_Init(NULL, NULL);
     #endif
 
-    Dataset d(cubeSide, targetNeighbors);
+    Dataset d(cubeSide);
     #ifdef USE_MPI
         DistributedDomain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
     #else
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     #endif
     Density<Real> density(d.sincIndex, d.K);
     EquationOfStateSqPatch<Real> equationOfState;
-    MomentumEnergySqPatch<Real> momentumEnergy(d.sincIndex, d.K);
+    MomentumEnergySqPatch<Real> momentumEnergy(d.dx, d.sincIndex, d.K);
     Timestep<Real> timestep(d.Kcour, d.maxDtIncrease);
     UpdateQuantities<Real> updateQuantities;
     EnergyConservation<Real> energyConservation;
@@ -58,22 +58,9 @@ int main(int argc, char **argv)
 
     std::ofstream constants("constants.txt");
 
-    // if(d.rank == 0)
-    // {
-    //     std::ofstream dump("dumpbefore.txt");
-    //     d.writeData(clist, dump);
-    //     dump.close();
-    // }
-
-    // Calibration of ro_0, dt and h
-    // No compuaion of momentum, no moving of particles
-    for(int i=0; i<15; i++)
+    for(int i=0; i<1; i++)
     {
-        // std::ofstream dump("cali" + to_string(i) + ".txt");
-        //     REPORT_TIME(d.rank, d.writeData(clist, dump), "writeFile");
-        //     dump.close();
-
-        if(d.rank == 0) cout << "Calibration(" << i << ")..." << endl; 
+        if(d.rank == 0) cout << "Calibration of Density(" << i << ")..." << endl; 
         #ifdef USE_MPI
             domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false);
             domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
@@ -83,15 +70,11 @@ int main(int argc, char **argv)
         #endif
 
         domain.buildTree(d.bbox, d.x, d.y, d.z, d.h);
-
         domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors);
         density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro);
         #pragma omp parallel for
         for(int pi=0; pi<(int)clist.size(); pi++)
             d.ro_0[clist[pi]] = d.ro[clist[pi]];
-        timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt, d.ttot);
-        //updateQuantities.compute(clist, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1);
-        domain.updateSmoothingLength(clist, d.neighbors, d.h);
     }
 
     for(int iteration = 0; iteration <= maxStep; iteration++)
@@ -122,12 +105,14 @@ int main(int argc, char **argv)
         #endif
 
         REPORT_TIME(d.rank, momentumEnergy.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");
-        REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt, d.ttot), "Timestep");
+        REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt), "Timestep");
         REPORT_TIME(d.rank, updateQuantities.compute(clist, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
-        REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
+        //REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
         int totalNeighbors = domain.neighborsSum(clist, d.neighbors);
+
+        d.ttot += d.dt[0];
 
         if(d.rank == 0)
         {
@@ -135,7 +120,7 @@ int main(int argc, char **argv)
             cout << d.bbox.xmin << " " << d.bbox.xmax << " ";
             cout << d.bbox.ymin << " " << d.bbox.ymax << " ";
             cout << d.bbox.zmin << " " << d.bbox.zmax << endl;
-            cout << "### Check ### Total number of neighbours: " << totalNeighbors << endl;
+            cout << "### Check ### Total number of neighbours: " << totalNeighbors/d.n << endl;
             cout << "### Check ### Total time: " << d.ttot << ", current time-step: " << d.dt[0] << endl;
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }
@@ -145,7 +130,6 @@ int main(int argc, char **argv)
             std::ofstream dump("dump" + to_string(iteration) + ".txt");
             REPORT_TIME(d.rank, d.writeData(clist, dump), "writeFile");
             dump.close();
-            
         }
 
         d.writeConstants(iteration, totalNeighbors, constants);
