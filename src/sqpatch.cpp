@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
     for(int i=0; i<1; i++)
     {
-        if(d.rank == 0) cout << "Calibration of Density(" << i << ")..." << endl; 
+        if(d.rank == 0) cout << "Calibration of Density..." << endl; 
         #ifdef USE_MPI
             domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false);
             domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
