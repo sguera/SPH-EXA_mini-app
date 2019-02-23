@@ -65,7 +65,7 @@ public:
 		    deltaA = 0.5 * dt[i] * dt[i] / dt_m1[i];
 		    deltaB = dt[i] + deltaA;
 
-		    u[i] += 0.5 * du[i] * deltaB - 0.5 * du_m1[i] * deltaA;
+		    u[i] += du[i] * deltaB - du_m1[i] * deltaA;
 
 		    #ifndef NDEBUG
 			    if(std::isnan(u[i]))
