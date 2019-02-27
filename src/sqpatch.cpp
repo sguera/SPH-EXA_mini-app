@@ -52,38 +52,37 @@ int main(int argc, char **argv)
     UpdateQuantities<Real> updateQuantities;
     EnergyConservation<Real> energyConservation;
 
+    if(d.rank == 0)
+        cout << "Total number of ranks: " << domain.comm_size << endl;
+    
     vector<int> clist(d.count);
     for(int i=0; i<(int)clist.size(); i++)
         clist[i] = i;
 
     std::ofstream constants("constants.txt");
 
-    for(int i=0; i<1; i++)
-    {
-        if(d.rank == 0) cout << "Calibration of Density..." << endl; 
-        #ifdef USE_MPI
-            domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false);
-            domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
-            d.count = clist.size();
-        #else
-            domain.build(clist, d.x, d.y, d.z, d.h, d.bbox);
-        #endif
-
+    if(d.rank == 0) cout << "Calibration of Density..." << endl; 
+    #ifdef USE_MPI
+        domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false);
+        domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
         domain.buildTree(d.bbox, d.x, d.y, d.z, d.h);
-        domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors);
-        density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro);
+        d.count = clist.size();
+    #else
+        domain.build(clist, d.x, d.y, d.z, d.h, d.bbox);
+    #endif
+    domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors);
+    density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro);
 
-        #pragma omp parallel for
-        for(int pi=0; pi<(int)clist.size(); pi++)
-            d.ro_0[clist[pi]] = d.ro[clist[pi]];
-    }
+    #pragma omp parallel for
+    for(int pi=0; pi<(int)clist.size(); pi++)
+        d.ro_0[clist[pi]] = d.ro[clist[pi]];
 
     for(int iteration = 0; iteration <= maxStep; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
 
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
-        
+
         #ifdef USE_MPI
             REPORT_TIME(d.rank, domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false), "domain::build");
             REPORT_TIME(d.rank, domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
@@ -105,14 +104,12 @@ int main(int argc, char **argv)
         #endif
 
         REPORT_TIME(d.rank, momentumEnergy.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");
-        REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt), "Timestep");
+        REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt, d.ttot), "Timestep");
         REPORT_TIME(d.rank, updateQuantities.compute(clist, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
         //REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
         int totalNeighbors = domain.neighborsSum(clist, d.neighbors);
-
-        d.ttot += d.dt[0];
 
         if(d.rank == 0)
         {

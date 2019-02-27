@@ -66,7 +66,7 @@ public:
         for (int i = 0; i < side; ++i)
         {
             double lz = -0.5 + 1.0 / (2.0 * side) + i * 1.0 / side;
-  
+
             for (int j = 0; j < side; ++j)
             {
                 //double ly = -0.5 + 1.0 / (2.0 * side) +  (double)j / (double)side;
@@ -110,8 +110,8 @@ public:
     void loadMPI()
     {
         count = n / nrank;
-        int offset = n % count;
-        
+        int offset = n % nrank;
+
         workload.resize(nrank);
         std::vector<int> displs(nrank);
 
@@ -126,33 +126,36 @@ public:
 
         if(rank == 0)
         {
-            count += offset;
-
+            //count += offset;
+            count = n;
             resize(n);
             load();
-
-            MPI_Scatterv(&x[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&y[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&z[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&vx[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&vy[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&vz[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(&p_0[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-
-            resize(count);
         }
         else
-        {
-            resize(count);
+            count = 0;
 
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &x[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &y[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &z[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vx[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vy[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vz[0], count, MPI_DOUBLE, 0, comm);
-            MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &p_0[0], count, MPI_DOUBLE, 0, comm);
-        }
+        //     MPI_Scatterv(&x[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(&y[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(&z[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(&vx[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(&vy[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(&vz[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(&p_0[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
+
+        //     resize(count);
+        // }
+        // else
+        // {
+        //     resize(count);
+
+        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &x[0], count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &y[0], count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &z[0], count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vx[0], count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vy[0], count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vz[0], count, MPI_DOUBLE, 0, comm);
+        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &p_0[0], count, MPI_DOUBLE, 0, comm);
+        // }
     }
     #endif
 
@@ -187,7 +190,7 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
-        bbox.compute(x, y, z);
+        bbox.computeGlobal(x, y, z, comm);
         bbox.PBCz = true;
         bbox.zmax += dx/2.0;
         bbox.zmin -= dx/2.0;
@@ -197,6 +200,15 @@ public:
         
         for(auto i : neighbors)
             i.reserve(ngmax);
+
+        if(rank == 0 && 2.0 * h[0] > (bbox.zmax-bbox.zmin)/2.0)
+        {
+            printf("ERROR::SqPatch::init()::SmoothingLength (%.2f) too large (%.2f) (n too small?)\n", h[0], bbox.zmax-bbox.zmin);
+            #ifdef USE_MPI
+                MPI_Finalize();
+                exit(0);
+            #endif
+        }
     }
 
     void writeData(const std::vector<int> &clist, std::ofstream &dump)

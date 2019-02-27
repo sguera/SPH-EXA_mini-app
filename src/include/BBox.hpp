@@ -76,6 +76,18 @@ public:
         MPI_Allreduce(MPI_IN_PLACE, &ymax, 1, MPI_DOUBLE, MPI_MAX, comm);
         MPI_Allreduce(MPI_IN_PLACE, &zmax, 1, MPI_DOUBLE, MPI_MAX, comm);
     }
+
+    inline void computeGlobal(const Array<T> &x, const Array<T> &y, const Array<T> &z, MPI_Comm comm)
+    {
+        compute(x, y, z);
+
+        MPI_Allreduce(MPI_IN_PLACE, &xmin, 1, MPI_DOUBLE, MPI_MIN, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &ymin, 1, MPI_DOUBLE, MPI_MIN, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &zmin, 1, MPI_DOUBLE, MPI_MIN, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &xmax, 1, MPI_DOUBLE, MPI_MAX, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &ymax, 1, MPI_DOUBLE, MPI_MAX, comm);
+        MPI_Allreduce(MPI_IN_PLACE, &zmax, 1, MPI_DOUBLE, MPI_MAX, comm);
+    }
 #endif
 
 	T xmin, xmax, ymin, ymax, zmin, zmax;
