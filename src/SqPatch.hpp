@@ -190,7 +190,11 @@ public:
             z_m1[i] = z[i] - vz[i] * dt[0];
         }
 
-        bbox.computeGlobal(x, y, z, comm);
+        #ifdef USE_MPI
+            bbox.computeGlobal(x, y, z, comm);
+        #else
+            bbox.compute(x, y, z);
+        #endif
         bbox.PBCz = true;
         bbox.zmax += dx/2.0;
         bbox.zmin -= dx/2.0;

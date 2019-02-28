@@ -52,8 +52,8 @@ int main(int argc, char **argv)
     UpdateQuantities<Real> updateQuantities;
     EnergyConservation<Real> energyConservation;
 
-    if(d.rank == 0)
-        cout << "Total number of ranks: " << domain.comm_size << endl;
+    // if(d.rank == 0)
+    //     cout << "Total number of ranks: " << domain.comm_size << endl;
     
     vector<int> clist(d.count);
     for(int i=0; i<(int)clist.size(); i++)
