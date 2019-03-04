@@ -326,6 +326,8 @@ public:
             MPI_Status status[requests.size()];
             MPI_Waitall(requests.size(), &requests[0], status);
         }
+
+        MPI_Comm_free(&graphComm);
     }
 
     void makeDataArray(std::vector<Array<T>*> &data, Array<T>* d)
