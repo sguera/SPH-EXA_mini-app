@@ -240,9 +240,9 @@ public:
                         //T disply = bbox.PBCy? ((hy < 0) - (hy >= nY)) * (globalBBox.ymax-globalBBox.ymin) : 0;
                         //T displx = bbox.PBCx? ((hx < 0) - (hx >= nX)) * (globalBBox.xmax-globalBBox.xmin) : 0;
 
-                        int hzz = (hz % nZ) + (hz < 0) * nZ;
-                        int hyy = (hy % nY) + (hy < 0) * nY;
-                        int hxx = (hx % nX) + (hx < 0) * nX;
+                        int hzz = globalBBox.PBCz? (hz % nZ) + (hz < 0) * nZ : hz;
+                        int hyy = globalBBox.PBCy? (hy % nY) + (hy < 0) * nY : hy;
+                        int hxx = globalBBox.PBCx? (hx % nX) + (hx < 0) * nX : hx;
 
                         unsigned int l = hzz*nY*nX+hyy*nX+hxx;
 
@@ -326,6 +326,8 @@ public:
             MPI_Status status[requests.size()];
             MPI_Waitall(requests.size(), &requests[0], status);
         }
+
+        MPI_Comm_free(&graphComm);
     }
 
     void makeDataArray(std::vector<Array<T>*> &data, Array<T>* d)
@@ -497,8 +499,7 @@ public:
 
 public:
     int haloCount;
-
-private:
+    
     MPI_Comm comm;
 
     T localMaxH, globalMaxH;

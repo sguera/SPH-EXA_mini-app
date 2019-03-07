@@ -214,6 +214,13 @@ public:
 			int may = (int)floor(normalize(yi+ri, bbox.ymin, bbox.ymax)*nY);
 			int maz = (int)floor(normalize(zi+ri, bbox.zmin, bbox.zmax)*nZ);
 
+			if(!PBCx) mix = std::max(mix, 0);
+            if(!PBCy) miy = std::max(miy, 0);
+            if(!PBCz) miz = std::max(miz, 0);
+            if(!PBCx) max = std::min(max, nX-1);
+            if(!PBCy) may = std::min(may, nY-1);
+            if(!PBCz) maz = std::min(maz, nZ-1);
+
 			for(int hz=miz; hz<=maz; hz++)
 			{
 				for(int hy=miy; hy<=may; hy++)
@@ -224,12 +231,17 @@ public:
 			 			T disply = PBCy? ((hy < 0) - (hy >= nY)) * (bbox.ymax-bbox.ymin) : 0;
 			 			T displx = PBCx? ((hx < 0) - (hx >= nX)) * (bbox.xmax-bbox.xmin) : 0;
 
-						int hzz = (hz + nZ) % nZ;
-			 			int hyy = (hy + nY) % nY;
-						int hxx = (hx + nX) % nX;
+						int hzz = PBCz? (hz % nZ) + (hz < 0) * nZ : hz;
+			 			int hyy = PBCy? (hy % nY) + (hy < 0) * nY : hy;
+						int hxx = PBCx? (hx % nX) + (hx < 0) * nX : hx;
 
 						unsigned int l = hzz*nY*nX+hyy*nX+hxx;
 
+						// if(id == 26)
+						// {
+						// 	printf("%d %d %d -- %f %f %f\n", hxx, hyy, hzz, displx, disply, displz);
+						// 	fflush(stdout);
+						// }
 						if(cells[l] != nullptr)
 			 				cells[l]->findNeighborsRec(id, xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors);
 			 			else
