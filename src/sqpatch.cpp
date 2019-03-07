@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
         //REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
-        int totalNeighbors = domain.neighborsSum(clist, d.neighbors);
+        long long int totalNeighbors = domain.neighborsSum(clist, d.neighbors);
 
         if(d.rank == 0)
         {
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
             cout << d.bbox.xmin << " " << d.bbox.xmax << " ";
             cout << d.bbox.ymin << " " << d.bbox.ymax << " ";
             cout << d.bbox.zmin << " " << d.bbox.zmax << endl;
-            cout << "### Check ### Total number of neighbours: " << totalNeighbors/d.n << endl;
+            cout << "### Check ### Avg neighbor count per particle: " << totalNeighbors/d.n << endl;
             cout << "### Check ### Total time: " << d.ttot << ", current time-step: " << d.dt[0] << endl;
             cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
         }

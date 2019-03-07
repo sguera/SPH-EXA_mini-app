@@ -74,33 +74,32 @@ public:
 
                 for (int k = 0; k < side; ++k)
                 {
-                    double ly = -0.5 + 1.0 / (2.0 * side) + k * 1.0 / side;
-                    //double lx = -0.5 + 1.0 / (2.0 * side) + (double)k / (double)side;
-                    
-                    double lvx = omega * ly;
-                    double lvy = -omega * lx;
-                    double lvz = 0.;
-                    double lp_0 = 0.;
-
-                    for (int m = 1; m <= 39; m+=2)
-                        for (int l = 1; l <= 39; l+=2)
-                            lp_0 = lp_0 - 32.0 * (omega * omega) / (m * l * (myPI * myPI)) / ((m * myPI) * (m * myPI) + (l * myPI) * (l * myPI)) * sin(m * myPI * (lx + 0.5)) * sin(l * myPI * (ly + 0.5));
-
-                    lp_0 *= 1000.0;
-
-                    // if(k == 0 && i == 0)
-                    //     std::cout << lp_0 << std::endl;
-
-                    //add to the vectors the current calculated values
                     int lindex = i*side*side + j*side + k;
 
-                    z[lindex] = lz;
-                    y[lindex] = ly;
-                    x[lindex] = lx;
-                    vx[lindex] = lvx;
-                    vy[lindex] = lvy;
-                    vz[lindex] = lvz;
-                    p_0[lindex] = lp_0;
+                    if(lindex >= displs[rank] && lindex < displs[rank]+workload[rank])
+                    {
+                        double ly = -0.5 + 1.0 / (2.0 * side) + k * 1.0 / side;
+                        //double lx = -0.5 + 1.0 / (2.0 * side) + (double)k / (double)side;
+                        
+                        double lvx = omega * ly;
+                        double lvy = -omega * lx;
+                        double lvz = 0.;
+                        double lp_0 = 0.;
+
+                        for (int m = 1; m <= 39; m+=2)
+                            for (int l = 1; l <= 39; l+=2)
+                                lp_0 = lp_0 - 32.0 * (omega * omega) / (m * l * (myPI * myPI)) / ((m * myPI) * (m * myPI) + (l * myPI) * (l * myPI)) * sin(m * myPI * (lx + 0.5)) * sin(l * myPI * (ly + 0.5));
+
+                        lp_0 *= 1000.0;
+
+                        z[lindex-displs[rank]] = lz;
+                        y[lindex-displs[rank]] = ly;
+                        x[lindex-displs[rank]] = lx;
+                        vx[lindex-displs[rank]] = lvx;
+                        vy[lindex-displs[rank]] = lvy;
+                        vz[lindex-displs[rank]] = lvz;
+                        p_0[lindex-displs[rank]] = lp_0;
+                    }
                 }
             }
         }
@@ -113,7 +112,7 @@ public:
         int offset = n % nrank;
 
         workload.resize(nrank);
-        std::vector<int> displs(nrank);
+        displs.resize(nrank);
 
         workload[0] = count+offset;
         displs[0] = 0;
@@ -124,15 +123,19 @@ public:
             displs[i] = displs[i-1] + workload[i-1];
         }
 
-        if(rank == 0)
-        {
-            //count += offset;
-            count = n;
-            resize(n);
-            load();
-        }
-        else
-            count = 0;
+        count = workload[rank];
+        resize(count);
+        load();
+
+        // if(rank == 0)
+        // {
+        //     //count += offset;
+        //     count = n;
+        //     resize(n);
+        //     load();
+        // }
+        // else
+        //     count = 0;
 
         //     MPI_Scatterv(&x[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
         //     MPI_Scatterv(&y[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
@@ -318,7 +321,7 @@ public:
         MPI_Comm comm;
         int nrank = 0, pnamelen = 0;
         char pname[MPI_MAX_PROCESSOR_NAME];
-        std::vector<int> workload;
+        std::vector<int> workload, displs;
     #endif
     
     int rank = 0;
