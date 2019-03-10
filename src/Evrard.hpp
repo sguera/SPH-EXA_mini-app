@@ -269,3 +269,4 @@ public:
     const int stabilizationTimesteps = -1;
     const unsigned int ngmin = 50, ng0 = 100, ngmax = 150; // Minimum, target and maximum number of neighbors per particle
 };
+

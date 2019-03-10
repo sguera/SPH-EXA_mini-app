@@ -334,3 +334,4 @@ public:
     T dx = 0.01;
     int ngmin = 5, ng0 = 500, ngmax = 800;
 };
+
