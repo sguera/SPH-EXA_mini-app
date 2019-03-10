@@ -24,7 +24,7 @@ public:
 		{
 			const int i = clist[pi];
 			const int nn = (int)neighbors[pi].size();
-		
+
 		    T roloc = 0.0;
 		    ro[i] = 0.0;
 

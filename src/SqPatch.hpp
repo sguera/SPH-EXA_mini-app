@@ -79,18 +79,18 @@ public:
                     if(lindex >= displs[rank] && lindex < displs[rank]+workload[rank])
                     {
                         double ly = -0.5 + 1.0 / (2.0 * side) + k * 1.0 / side;
-                    //double lx = -0.5 + 1.0 / (2.0 * side) + (double)k / (double)side;
-                    
-                    double lvx = omega * ly;
-                    double lvy = -omega * lx;
-                    double lvz = 0.;
-                    double lp_0 = 0.;
+                        //double lx = -0.5 + 1.0 / (2.0 * side) + (double)k / (double)side;
+                        
+                        double lvx = omega * ly;
+                        double lvy = -omega * lx;
+                        double lvz = 0.;
+                        double lp_0 = 0.;
 
-                    for (int m = 1; m <= 39; m+=2)
-                        for (int l = 1; l <= 39; l+=2)
-                            lp_0 = lp_0 - 32.0 * (omega * omega) / (m * l * (myPI * myPI)) / ((m * myPI) * (m * myPI) + (l * myPI) * (l * myPI)) * sin(m * myPI * (lx + 0.5)) * sin(l * myPI * (ly + 0.5));
+                        for (int m = 1; m <= 39; m+=2)
+                            for (int l = 1; l <= 39; l+=2)
+                                lp_0 = lp_0 - 32.0 * (omega * omega) / (m * l * (myPI * myPI)) / ((m * myPI) * (m * myPI) + (l * myPI) * (l * myPI)) * sin(m * myPI * (lx + 0.5)) * sin(l * myPI * (ly + 0.5));
 
-                    lp_0 *= 1000.0;
+                        lp_0 *= 1000.0;
 
                         z[lindex-displs[rank]] = lz;
                         y[lindex-displs[rank]] = ly;
@@ -110,7 +110,7 @@ public:
     {
         count = n / nrank;
         int offset = n % nrank;
-        
+
         workload.resize(nrank);
         displs.resize(nrank);
 

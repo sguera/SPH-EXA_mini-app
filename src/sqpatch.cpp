@@ -62,27 +62,27 @@ int main(int argc, char **argv)
     std::ofstream constants("constants.txt");
 
     if(d.rank == 0) cout << "Calibration of Density..." << endl; 
-        #ifdef USE_MPI
-            domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false);
-            domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
+    #ifdef USE_MPI
+        domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false);
+        domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
         domain.buildTree(d.bbox, d.x, d.y, d.z, d.h);
-            d.count = clist.size();
-        #else
-            domain.build(clist, d.x, d.y, d.z, d.h, d.bbox);
-        #endif
-        domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors);
-        density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro);
+        d.count = clist.size();
+    #else
+        domain.build(clist, d.x, d.y, d.z, d.h, d.bbox);
+    #endif
+    domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors);
+    density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro);
 
-        #pragma omp parallel for
-        for(int pi=0; pi<(int)clist.size(); pi++)
-            d.ro_0[clist[pi]] = d.ro[clist[pi]];
+    #pragma omp parallel for
+    for(int pi=0; pi<(int)clist.size(); pi++)
+        d.ro_0[clist[pi]] = d.ro[clist[pi]];
 
     for(int iteration = 0; iteration <= maxStep; iteration++)
     {
         timer::TimePoint start = timer::Clock::now();
 
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
-        
+
         #ifdef USE_MPI
             REPORT_TIME(d.rank, domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false), "domain::build");
             REPORT_TIME(d.rank, domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");

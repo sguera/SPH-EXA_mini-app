@@ -67,7 +67,7 @@ inline void applyPBC(const BBox<T> &bbox, const T r, T &xx, T &yy, T &zz)
     
     if(bbox.PBCy && yy > r) yy -= (bbox.ymax-bbox.ymin);
     else if(bbox.PBCy && yy < -r) yy += (bbox.ymax-bbox.ymin);
-    
+
     if(bbox.PBCz && zz > r) zz -= (bbox.zmax-bbox.zmin);
     else if(bbox.PBCz && zz < -r) zz += (bbox.zmax-bbox.zmin);
 

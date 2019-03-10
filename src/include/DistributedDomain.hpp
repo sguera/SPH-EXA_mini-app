@@ -499,7 +499,7 @@ public:
 
 public:
     int haloCount;
-
+    
     MPI_Comm comm;
 
     T localMaxH, globalMaxH;
