@@ -52,16 +52,15 @@ public:
 	    }
 	}
 
-	int neighborsSum(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors)
+	long long int neighborsSum(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors)
 	{
-	    int sum = 0;
+	    long long int sum = 0;
 	    #pragma omp parallel for reduction (+:sum)
 	    for(unsigned int i=0; i<clist.size(); i++)
 	        sum += neighbors[i].size();
 
 	    #ifdef USE_MPI
-	        MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-	        MPI_Barrier(MPI_COMM_WORLD);
+	        MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
 	    #endif
 
 	    return sum;

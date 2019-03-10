@@ -20,10 +20,10 @@ public:
 		const int n = clist.size();
 
 		#pragma omp parallel for
-		for(int indexpi=0; indexpi<n; indexpi++)
+		for(int pi=0; pi<n; pi++)
 		{
-			const int i = clist[indexpi];
-			const int nn = (int)neighbors[indexpi].size();
+			const int i = clist[pi];
+			const int nn = (int)neighbors[pi].size();
 		
 		    T roloc = 0.0;
 		    ro[i] = 0.0;
@@ -31,7 +31,7 @@ public:
 		    // int converstion to avoid a bug that prevents vectorization with some compilers
 		    for(int pj=0; pj<nn; pj++)
 		    {
-                const int j = neighbors[indexpi][pj];
+		    	const int j = neighbors[pi][pj];
 
 		        // later can be stores into an array per particle
 		        T dist =  distancePBC(bbox, h[i], x[i], y[i], z[i], x[j], y[j], z[j]); //store the distance from each neighbor

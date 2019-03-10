@@ -21,23 +21,19 @@ public:
 	{
 		const int n =  clist.size();
 
-		// Time-scheme according to Press (2nd order)
-		#pragma omp parallel for
-		for(int pi=0; pi<n; pi++)
-		{
-			int i = clist[pi];
-		    dt[i] = Kcour * (h[i]/c[i]);
-		}
+		T mini = INFINITY;
 
-        T mini = INFINITY;
         #pragma omp parallel for reduction(min:mini)
         for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];
+			// Time-scheme according to Press (2nd order)
+		    dt[i] = Kcour * (h[i]/c[i]);
             if(dt[i] < mini)
                 mini = dt[i];
         }
 
+		if(n > 0)
         mini = std::min(mini, maxDtIncrease * dt_m1[0]);
 
         #ifdef USE_MPI
