@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <unistd.h>
 
 #include "sphexa.hpp"
 #include "debug.hpp"
@@ -14,8 +15,77 @@ using namespace sphexa;
     if (rank == 0) sphexa::timer::report_time([&](){ expr; }, name); \
     else { expr; }
 
+void gnuplot_init(FILE *&gp)
+{
+    gp = popen("gnuplot -persistent", "w");
+    //fprintf(gp, "set pm3d map;\n");
+    //fprintf(gp, "set terminal wxt size 600,600\n");
+    //fprintf(gp, "set cbrange [300.0:700.0];\n");
+    //fprintf(gp, "set palette defined ( 0 \"black\", 1 \"red\", 2 \"yellow\", 3 \"white\" );\n");
+}
+
+void gnuplot_destroy(FILE *gp)
+{
+    fprintf(gp, "exit\n");
+    pclose(gp);
+}
+
+template<typename T>
+void gnuplot_plot(FILE *gp, const std::vector<int> &clist, const BBox<T> &bbox, const vector<T> &x, const vector<T> &y, const vector<T> &z, const vector<T> &c)
+{
+    // //int n = ceil(pow(x.size(), 1.0/3.0));
+
+    // int n = ceil(pow(x.size(), 1.0/3.0));
+    // n *= n;
+
+    // double xy[n*3];
+    // for(int i=0; i<n; i++)
+    // {
+    //     xy[i*3] = x[i];
+    //     xy[i*3+1] = y[i];
+    //     xy[i*3+2] = z[i];
+    // }
+
+    // //fprintf(gp, "\n");
+    // // fprintf(gp, "set xrange [%f:%f];\n", bbox.xmin, bbox.xmax);
+    // // fprintf(gp, "set yrange [%f:%f];\n", bbox.ymin, bbox.ymax);
+    // fprintf(gp, "plot '-' binary format='%%double%%double%%double' record=%d u 1:2:3 pt 7 ps 1 lc palette z\n", n);
+    // fwrite(xy, sizeof(double), 3*n, gp);
+    // //fwrite(&y[0], sizeof(double), n, gp);
+    // //fwrite(&data[0][1], sizeof(double), n, gp);
+    // //fwrite(&data[0][2], sizeof(double), n, gp);
+    // fprintf(gp, "\n");
+    // fflush(gp);
+
+    int n = clist.size();
+
+    double xy[n*4];
+    for(int i=0; i<n; i++)
+    {
+        xy[i*4] = x[clist[i]];
+        xy[i*4+1] = y[clist[i]];
+        xy[i*4+2] = z[clist[i]];
+        xy[i*4+3] = c[clist[i]];
+    }
+
+    //fprintf(gp, "\n");
+    fprintf(gp, "set xrange [%f:%f];\n", bbox.xmin, bbox.xmax);
+    fprintf(gp, "set yrange [%f:%f];\n", bbox.ymin, bbox.ymax);
+    fprintf(gp, "set zrange [%f:%f];\n", bbox.zmin, bbox.zmax);
+    fprintf(gp, "set cbrange [-50.0:50.0];\n");
+    fprintf(gp, "splot '-' binary format='%%double%%double%%double' record=%d u 1:2:3:4 pt 7 ps 1 lc palette z\n", n);
+    fwrite(xy, sizeof(double), 4*n, gp);
+    //fwrite(&y[0], sizeof(double), n, gp);
+    //fwrite(&data[0][1], sizeof(double), n, gp);
+    //fwrite(&data[0][2], sizeof(double), n, gp);
+    fprintf(gp, "\n");
+    fflush(gp);
+}
+
 int main(int argc, char **argv)
 {
+    FILE *gp; gnuplot_init(gp);
+
     ArgParser parser(argc, argv);
 
     int cubeSide = parser.getInt("-n", 100);
@@ -134,6 +204,8 @@ int main(int argc, char **argv)
         timer::TimePoint stop = timer::Clock::now();
         
         if(d.rank == 0) cout << "=== Total time for iteration " << timer::duration(start, stop) << "s" << endl << endl;
+        
+        gnuplot_plot(gp, clist, d.bbox, d.x, d.y, d.z, d.z);
     }
 
     constants.close();
@@ -141,6 +213,8 @@ int main(int argc, char **argv)
     #ifdef USE_MPI
         MPI_Finalize();
     #endif
+
+    gnuplot_destroy(gp);
 
     return 0;
 }
