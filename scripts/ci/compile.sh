@@ -105,13 +105,13 @@ function compile_and_run_II() {
 #    #  #   ##  #    #
  ####   #    #   ####
 function compile_and_run_AA() {
-    # GNU/6.2.0
+    # GNU/8.x
     module swap PrgEnv-cray PrgEnv-gnu
+    module swap gcc/8.2.0
     module list -t
     CC --version
     make distclean -f Makefile.cscs
-    make SRC=src/sqpatch.cpp -f Makefile.cscs
-    sbatchjg
+    make SRC=src/sqpatch.cpp -f Makefile.cscs && sbatchjg
 }
 
 function compile_and_run_BB() {
@@ -121,8 +121,7 @@ function compile_and_run_BB() {
     module list -t
     CC --version
     make distclean -f Makefile.cscs
-    make SRC=src/sqpatch.cpp -f Makefile.cscs
-    sbatchjg
+    make SRC=src/sqpatch.cpp -f Makefile.cscs && sbatchjg
 }
  
 # TODO: /apps/common/UES/sandbox/jgp/production.git/easybuild/easyconfigs/g/GCC/73
@@ -152,11 +151,11 @@ function compile_and_run_HH() {
 function compile_and_run_CC() {
     # intel/18.0.2.199
     module swap PrgEnv-cray PrgEnv-intel
+    module swap intel/18.0.2.199
     module list -t
     CC -V
     make distclean -f Makefile.cscs
-    make SRC=src/sqpatch.cpp -f Makefile.cscs
-    sbatchjg
+    make SRC=src/sqpatch.cpp -f Makefile.cscs && sbatchjg
     #echo "./sbatch.sh dom 5 $PWD/bin/*exe 1 1 36 36 1 -Cmc $RRR"
 }
 
@@ -167,8 +166,7 @@ function compile_and_run_DD() {
     module list -t
     CC -V
     make distclean -f Makefile.cscs
-    make SRC=src/sqpatch.cpp -f Makefile.cscs
-    sbatchjg
+    make SRC=src/sqpatch.cpp -f Makefile.cscs && sbatchjg
 }
 #}}}
 
@@ -181,18 +179,17 @@ function compile_and_run_DD() {
 #     # #     # #
  #####   #####  #######
 function compile_and_run_EE() {
-    # cce/8.7.6
-    #echo "CCE -homp = INTERNAL COMPILER ERROR, exiting"
-    #exit 0
-    module swap cce/8.7.6
+    # cce/8.7
+    #echo "CCE -homp = INTERNAL COMPILER ERROR, exiting" ;exit 0
+    module swap cce/8.7.9
     module list -t
     CC -V
     make distclean -f Makefile.cscs
-    make SRC=src/sqpatch.cpp -f Makefile.cscs
-    sbatchjg
+    make SRC=src/sqpatch.cpp -f Makefile.cscs && sbatchjg
 }
 
 function compile_and_run_GG() {
+    echo "cce/8.6.1 no longer available"; exit 0
     # cce/8.6.1
     #echo "CCE -homp = INTERNAL COMPILER ERROR, exiting"
     #exit 0
