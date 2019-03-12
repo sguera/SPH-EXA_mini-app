@@ -317,11 +317,12 @@ public:
     sphexa::BBox<T> bbox;
     std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
 
+    std::vector<int> workload, displs;
+    
     #ifdef USE_MPI
         MPI_Comm comm;
         int nrank = 0, pnamelen = 0;
         char pname[MPI_MAX_PROCESSOR_NAME];
-        std::vector<int> workload, displs;
     #endif
     
     int rank = 0;
