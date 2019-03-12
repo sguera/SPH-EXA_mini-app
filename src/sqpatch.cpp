@@ -27,9 +27,8 @@ int main(int argc, char **argv)
     #ifdef _JENKINS
         maxStep = 0;
         writeFrequency = -1;
+        debug();
     #endif
-
-	//debug();
 
     typedef double Real;
     typedef Octree<Real> Tree;
