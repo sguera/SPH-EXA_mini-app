@@ -11,27 +11,20 @@ template<typename T>
 class SqPatch
 {
 public:
-    #ifdef USE_MPI
-        SqPatch(int side, MPI_Comm comm = MPI_COMM_WORLD) : 
-            n(side*side*side), side(side), count(side*side*side), comm(comm),data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})//, ng0(ng0), ngmax(1.5*ng0)
-        {
+    SqPatch(int side) : 
+        n(side*side*side), side(side), count(side*side*side), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
+            &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})//, ng0(ng0), ngmax(1.5*ng0)
+    {
+        #ifdef USE_MPI
+            comm = MPI_COMM_WORLD;
             MPI_Comm_size(comm, &nrank);
             MPI_Comm_rank(comm, &rank);
             MPI_Get_processor_name(pname, &pnamelen);
-            loadMPI();
-            init();
-        }
-    #else
-         SqPatch(int side) : 
-            n(side*side*side), side(side), count(side*side*side), data({&x, &y, &z, &x_m1, &y_m1, &z_m1, &vx, &vy, &vz, 
-                &ro, &ro_0, &u, &p, &p_0, &h, &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt, &dt_m1})//, ng0(ng0), ngmax(1.5*ng0)
-        {
-            resize(n);
-            load();
-            init();
-        }
-    #endif
+        #endif
+
+        load();
+        init();
+    }
 
     inline void resize(unsigned int size)
     {
@@ -43,22 +36,25 @@ public:
     //void load(const std::string &filename)
     void load()
     {
-        // input file stream
-        // std::ifstream inputfile(filename, std::ios::binary);
+        count = n / nrank;
+        int offset = n % nrank;
 
-        // if(inputfile.is_open())
-        // {
-        //     // read the contents of the file into the vectors
-        //     inputfile.read(reinterpret_cast<char*>(x.data()), sizeof(T)*x.size());
-        //     inputfile.read(reinterpret_cast<char*>(y.data()), sizeof(T)*y.size());
-        //     inputfile.read(reinterpret_cast<char*>(z.data()), sizeof(T)*z.size());
-        //     inputfile.read(reinterpret_cast<char*>(vx.data()), sizeof(T)*vx.size());
-        //     inputfile.read(reinterpret_cast<char*>(vy.data()), sizeof(T)*vy.size());
-        //     inputfile.read(reinterpret_cast<char*>(vz.data()), sizeof(T)*vz.size());
-        //     inputfile.read(reinterpret_cast<char*>(p_0.data()), sizeof(T)*p_0.size());
-        // }
-        // else
-        //     std::cout << "ERROR: " << "in opening file " << filename << std::endl;
+        workload.resize(nrank);
+        displs.resize(nrank);
+
+        workload[0] = count+offset;
+        displs[0] = 0;
+
+        for(int i=1; i<nrank; i++)
+        {
+            workload[i] = count;
+            displs[i] = displs[i-1] + workload[i-1];
+        }
+
+        count = workload[rank];
+
+        resize(count);
+
         const double omega = 5.0;
         const double myPI = std::acos(-1.0);
 
@@ -104,63 +100,6 @@ public:
             }
         }
     }
-
-    #ifdef USE_MPI
-    void loadMPI()
-    {
-        count = n / nrank;
-        int offset = n % nrank;
-
-        workload.resize(nrank);
-        displs.resize(nrank);
-
-        workload[0] = count+offset;
-        displs[0] = 0;
-
-        for(int i=1; i<nrank; i++)
-        {
-            workload[i] = count;
-            displs[i] = displs[i-1] + workload[i-1];
-        }
-
-        count = workload[rank];
-        resize(count);
-        load();
-
-        // if(rank == 0)
-        // {
-        //     //count += offset;
-        //     count = n;
-        //     resize(n);
-        //     load();
-        // }
-        // else
-        //     count = 0;
-
-        //     MPI_Scatterv(&x[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(&y[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(&z[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(&vx[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(&vy[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(&vz[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(&p_0[0], &workload[0], &displs[0], MPI_DOUBLE, MPI_IN_PLACE, count, MPI_DOUBLE, 0, comm);
-
-        //     resize(count);
-        // }
-        // else
-        // {
-        //     resize(count);
-
-        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &x[0], count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &y[0], count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &z[0], count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vx[0], count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vy[0], count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &vz[0], count, MPI_DOUBLE, 0, comm);
-        //     MPI_Scatterv(NULL, &workload[0], &displs[0], MPI_DOUBLE, &p_0[0], count, MPI_DOUBLE, 0, comm);
-        // }
-    }
-    #endif
 
     void init()
     {
@@ -321,11 +260,12 @@ public:
     
     #ifdef USE_MPI
         MPI_Comm comm;
-        int nrank = 0, pnamelen = 0;
+        int pnamelen = 0;
         char pname[MPI_MAX_PROCESSOR_NAME];
     #endif
     
     int rank = 0;
+    int nrank = 1;
 
     std::vector<std::vector<T>*> data;
     T sincIndex = 6.0;
