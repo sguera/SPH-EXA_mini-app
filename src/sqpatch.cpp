@@ -29,7 +29,7 @@ int main(int argc, char **argv)
         writeFrequency = -1;
     #endif
 
-	//debug();
+    // debug();
 
     typedef double Real;
     typedef Octree<Real> Tree;
@@ -37,6 +37,7 @@ int main(int argc, char **argv)
 
     #ifdef USE_MPI
         MPI_Init(NULL, NULL);
+        debug();
     #endif
 
     Dataset d(cubeSide);
