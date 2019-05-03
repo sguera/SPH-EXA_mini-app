@@ -3,6 +3,8 @@
 #include <string>
 
 #include "sphexa.hpp"
+#include "debug.hpp"
+
 #include "Evrard.hpp"
 
 using namespace std;
@@ -12,7 +14,7 @@ using namespace sphexa;
     if (rank == 0) sphexa::timer::report_time([&](){ expr; }, name); \
     else { expr; }
 
-int main()
+int main(int argc, char **argv)
 {
     typedef double Real;
     typedef Octree<Real> Tree;

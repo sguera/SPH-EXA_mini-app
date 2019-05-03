@@ -37,13 +37,13 @@ class SphExaMiniAppSquarepatch(rfm.CompileOnlyRegressionTest):
         self.modules = [compilerversion]
         self.prgenv_flags = {
             'PrgEnv-gnu': ['-I./include', '-std=c++14', '-O3', '-g',
-                           '-fopenmp', '-D_JENKINS'],
+                           '-fopenmp', '-D_JENKINS', '-DNDEBUG'],
             'PrgEnv-intel': ['-I./include', '-std=c++14', '-O3', '-g',
-                             '-qopenmp', '-D_JENKINS'],
+                             '-qopenmp', '-D_JENKINS', '-DNDEBUG'],
             'PrgEnv-cray': ['-I./include', '-hstd=c++14', '-O3', '-g',
-                            '-homp', '-D_JENKINS'],
+                            '-homp', '-D_JENKINS', '-DNDEBUG'],
             'PrgEnv-pgi': ['-I./include', '-std=c++14', '-O3', '-g',
-                           '-mp', '-D_JENKINS'],
+                           '-mp', '-D_JENKINS', '-DNDEBUG'],
         }
         self.variables = {
             'CRAYPE_LINK_TYPE': 'dynamic'
