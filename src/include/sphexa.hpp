@@ -1,7 +1,5 @@
 #pragma once
 
-#include "tree/Octree.hpp"
-
 #include "BBox.hpp"
 
 #include "Domain.hpp"
@@ -14,8 +12,9 @@
 #include "Timestep.hpp"
 #include "UpdateQuantities.hpp"
 
-#include "timer.hpp"
 #include "kernels.hpp"
+
+#include "Octree.hpp"
 
 #ifdef USE_MPI
     #include "mpi.h"
@@ -26,3 +25,4 @@
 
 #include "config.hpp"
 
+#include "timer.hpp"
