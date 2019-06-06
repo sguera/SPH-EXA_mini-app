@@ -30,7 +30,8 @@ public:
     {
         for(unsigned int i=0; i<data.size(); i++)
             data[i]->resize(size);
-        neighbors.resize(size);
+        neighbors.resize(size*ngmax);
+        neighborsCount.resize(size);
     }
 
     //void load(const std::string &filename)
@@ -143,9 +144,6 @@ public:
 
         etot = ecin = eint = 0.0;
         ttot = 0.0;
-        
-        for(auto i : neighbors)
-            i.reserve(ngmax);
 
         if(rank == 0 && 2.0 * h[0] > (bbox.zmax-bbox.zmin)/2.0)
         {
@@ -254,7 +252,9 @@ public:
     T ttot, etot, ecin, eint;
 
     sphexa::BBox<T> bbox;
-    std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
+
+    std::vector<int> neighbors; // List of neighbor indices per particle.
+    std::vector<int> neighborsCount;
 
     std::vector<int> workload, displs;
     

@@ -4,9 +4,7 @@
 
 #include "Domain.hpp"
 #include "Density.hpp"
-#include "EquationOfState.hpp"
 #include "EquationOfStateSqPatch.hpp"
-#include "MomentumEnergy.hpp"
 #include "MomentumEnergySqPatch.hpp"
 #include "EnergyConservation.hpp"
 #include "Timestep.hpp"

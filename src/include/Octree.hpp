@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "../BBox.hpp"
+#include "BBox.hpp"
 
 namespace sphexa
 {

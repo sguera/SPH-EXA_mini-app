@@ -7,6 +7,7 @@
 #endif
 
 #include "config.hpp"
+#include "Octree.hpp"
 
 namespace sphexa
 {
@@ -32,32 +33,33 @@ public:
             reorderSwap(*tree.ordering, *data[i]);
     }
 
-	void findNeighbors(const std::vector<int> &clist, const BBox<T> &bbox, const Array<T> &x, const Array<T> &y, const Array<T> &z, Array<T> &h, std::vector<std::vector<int>> &neighbors)
+	void findNeighbors(const std::vector<int> &clist, const BBox<T> &bbox, const Array<T> &x, const Array<T> &y, const Array<T> &z, Array<T> &h, std::vector<int> &neighbors, std::vector<int> &neighborsCount)
 	{
 		int n = clist.size();
-		neighbors.resize(n);
+		neighbors.resize(n*ngmax);
+		neighborsCount.resize(n);
 
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(guided)
 		for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];
 
-            neighbors[pi].resize(0);
-            tree.findNeighbors(i, x[i], y[i], z[i], 2*h[i], ngmax, neighbors[pi], bbox.PBCx, bbox.PBCy, bbox.PBCz);
+            neighborsCount[pi] = 0;
+            tree.findNeighbors(i, x[i], y[i], z[i], 2*h[i], ngmax, &neighbors[pi*ngmax], neighborsCount[pi], bbox.PBCx, bbox.PBCy, bbox.PBCz);
             
             #ifndef NDEBUG
 	            if(neighbors[pi].size() == 0)
-	            	printf("ERROR::FindNeighbors(%d) x %f y %f z %f h = %f ngi %zu\n", i, x[i], y[i], z[i], h[i], neighbors[pi].size());
+	            	printf("ERROR::FindNeighbors(%d) x %f y %f z %f h = %f ngi %zu\n", i, x[i], y[i], z[i], h[i], neighborsCount[pi]);
 	        #endif
 	    }
 	}
 
-	long long int neighborsSum(const std::vector<int> &clist, const std::vector<std::vector<int>> &neighbors)
+	long long int neighborsSum(const std::vector<int> &clist, const std::vector<int> &neighborsCount)
 	{
 	    long long int sum = 0;
 	    #pragma omp parallel for reduction (+:sum)
 	    for(unsigned int i=0; i<clist.size(); i++)
-	        sum += neighbors[i].size();
+	        sum += neighborsCount[i];
 
 	    #ifdef USE_MPI
 	        MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);

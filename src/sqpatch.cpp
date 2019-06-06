@@ -18,18 +18,14 @@ int main(int argc, char **argv)
 {
     ArgParser parser(argc, argv);
 
-    int cubeSide = parser.getInt("-n", 100);
-    int maxStep = parser.getInt("-s", 1e5);
-    int writeFrequency = parser.getInt("-w", 250);
-    //int targetNeighbors = parser.getInt("-nn", 500);
-    //std::string inputFilename = parser.getString("-f", "bigfiles/squarepatch3D_1M.bin");
+    int cubeSide = parser.getInt("-n", 50);
+    int maxStep = parser.getInt("-s", 10);
+    int writeFrequency = parser.getInt("-w", -1);
 
     #ifdef _JENKINS
         maxStep = 0;
         writeFrequency = -1;
     #endif
-
-	//debug();
 
     typedef double Real;
     typedef Octree<Real> Tree;
@@ -52,9 +48,6 @@ int main(int argc, char **argv)
     UpdateQuantities<Real> updateQuantities;
     EnergyConservation<Real> energyConservation;
 
-    // if(d.rank == 0)
-    //     cout << "Total number of ranks: " << domain.comm_size << endl;
-    
     vector<int> clist(d.count);
     for(int i=0; i<(int)clist.size(); i++)
         clist[i] = i;
@@ -70,8 +63,8 @@ int main(int argc, char **argv)
     #else
         domain.build(clist, d.x, d.y, d.z, d.h, d.bbox);
     #endif
-    domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors);
-    density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro);
+    domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors, d.neighborsCount);
+    density.compute(clist, d);
 
     #pragma omp parallel for
     for(int pi=0; pi<(int)clist.size(); pi++)
@@ -94,8 +87,8 @@ int main(int argc, char **argv)
         #endif
 
         // REPORT_TIME(d.rank, mpi.reorder(d.data), "ReorderParticles");
-        REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors), "FindNeighbors");
-        REPORT_TIME(d.rank, density.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.m, d.ro), "Density");
+        REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors, d.neighborsCount), "FindNeighbors");
+        REPORT_TIME(d.rank, density.compute(clist, d), "Density");
         REPORT_TIME(d.rank, equationOfState.compute(clist, d.ro_0, d.p_0, d.ro, d.p, d.u, d.c), "EquationOfState");
         
         #ifdef USE_MPI
@@ -103,14 +96,13 @@ int main(int argc, char **argv)
             REPORT_TIME(d.rank, domain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c), "mpi::synchronizeHalos");
         #endif
 
-        REPORT_TIME(d.rank, momentumEnergy.compute(clist, d.bbox, d.neighbors, d.x, d.y, d.z, d.h, d.vx, d.vy, d.vz, d.ro, d.p, d.c, d.m, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.du), "MomentumEnergy");
+        REPORT_TIME(d.rank, momentumEnergy.compute(clist, d), "MomentumEnergy");
         REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt, d.ttot), "Timestep");
         REPORT_TIME(d.rank, updateQuantities.compute(clist, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
         //REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
 
-        long long int totalNeighbors = domain.neighborsSum(clist, d.neighbors);
-
+        long long int totalNeighbors = domain.neighborsSum(clist, d.neighborsCount);
         if(d.rank == 0)
         {
             cout << "### Check ### Computational domain: ";
