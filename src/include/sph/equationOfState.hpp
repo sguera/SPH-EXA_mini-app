@@ -6,14 +6,20 @@
 
 namespace sphexa
 {
-
-template<typename T, typename ArrayT = std::vector<T>>
-class EquationOfStateSqPatch
+namespace sph
 {
-public:
-	void compute(const std::vector<int> &clist, const ArrayT &ro_0, const ArrayT &p_0, const ArrayT &ro, ArrayT &p, ArrayT &u, ArrayT &c)
+	template<typename T, class Dataset>
+	void computeEquationOfState(const std::vector<int> &l, Dataset &d)
 	{
-		int n = clist.size();
+		const int n = l.size();
+		const int *clist = l.data();
+
+		const T *ro_0 = d.ro_0.data();
+		const T *ro = d.ro.data();
+		const T *p_0 = d.p_0.data();
+		T *p = d.p.data();
+		T *u = d.u.data();
+		T *c = d.c.data();
 
 		const T heatCapacityRatio = 7.0;
 		const T speedOfSound0 = 3500.0;
@@ -35,7 +41,6 @@ public:
 		    // 1e7 per unit of mass (1e-3 or 1g)
 		}
 	}
-};
-
+}
 }
 

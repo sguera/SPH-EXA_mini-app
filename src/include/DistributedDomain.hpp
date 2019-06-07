@@ -1,21 +1,24 @@
 #pragma once
 
+#ifdef USE_MPI
+    #include "mpi.h"
+#endif
+
 #include <vector>
 #include <cmath>
 #include <map>
 
 #include "BBox.hpp"
-#include "Domain.hpp"
 
 namespace sphexa
 {
 
-template<typename T, class Tree = Octree<T>>
-class DistributedDomain : public Domain<T, Tree>
+template<typename T>
+class DistributedDomain
 {
+#ifdef USE_MPI
 public:
-    DistributedDomain(int ngmin, int ng0, int ngmax, int bucketSize = 128, MPI_Comm comm = MPI_COMM_WORLD) 
-        : Domain<T, Tree>(ngmin, ng0, ngmax, bucketSize), comm(comm), ncells(0)
+    DistributedDomain(MPI_Comm comm = MPI_COMM_WORLD) : comm(comm)
     {
         MPI_Comm_size(comm, &comm_size);
         MPI_Comm_rank(comm, &comm_rank);
@@ -440,40 +443,41 @@ public:
             removeIndices(discardList, data);
     }
 
-    virtual void build(const std::vector<int> &procsize, Array<T> &x, Array<T> &y, Array<T> &z, Array<T> &h, BBox<T> &globalBBox, std::vector<int> &clist, std::vector<Array<T>*> &data, bool showGraph = false)
+    template<class Dataset>
+    void distribute(std::vector<int> &clist, Dataset &d, bool showGraph = false)
     {   
         /* The 'bbox' here is is only used to test PBC. If PBC is activated, the globalBBox will take the corresponding bbox.x{min,max} values */
-        globalBBox.computeGlobal(clist, x, y, z, comm);
-        globalMaxH = computeGlobalMaxH(clist, h);
+        d.bbox.computeGlobal(clist, d.x, d.y, d.z, comm);
+        globalMaxH = computeGlobalMaxH(clist, d.h);
         
-        nX = std::max((globalBBox.xmax-globalBBox.xmin) / globalMaxH, 2.0);
-        nY = std::max((globalBBox.ymax-globalBBox.ymin) / globalMaxH, 2.0);
-        nZ = std::max((globalBBox.zmax-globalBBox.zmin) / globalMaxH, 2.0);
+        nX = std::max((d.bbox.xmax-d.bbox.xmin) / globalMaxH, 2.0);
+        nY = std::max((d.bbox.ymax-d.bbox.ymin) / globalMaxH, 2.0);
+        nZ = std::max((d.bbox.zmax-d.bbox.zmin) / globalMaxH, 2.0);
         ncells = nX*nY*nZ;
 
-        distributeParticles(clist, globalBBox, x, y, z);
-        computeGlobalCellCount();
-        assignRanks(procsize);
-        synchronize(data);
-        discard(data);
+        distributeParticles(clist, d.bbox, d.x, d.y, d.z); // Distribute particles in global buckets
+        computeGlobalCellCount(); // How many particles per bucket (globally) ?
+        assignRanks(d.workload); // Assign ranks to buckets
+        synchronize(d.data); // Receive new particles from neighbor nodes
+        discard(d.data); // Discard particles that were sent to other nodes
 
-        clist.resize(data[0]->size());
+        clist.resize(d.data[0]->size());
         for(unsigned int i=0; i<clist.size(); i++)
             clist[i] = i;
         
-        distributeParticles(clist, globalBBox, x, y, z);
+        distributeParticles(clist, d.bbox, d.x, d.y, d.z); // Re-distribute new particles in global buckets
 
         BBox<T> localBBox;
-        localBBox.compute(clist, x, y, z);
-        localMaxH = computeMaxH(clist, h);
+        localBBox.compute(clist, d.x, d.y, d.z);
+        localMaxH = computeMaxH(clist, d.h);
 
         // Use the localbbox to identify halo cells
-        computeHaloList(localBBox, globalBBox, showGraph);
+        computeHaloList(localBBox, d.bbox, showGraph); // Find which rank is our neighbor (builds a directed graph)
+
+        d.count = clist.size(); // Update particle count
     }
 
-public:
-    int haloCount;
-    
+private:
     MPI_Comm comm;
 
     T localMaxH, globalMaxH;
@@ -490,6 +494,21 @@ public:
 
     int comm_size, comm_rank, name_len;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
+
+#else
+public:
+    template<class Dataset>
+    void distribute(const std::vector<int> &clist, Dataset &d)
+    {
+        d.bbox.compute(clist, d.x, d.y, d.z);
+    }
+
+    template<typename... Args>
+    void synchronizeHalos(Args...) {}
+#endif
+
+public:
+    int haloCount = 0;
 };
 
 }

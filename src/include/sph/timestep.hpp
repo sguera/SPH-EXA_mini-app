@@ -11,16 +11,22 @@
 
 namespace sphexa
 {
-
-template<typename T = double, typename ArrayT = std::vector<T>>
-class Timestep
+namespace sph
 {
-public:
-	Timestep(const T Kcour = 0.2, const T maxDtIncrease = 1.1) : Kcour(Kcour), maxDtIncrease(maxDtIncrease) {}
-
-	void compute(const std::vector<int> &clist, const ArrayT &h, const ArrayT &c, const ArrayT &dt_m1, ArrayT &dt, T &ttot)
+	template<typename T, class Dataset>
+	void computeTimestep(const std::vector<int> &l, Dataset &d)
 	{
-		const int n = clist.size();
+		const int n = l.size();
+		const int *clist = l.data();
+
+		const T *h = d.h.data();
+		const T *c = d.c.data();
+		const T *dt_m1 = d.dt_m1.data();
+		const T Kcour= d.Kcour;
+		const T maxDtIncrease = d.maxDtIncrease;
+
+		T &ttot = d.ttot;
+		T *dt = d.dt.data();
 
 		T mini = INFINITY;
 
@@ -50,10 +56,6 @@ public:
 
         ttot += mini;
 	}
-
-private:
-	const T Kcour, maxDtIncrease;
-};
-
+}
 }
 
