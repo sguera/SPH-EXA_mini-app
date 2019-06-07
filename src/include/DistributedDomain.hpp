@@ -419,22 +419,6 @@ public:
         }
     }
 
-    inline void keepIndices(const std::vector<int> indices, std::vector<Array<T>*> &data)
-    {
-        for(unsigned int i=0; i<data.size(); i++)
-        {
-            Array<T> &array = *data[i];
-            
-            int j = 0;
-            std::vector<T> tmp(indices.size());
-            for(unsigned int i=0; i<indices.size(); i++)
-                tmp[j++] = array[indices[i]];
-
-            tmp.swap(array);
-            array.resize(j);
-        }
-    }
-
     void computeDiscardList(const int count, std::vector<bool> &discardList)
     {
         discardList.resize(count, false);
@@ -458,10 +442,6 @@ public:
 
     virtual void build(const std::vector<int> &procsize, Array<T> &x, Array<T> &y, Array<T> &z, Array<T> &h, BBox<T> &globalBBox, std::vector<int> &clist, std::vector<Array<T>*> &data, bool showGraph = false)
     {   
-        keepIndices(clist, data);
-        for(unsigned int i=0; i<clist.size(); i++)
-            clist[i] = i;
-
         /* The 'bbox' here is is only used to test PBC. If PBC is activated, the globalBBox will take the corresponding bbox.x{min,max} values */
         globalBBox.computeGlobal(clist, x, y, z, comm);
         globalMaxH = computeGlobalMaxH(clist, h);
@@ -489,12 +469,6 @@ public:
 
         // Use the localbbox to identify halo cells
         computeHaloList(localBBox, globalBBox, showGraph);
-
-        //synchronizeHalos(&x, &y, &z, &h);
-        //globalBBox.computeGlobal(clist, x, y, z, comm);
-
-        // Domain::tree
-        //Domain<T, Tree>::buildTree(globalBBox, x, y, z, h);
     }
 
 public:

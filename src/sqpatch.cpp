@@ -41,6 +41,7 @@ int main(int argc, char **argv)
     #else
         Domain<Real, Tree> domain(d.ngmin, d.ng0, d.ngmax);
     #endif
+
     Density<Real> density(d.sincIndex, d.K);
     EquationOfStateSqPatch<Real> equationOfState;
     MomentumEnergySqPatch<Real> momentumEnergy(d.dx, d.sincIndex, d.K);
@@ -58,12 +59,14 @@ int main(int argc, char **argv)
     #ifdef USE_MPI
         domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false);
         domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
-        domain.buildTree(d.bbox, d.x, d.y, d.z, d.h);
         d.count = clist.size();
     #else
-        domain.build(clist, d.x, d.y, d.z, d.h, d.bbox);
+        domain.build(clist, d.x, d.y, d.z, d.bbox);
     #endif
+
+    domain.buildTree(d.bbox, d.x, d.y, d.z, d.h);
     domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors, d.neighborsCount);
+
     density.compute(clist, d);
 
     #pragma omp parallel for
@@ -77,22 +80,22 @@ int main(int argc, char **argv)
         if(d.rank == 0) cout << "Iteration: " << iteration << endl;
 
         #ifdef USE_MPI
+            d.resize(d.count); // Discard halos
             REPORT_TIME(d.rank, domain.build(d.workload, d.x, d.y, d.z, d.h, d.bbox, clist, d.data, false), "domain::build");
             REPORT_TIME(d.rank, domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m), "mpi::synchronizeHalos");
-            REPORT_TIME(d.rank, domain.buildTree(d.bbox, d.x, d.y, d.z, d.h), "BuildTree");
             d.count = clist.size();
             if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << domain.haloCount << endl;
         #else
-            REPORT_TIME(d.rank, domain.build(clist, d.x, d.y, d.z, d.h, d.bbox), "BuildTree");
+            REPORT_TIME(d.rank, domain.build(clist, d.x, d.y, d.z, d.bbox), "BuildTree");
         #endif
 
-        // REPORT_TIME(d.rank, mpi.reorder(d.data), "ReorderParticles");
+        REPORT_TIME(d.rank, domain.buildTree(d.bbox, d.x, d.y, d.z, d.h), "BuildTree");
         REPORT_TIME(d.rank, domain.findNeighbors(clist, d.bbox, d.x, d.y, d.z, d.h, d.neighbors, d.neighborsCount), "FindNeighbors");
         REPORT_TIME(d.rank, density.compute(clist, d), "Density");
         REPORT_TIME(d.rank, equationOfState.compute(clist, d.ro_0, d.p_0, d.ro, d.p, d.u, d.c), "EquationOfState");
         
         #ifdef USE_MPI
-            d.resize(d.count); // Discard old neighbors
+            d.resize(d.count); // Discard halos
             REPORT_TIME(d.rank, domain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c), "mpi::synchronizeHalos");
         #endif
 
@@ -100,8 +103,7 @@ int main(int argc, char **argv)
         REPORT_TIME(d.rank, timestep.compute(clist, d.h, d.c, d.dt_m1, d.dt, d.ttot), "Timestep");
         REPORT_TIME(d.rank, updateQuantities.compute(clist, d.grad_P_x, d.grad_P_y, d.grad_P_z, d.dt, d.du, d.bbox, d.x, d.y, d.z, d.vx, d.vy, d.vz, d.x_m1, d.y_m1, d.z_m1, d.u, d.du_m1, d.dt_m1), "UpdateQuantities");
         REPORT_TIME(d.rank, energyConservation.compute(clist, d.u, d.vx, d.vy, d.vz, d.m, d.etot, d.ecin, d.eint), "EnergyConservation");
-        //REPORT_TIME(d.rank, domain.updateSmoothingLength(clist, d.neighbors, d.h), "SmoothingLength");
-
+ 
         long long int totalNeighbors = domain.neighborsSum(clist, d.neighborsCount);
         if(d.rank == 0)
         {

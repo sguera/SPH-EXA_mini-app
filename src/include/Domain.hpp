@@ -105,10 +105,9 @@ public:
     	tree.build(bbox, x, y, z, h, bucketSize);
     }
 
-    virtual void build(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z, const Array<T> &h, BBox<T> &bbox)
+    virtual void build(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z, BBox<T> &bbox)
 	{
 		bbox.compute(clist, x, y, z);
-		buildTree(bbox, x, y, z, h);
 	}
 
 private:
