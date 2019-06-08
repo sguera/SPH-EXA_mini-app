@@ -30,11 +30,11 @@ namespace sph
         T *grad_P_y = d.grad_P_y.data();
         T *grad_P_z = d.grad_P_z.data();
 
+        const int ngmax = d.ngmax;
         const int *neighbors = d.neighbors.data();
         const int *neighborsCount = d.neighborsCount.data();
 
         const BBox<T> bbox = d.bbox;
-        const int ngmax = d.ngmax;
 
         const T dx = d.dx;
         const T sincIndex = d.sincIndex;
@@ -45,9 +45,13 @@ namespace sph
         const T ep1 = 0.2, ep2 = 0.02, mre = 4.0;
         
         #ifdef USE_OMP_TARGET
-            #pragma omp target
+            const int np = d.x.size();
+            const int allNeighbors = n*ngmax;
+            #pragma omp target teams map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) map(from: grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
+            #pragma omp distribute parallel for
+        #else
+            #pragma omp parallel for
         #endif
-        #pragma omp parallel for
         for(int pi=0; pi<n; pi++)
         {
             const int i = clist[pi];
@@ -65,6 +69,7 @@ namespace sph
                 const int j = neighbors[pi*ngmax+pj];
 
                 // calculate the scalar product rv = rij * vij
+
                 T r_ijx = (x[i] - x[j]);
                 T r_ijy = (y[i] - y[j]);
                 T r_ijz = (z[i] - z[j]);

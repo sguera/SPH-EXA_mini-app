@@ -32,7 +32,7 @@ public:
 	void step(const std::string &name)
 	{
 		stop();
-		std::cout << "# " << name << ": total time " << duration() << "s" << std::endl;
+		std::cout << "# " << name << ": " << std::chrono::duration_cast<Time>(tstop-tlast).count() << "s" << std::endl;
 		tlast = tstop;
 	}
 

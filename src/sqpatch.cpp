@@ -44,30 +44,27 @@ int main(int argc, char **argv)
     for(d.iteration = 0; d.iteration <= maxStep; d.iteration++)
     {
         timer.start();
-        if(d.rank == 0) cout << "Iteration: " << d.iteration << endl;
-
         d.resize(d.count); // Discard halos
         distributedDomain.distribute(clist, d); TIME("domain::build");
         distributedDomain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m); TIME("mpi::synchronizeHalos");
-        if(d.rank == 0) cout << "# mpi::clist.size: " << clist.size() << " halos: " << distributedDomain.haloCount << endl;
-
         domain.buildTree(d); TIME("BuildTree");
         domain.findNeighbors(clist, d); TIME("FindNeighbors");
 
         sph::computeDensity<Real>(clist, d); TIME("Density");
         sph::computeEquationOfState<Real>(clist, d); TIME("EquationOfState");
 
-        d.resize(d.count); // Discard halos
+        distributedDomain.resizeArrays(d.count, &d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c); // Discard halos
         distributedDomain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c); TIME("mpi::synchronizeHalos");
 
         sph::computeMomentumAndEnergy<Real>(clist, d); TIME("MomentumEnergy");
         sph::computeTimestep<Real>(clist, d); TIME("Timestep"); // AllReduce(min:dt)
         sph::computePositions<Real>(clist, d); TIME("UpdateQuantities");
         sph::computeTotalEnergy<Real>(clist, d); TIME("EnergyConservation"); // AllReduce(sum:ecin,ein)
- 
+
         long long int totalNeighbors = domain.neighborsSum(clist, d);
         if(d.rank == 0)
         {
+            cout << "### Check ### Particles: " << clist.size() << ", Halos: " << distributedDomain.haloCount << endl;
             cout << "### Check ### Computational domain: " << d.bbox.xmin << " " << d.bbox.xmax << " " << d.bbox.ymin << " " << d.bbox.ymax << " " << d.bbox.zmin << " " << d.bbox.zmax << endl;
             cout << "### Check ### Avg neighbor count per particle: " << totalNeighbors/d.n << endl;
             cout << "### Check ### Total time: " << d.ttot << ", current time-step: " << d.dt[0] << endl;
@@ -80,11 +77,10 @@ int main(int argc, char **argv)
             d.writeData(clist, dump); TIME("writeFile");
             dump.close();
         }
-
         d.writeConstants(d.iteration, totalNeighbors, constants);
 
         timer.stop();
-        if(d.rank == 0) cout << "=== Total time for iteration " << timer.duration() << "s" << endl << endl;
+        if(d.rank == 0) cout << "=== Total time for iteration(" << d.iteration << ") " << timer.duration() << "s" << endl << endl;
     }
 
     constants.close();

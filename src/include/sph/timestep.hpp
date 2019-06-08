@@ -47,7 +47,7 @@ namespace sph
         	MPI_Allreduce(MPI_IN_PLACE, &mini, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
         #endif
 
-        #pragma omp parallel for
+		#pragma omp parallel for
         for(int pi=0; pi<n; pi++)
 		{
 			int i = clist[pi];

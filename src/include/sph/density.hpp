@@ -22,20 +22,25 @@ namespace sph
 		const T *y = d.y.data();
 		const T *z = d.z.data();
 		T *ro = d.ro.data();
+		T *ro_0 = d.ro_0.data();
 
+		const int ngmax = d.ngmax;
 		const int *neighbors = d.neighbors.data();
 		const int *neighborsCount = d.neighborsCount.data();
 
 		const BBox<T> bbox = d.bbox;
-		const int ngmax = d.ngmax;
 
 		const T sincIndex = d.sincIndex;
 		const T K = d.K;
 		
 		#ifdef USE_OMP_TARGET
-			#pragma omp target
+			const int np = d.x.size();
+			const int allNeighbors = n*ngmax;
+			#pragma omp target teams map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], m[0:np], h[0:np], x[0:np], y[0:np], z[0:np]) map(from: ro[0:n])
+			#pragma omp distribute parallel for
+		#else
+			#pragma omp parallel for
 		#endif
-		#pragma omp parallel for
 		for(int pi=0; pi<n; pi++)
 		{
 			const int i = clist[pi];
@@ -75,9 +80,12 @@ namespace sph
 		// Initialization of fluid density at rest
 		if(d.iteration == 0)
         {
-            #pragma omp parallel for
-            for(unsigned int pi=0; pi<l.size(); pi++)
-                d.ro_0[l[pi]] = d.ro[l[pi]]; 
+			#pragma omp parallel for
+            for(int pi=0; pi<n; pi++)
+            {
+            	const int i = clist[pi];
+                ro_0[i] = ro[i];
+            }
         }
 	}
 }

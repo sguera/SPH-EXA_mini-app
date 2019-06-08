@@ -127,6 +127,19 @@ public:
         for(unsigned int i=0; i<data.size(); i++)
             data[i]->resize(size);
     }
+
+    template<typename... Args>
+    void resizeArrays(const int count, Array<T>* d)
+    {
+        d->resize(count);
+    }
+
+    template<typename... Args>
+    void resizeArrays(const int count, Array<T>* first, Args... args)
+    {
+        first->resize(count);
+        resizeArrays(count, args...);
+    }
     
     void synchronize(std::vector<Array<T>*> &data)
     {
