@@ -5,32 +5,57 @@
 
 namespace sphexa
 {
-
-template<typename T = double, typename ArrayT = std::vector<T>>
-class MomentumEnergySqPatch
+namespace sph
 {
-public:
-    MomentumEnergySqPatch(const T dx, const T sincIndex = 6.0, const T K = compute_3d_k(6.0)) : dx(dx), sincIndex(sincIndex), K(K) {}
-
-    void compute(const std::vector<int> &clist, const BBox<T> &bbox, const std::vector<std::vector<int>> &neighbors, 
-        const ArrayT &x, const ArrayT &y, const ArrayT &z, const ArrayT &h,
-        const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, 
-        const ArrayT &ro, const ArrayT &p, const ArrayT &c, const ArrayT &m,
-        ArrayT &grad_P_x, ArrayT &grad_P_y, ArrayT &grad_P_z, ArrayT &du)
+    template<typename T, class Dataset>
+    void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
     {
-        const int n = clist.size();
+        const int n = l.size();
+        const int *clist = l.data();
+
+        const T *h = d.h.data();
+        const T *m = d.m.data();
+        const T *x = d.x.data();
+        const T *y = d.y.data();
+        const T *z = d.z.data();
+        const T *vx = d.vx.data();
+        const T *vy = d.vy.data();
+        const T *vz = d.vz.data();
+        const T *ro = d.ro.data();
+        const T *c = d.c.data();
+        const T *p = d.p.data();
+        
+        T *du = d.du.data();
+        T *grad_P_x = d.grad_P_x.data();
+        T *grad_P_y = d.grad_P_y.data();
+        T *grad_P_z = d.grad_P_z.data();
+
+        const int ngmax = d.ngmax;
+        const int *neighbors = d.neighbors.data();
+        const int *neighborsCount = d.neighborsCount.data();
+
+        const BBox<T> bbox = d.bbox;
+
+        const T dx = d.dx;
+        const T sincIndex = d.sincIndex;
+        const T K = d.K;
 
         const T gradh_i = 1.0;
         const T gradh_j = 1.0;
-        //const T delta_x_i = 0.01; // Initial inter-particule distance
-        //const T delta_x_i = 1.0;//0.01;
         const T ep1 = 0.2, ep2 = 0.02, mre = 4.0;
         
-        #pragma omp parallel for
+        #ifdef USE_OMP_TARGET
+            const int np = d.x.size();
+            const int allNeighbors = n*ngmax;
+            #pragma omp target teams map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) map(from: grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
+            #pragma omp distribute parallel for
+        #else
+            #pragma omp parallel for
+        #endif
         for(int pi=0; pi<n; pi++)
         {
             const int i = clist[pi];
-            const int nn = neighbors[pi].size();
+            const int nn = neighborsCount[pi];
 
             T momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0, energy = 0.0;
             
@@ -41,9 +66,10 @@ public:
             // int converstion to avoid a bug that prevents vectorization with some compilers
             for(int pj=0; pj<nn; pj++)
             {
-                const int j = neighbors[pi][pj];
+                const int j = neighbors[pi*ngmax+pj];
 
                 // calculate the scalar product rv = rij * vij
+
                 T r_ijx = (x[i] - x[j]);
                 T r_ijy = (y[i] - y[j]);
                 T r_ijz = (z[i] - z[j]);
@@ -118,10 +144,6 @@ public:
             grad_P_z[i] = momentum_z;
         }
     }
-
-private:
-    const T dx, sincIndex, K;
-};
-
+}
 }
 

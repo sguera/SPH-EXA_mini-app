@@ -30,7 +30,8 @@ public:
     {
         for(unsigned int i=0; i<data.size(); i++)
             data[i]->resize(size);
-        neighbors.resize(size);
+        neighbors.resize(size*ngmax);
+        neighborsCount.resize(size);
     }
 
     //void load(const std::string &filename)
@@ -143,9 +144,6 @@ public:
 
         etot = ecin = eint = 0.0;
         ttot = 0.0;
-        
-        for(auto i : neighbors)
-            i.reserve(ngmax);
 
         if(rank == 0 && 2.0 * h[0] > (bbox.zmax-bbox.zmin)/2.0)
         {
@@ -157,7 +155,11 @@ public:
         }
     }
 
+#ifdef USE_MPI
     void writeData(const std::vector<int> &clist, std::ofstream &dump)
+#else
+    void writeData(const std::vector<int>, std::ofstream &dump)
+#endif
     {
         #ifdef USE_MPI
             std::vector<int> workload(nrank);
@@ -237,6 +239,7 @@ public:
         }
     }
 
+    int iteration; // Current iteration
     int n, side, count; // Number of particles
     std::vector<T> x, y, z, x_m1, y_m1, z_m1; // Positions
     std::vector<T> vx, vy, vz; // Velocities
@@ -246,7 +249,6 @@ public:
     std::vector<T> h; // Smoothing Length
     std::vector<T> m; // Mass
     std::vector<T> c; // Speed of sound
-
     std::vector<T> grad_P_x, grad_P_y, grad_P_z; //gradient of the pressure
     std::vector<T> du, du_m1; //variation of the energy
     std::vector<T> dt, dt_m1;
@@ -254,7 +256,9 @@ public:
     T ttot, etot, ecin, eint;
 
     sphexa::BBox<T> bbox;
-    std::vector<std::vector<int>> neighbors; // List of neighbor indices per particle.
+
+    std::vector<int> neighbors; // List of neighbor indices per particle.
+    std::vector<int> neighborsCount;
 
     std::vector<int> workload, displs;
     

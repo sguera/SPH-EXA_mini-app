@@ -21,7 +21,7 @@ ifeq ($(ENV),gnu)
 endif
 
 ifeq ($(ENV),pgi)
-	CXXFLAGS += -O2 -std=c++14 -mp -dynamic
+	CXXFLAGS += -O2 -std=c++14 -mp -dynamic -ta=tesla,cc60 -mp=nonuma
 endif
 
 ifeq ($(ENV),cray)
@@ -41,25 +41,20 @@ endif
 
 all: $(TESTCASE)
 
-evrard: $(HPP)
-	@mkdir -p $(BINDIR)
-	$(info Linking the executable:)
-	$(CXX) $(CXXFLAGS) $(INC) src/evrard.cpp -o $(BINDIR)/$@.app $(LIB)
-
-mpievrard: $(HPP)
-	@mkdir -p $(BINDIR)
-	$(info Linking the executable:)
-	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI src/evrard.cpp -o $(BINDIR)/$@.app $(LIB)
-
-sqpatch: $(HPP)
+omp: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(CXX) $(CXXFLAGS) $(INC) src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
-mpisqpatch: $(HPP)
+mpi+omp: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
+
+mpi+omp+target: $(HPP)
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_OMP_TARGET src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
 run: evrard
 

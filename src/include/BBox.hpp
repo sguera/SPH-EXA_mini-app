@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.h>
 #include "config.hpp"
 
 #ifdef USE_MPI
