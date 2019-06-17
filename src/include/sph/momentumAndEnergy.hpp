@@ -49,6 +49,11 @@ namespace sph
             const int allNeighbors = n*ngmax;
             #pragma omp target teams map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) map(from: grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
             #pragma omp distribute parallel for
+        #endif
+        #ifdef USE_ACC
+            const int np = d.x.size();
+            const int allNeighbors = n*ngmax;
+            #pragma acc parallel loop copyin(clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) copyout(grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
         #else
             #pragma omp parallel for
         #endif
