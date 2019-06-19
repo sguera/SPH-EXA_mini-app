@@ -1,6 +1,9 @@
 #pragma once
 
 #include <vector>
+
+#include <cmath>
+#include "math.hpp"
 #include "kernels.hpp"
 
 namespace sphexa
@@ -10,8 +13,11 @@ namespace sph
     template<typename T, class Dataset>
     void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
     {
-        const int n = l.size();
+        const int64_t n = l.size();
+        const int64_t ngmax = d.ngmax;
         const int *clist = l.data();
+        const int *neighbors = d.neighbors.data();
+        const int *neighborsCount = d.neighborsCount.data();
 
         const T *h = d.h.data();
         const T *m = d.m.data();
@@ -30,10 +36,6 @@ namespace sph
         T *grad_P_y = d.grad_P_y.data();
         T *grad_P_z = d.grad_P_z.data();
 
-        const int ngmax = d.ngmax;
-        const int *neighbors = d.neighbors.data();
-        const int *neighborsCount = d.neighborsCount.data();
-
         const BBox<T> bbox = d.bbox;
 
         const T dx = d.dx;
@@ -42,21 +44,21 @@ namespace sph
 
         const T gradh_i = 1.0;
         const T gradh_j = 1.0;
-        const T ep1 = 0.2, ep2 = 0.02, mre = 4.0;
+        const T ep1 = 0.2, ep2 = 0.02;
+        const int mre = 4;
         
-        #ifdef USE_OMP_TARGET
-            const int np = d.x.size();
-            const int allNeighbors = n*ngmax;
-            #pragma omp target teams map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) map(from: grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
-            #pragma omp distribute parallel for
-        #endif
-        #ifdef USE_ACC
-            const int np = d.x.size();
-            const int allNeighbors = n*ngmax;
-            #pragma acc parallel loop copyin(clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) copyout(grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
-        #else
-            #pragma omp parallel for
-        #endif
+#if defined(USE_OMP_TARGET)
+    const int np = d.x.size();
+    const int64_t allNeighbors = n*ngmax;
+    #pragma omp target map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) map(from: grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
+    #pragma omp teams distribute// dist_schedule(guided)// parallel for
+#elif defined(USE_ACC)
+    const int np = d.x.size();
+    const int64_t allNeighbors = n*ngmax;
+    #pragma acc parallel loop copyin(clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], x[0:np], y[0:np], z[0:np], vx[0:np], vy[0:np], vz[0:np], h[0:np], m[0:np], ro[0:np], p[0:np], c[0:np]) copyout(grad_P_x[0:n], grad_P_y[0:n], grad_P_z[0:n], du[0:n])
+#else
+    #pragma omp parallel for schedule(guided)
+#endif
         for(int pi=0; pi<n; pi++)
         {
             const int i = clist[pi];
@@ -121,7 +123,7 @@ namespace sph
 
                 T R_i_j = ep1 * (A_i * std::abs(p[i]) + A_j * std::abs(p[j])) + ep2 * delta_pos_i_j * (std::abs(p[i]) + std::abs(p[j]));
 
-                T r_force_i_j = R_i_j * std::pow(force_i_j_r, mre);
+                T r_force_i_j = R_i_j * math::pow(force_i_j_r, (int)mre);
 
                 T partial_repulsive_force = (r_force_i_j / (ro[i] * ro[j]));
 
