@@ -13,39 +13,38 @@ namespace sph
 	template<typename T, class Dataset>
 	void computeDensity(const std::vector<int> &l, Dataset &d)
 	{
-		const int n = l.size();
+		const int64_t n = l.size();
+		const int64_t ngmax = d.ngmax;
 		const int *clist = l.data();
+		const int *neighbors = d.neighbors.data();
+		const int *neighborsCount = d.neighborsCount.data();
 
 		const T *h = d.h.data();
 		const T *m = d.m.data();
 		const T *x = d.x.data();
 		const T *y = d.y.data();
 		const T *z = d.z.data();
+		
 		T *ro = d.ro.data();
 		T *ro_0 = d.ro_0.data();
-
-		const int ngmax = d.ngmax;
-		const int *neighbors = d.neighbors.data();
-		const int *neighborsCount = d.neighborsCount.data();
 
 		const BBox<T> bbox = d.bbox;
 
 		const T sincIndex = d.sincIndex;
 		const T K = d.K;
 		
-		#ifdef USE_OMP_TARGET
-			const int np = d.x.size();
-			const int allNeighbors = n*ngmax;
-			#pragma omp target teams map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], m[0:np], h[0:np], x[0:np], y[0:np], z[0:np]) map(from: ro[0:n])
-			#pragma omp distribute parallel for
-		#endif
-		#ifdef USE_ACC
-			const int np = d.x.size();
-			const int allNeighbors = n*ngmax;
-			#pragma acc parallel loop copyin(n, clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], m[0:np], h[0:np], x[0:np], y[0:np], z[0:np]) copyout(ro[0:n])
-		#else
-			#pragma omp parallel for
-		#endif
+#if defined(USE_OMP_TARGET)
+	const int np = d.x.size();
+	const int64_t allNeighbors = n*ngmax;
+	#pragma omp target map(to: clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], m[0:np], h[0:np], x[0:np], y[0:np], z[0:np]) map(from: ro[0:n])
+	#pragma omp teams distribute// dist_schedule(guided) // parallel for
+#elif defined(USE_ACC)
+	const int np = d.x.size();
+	const int64_t allNeighbors = n*ngmax;
+	#pragma acc parallel loop copyin(n, clist[0:n], neighbors[0:allNeighbors], neighborsCount[0:n], m[0:np], h[0:np], x[0:np], y[0:np], z[0:np]) copyout(ro[0:n])
+#else
+	#pragma omp parallel for
+#endif
 		for(int pi=0; pi<n; pi++)
 		{
 			const int i = clist[pi];

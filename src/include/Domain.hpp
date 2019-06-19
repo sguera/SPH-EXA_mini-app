@@ -16,13 +16,13 @@ template<typename T, class Tree = Octree<T>>
 class Domain
 {
 public:
-	Domain(int ngmin, int ng0, int ngmax, unsigned int bucketSize = 128) : 
+	Domain(int64_t ngmin, int64_t ng0, int64_t ngmax, unsigned int bucketSize = 128) : 
 		ngmin(ngmin), ng0(ng0), ngmax(ngmax), bucketSize(bucketSize) {}
 
     template<class Dataset>
 	void findNeighbors(const std::vector<int> &clist, Dataset &d)
 	{
-		int n = clist.size();
+		int64_t n = clist.size();
 		d.neighbors.resize(n*ngmax);
 		d.neighborsCount.resize(n);
 
@@ -42,9 +42,9 @@ public:
 	}
 
 	template<class Dataset>
-	long long int neighborsSum(const std::vector<int> &clist, const Dataset &d)
+	int64_t neighborsSum(const std::vector<int> &clist, const Dataset &d)
 	{
-	    long long int sum = 0;
+	    int64_t sum = 0;
 	    #pragma omp parallel for reduction (+:sum)
 	    for(unsigned int i=0; i<clist.size(); i++)
 	        sum += d.neighborsCount[i];
@@ -64,7 +64,7 @@ public:
 
 private:
 	Tree tree;
-	const int ngmin, ng0, ngmax;
+	const int64_t ngmin, ng0, ngmax;
 	const unsigned int bucketSize;
 };
 

@@ -259,7 +259,6 @@ public:
 
     std::vector<int> neighbors; // List of neighbor indices per particle.
     std::vector<int> neighborsCount;
-
     std::vector<int> workload, displs;
     
     #ifdef USE_MPI
@@ -277,6 +276,6 @@ public:
     T Kcour = 0.2;
     T maxDtIncrease = 1.1;
     T dx = 0.01;
-    int ngmin = 5, ng0 = 500, ngmax = 800;
+    int64_t ngmin = 5, ng0 = 500, ngmax = 650;
 };
 

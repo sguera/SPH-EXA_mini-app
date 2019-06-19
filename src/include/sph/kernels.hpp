@@ -1,13 +1,12 @@
 #pragma once
 
 #include <cmath>
+
+#include "math.hpp"
 #include "BBox.hpp"
 
 namespace sphexa
 {
-
-#define PI 3.141592653589793
-
 template<typename T>
 inline T compute_3d_k(T n)
 {
@@ -24,15 +23,17 @@ template<typename T>
 inline T wharmonic(T v, T h, T sincIndex, T K)
 {
     T Pv = (PI/2.0) * v;
-    return K/(h*h*h) * std::pow((std::sin(Pv)/Pv), (int)sincIndex);
+    T sincv = math::sin(Pv)/Pv;
+    return K/(h*h*h) * math::pow(sincv, (int)sincIndex);
 }
 
 template<typename T>
 inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
 {
     T Pv = (PI/2.0) *v;
-    T cotv = std::cos(Pv) / std::sin(Pv);;//1.0 / tan(P * v);
-    T sincnv = std::pow((std::sin(Pv)/(Pv)), (int)sincIndex);
+    T cotv = math::cos(Pv) / math::sin(Pv);;//1.0 / tan(P * v);
+    T sincv = math::sin(Pv)/(Pv);
+    T sincnv = math::pow(sincv, (int)sincIndex);
     return sincIndex * (Pv * cotv - 1.0) * sincnv * (K/(h*h*h*h*h*v*v));
 }
 

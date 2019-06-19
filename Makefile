@@ -17,7 +17,7 @@ DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 CXXFLAGS += $(RELEASE) -I src/include
 
 ifeq ($(ENV),gnu)
-	CXXFLAGS += -std=c++14 -O2 -Wall -Wextra -fopenmp -march=native -mtune=native 
+	CXXFLAGS += -std=c++14 -O2 -Wall -Wextra -fopenmp -fopenacc -march=native -mtune=native 
 endif
 
 ifeq ($(ENV),pgi)
@@ -25,7 +25,7 @@ ifeq ($(ENV),pgi)
 endif
 
 ifeq ($(ENV),cray)
-	CXXFLAGS += -O2 -hstd=c++14 -homp -dynamic
+	CXXFLAGS += -O2 -hstd=c++14 -homp -hacc -dynamic
 endif
 
 ifeq ($(ENV),intel)
@@ -56,7 +56,10 @@ mpi+omp+target: $(HPP)
 	$(info Linking the executable:)
 	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_OMP_TARGET src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
-run: evrard
+mpi+omp+acc: $(HPP)
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_ACC src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
 clean:
 	$(info Cleaning...) 
