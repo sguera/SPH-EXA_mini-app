@@ -5,6 +5,9 @@ lib/*
 # Ignore any executables
 bin/*
 
+# Ignore files created for tests
+test/constants.txt
+
 # Ignore Mac specific files
 .DS_Store
 

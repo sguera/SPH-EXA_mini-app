@@ -6,7 +6,8 @@ ENV := gnu
 SRCDIR := src
 BUILDDIR := build
 BINDIR := bin
- 
+THIS_FILE := $(lastword $(MAKEFILE_LIST))
+
 #SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 HPP := $(wildcard src/include/*.hpp)
 HPP += $(wildcard src/include/tree/*.hpp)
@@ -60,6 +61,11 @@ mpi+omp+acc: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_ACC src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
+
+run_test:
+	@$(MAKE) -f $(THIS_FILE) omp
+	@$(MAKE) -f $(THIS_FILE) mpi+omp
+	cd test/ && ./test_correctness.sh;
 
 clean:
 	$(info Cleaning...) 
