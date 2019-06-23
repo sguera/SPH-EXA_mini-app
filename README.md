@@ -25,13 +25,15 @@ You can use the following commands to compile and run the SquarePatch example:
 
 #### Compile
 
-* OpenMP: ```shell make sqpatch```
-* MPI+OpenMP: ```shell make mpisqpatch```
+* OpenMP: ```shell make omp```
+* MPI+OpenMP: ```shell make mpi+omp```
+* MPI+OpenMP+OpenMP 4.5 Offloading: ```shell make mpi+omp+target```
 
 #### Run
 
-* OpenMP: ```shell bin/sqpatch.app```
-* MPI+OpenMP: ```shell bin/mpisqpatch.app```
+* OpenMP: ```shell bin/omp.app```
+* MPI+OpenMP: ```shell mpirun bin/mpi+omp.app```
+* MPI+OpenMP+OpenMP 4.5 Offloading: ```shell mpirun bin/mpi+omp+target.app```
 
 ## Authors
 

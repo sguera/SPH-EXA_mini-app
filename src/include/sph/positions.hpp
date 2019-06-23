@@ -5,18 +5,33 @@
 
 namespace sphexa
 {
-
-template<typename T = double, typename ArrayT = std::vector<T>>
-class UpdateQuantities
+namespace sph
 {
-public:
-
-	UpdateQuantities() {}
-
-	void compute(const std::vector<int> &clist, const ArrayT &grad_P_x, const ArrayT &grad_P_y, const ArrayT &grad_P_z, const ArrayT &dt, const ArrayT &du, 
-		const BBox<T> &bbox, ArrayT &x, ArrayT &y, ArrayT &z, ArrayT &vx, ArrayT &vy, ArrayT &vz, ArrayT &x_m1, ArrayT &y_m1, ArrayT &z_m1, ArrayT &u, ArrayT &du_m1, ArrayT &dt_m1)
+	template<typename T, class Dataset>
+	void computePositions(const std::vector<int> &l, Dataset &d)
 	{
-		int n = clist.size();
+		const int n = l.size();
+		const int *clist = l.data();
+
+		const T *grad_P_x = d.grad_P_x.data();
+		const T *grad_P_y = d.grad_P_y.data();
+		const T *grad_P_z = d.grad_P_z.data();
+		const T *dt = d.dt.data();
+		const T *du = d.du.data();
+		T *x = d.x.data();
+		T *y = d.y.data();
+		T *z = d.z.data();
+		T *vx = d.vx.data();
+		T *vy = d.vy.data();
+		T *vz = d.vz.data();
+		T *x_m1 = d.x_m1.data();
+		T *y_m1 = d.y_m1.data();
+		T *z_m1 = d.z_m1.data();
+		T *u = d.u.data();
+		T *du_m1 = d.du_m1.data();
+		T *dt_m1 = d.dt_m1.data();
+
+		const BBox<T> bbox = d.bbox;
 
 		#pragma omp parallel for
 		for(int pi=0; pi<n; pi++)
@@ -76,7 +91,6 @@ public:
 		    dt_m1[i] = dt[i];
 		}
 	}
-};
-
+}
 }
 

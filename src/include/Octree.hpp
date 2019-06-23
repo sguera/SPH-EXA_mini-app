@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "../BBox.hpp"
+#include "BBox.hpp"
 
 namespace sphexa
 {
@@ -27,7 +27,7 @@ public:
 		return xx*xx + yy*yy + zz*zz;
 	}
 
-	inline void check_add_start(const int start, const int count, const int id, const T xi, const T yi, const T zi, const T r, const unsigned int ngmax, std::vector<int> &neighbors) const
+	inline void check_add_start(const int start, const int count, const int id, const T xi, const T yi, const T zi, const T r, const int ngmax, int *neighbors, int &neighborsCount) const
 	{
 		T dists[count];
 		for(int i=0; i<count; i++)
@@ -41,8 +41,8 @@ public:
 
 		for(int i=0; i<count; i++)
 		{
-			if(neighbors.size() < ngmax && dists[i] < r*r && (*ordering)[start+i] != id)
-				neighbors.push_back((*ordering)[start+i]);
+			if(neighborsCount < ngmax && dists[i] < r*r && (*ordering)[start+i] != id)
+				neighbors[neighborsCount++] = (*ordering)[start+i];
 		}
 	}
 
@@ -177,7 +177,7 @@ public:
 		buildRec(list, bbox, ax, ay, az, ah, bucketSize, 0);
 	}
 
-	void findNeighborsRec(const int id, const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors) const
+	void findNeighborsRec(const int id, const T xi, const T yi, const T zi, const T ri, const int ngmax, int *neighbors, int &neighborsCount) const
 	{
 		int mix = std::max((int)(normalize(xi-ri, bbox.xmin, bbox.xmax)*nX),0);
 		int miy = std::max((int)(normalize(yi-ri, bbox.ymin, bbox.ymax)*nY),0);
@@ -195,15 +195,15 @@ public:
 					unsigned int l = hz*nX*nY+hy*nX+hx;
 					
 					if(cells[l] != nullptr)
-		 				cells[l]->findNeighborsRec(id, xi, yi, zi, ri, ngmax, neighbors);
+		 				cells[l]->findNeighborsRec(id, xi, yi, zi, ri, ngmax, neighbors, neighborsCount);
 		 			else
-		 				check_add_start(start[l], count[l], id, xi, yi, zi, ri, ngmax, neighbors);
+		 				check_add_start(start[l], count[l], id, xi, yi, zi, ri, ngmax, neighbors, neighborsCount);
 				}
 			}
 		}
 	}
 
-	void findNeighbors(const int id, const T xi, const T yi, const T zi, const T ri, const int ngmax, std::vector<int> &neighbors,
+	void findNeighbors(const int id, const T xi, const T yi, const T zi, const T ri, const int ngmax, int *neighbors, int &neighborsCount,
 		const bool PBCx = false, const bool PBCy = false, const bool PBCz = false) const
 	{
 		if((PBCx && (xi-ri < bbox.xmin || xi+ri > bbox.xmax)) || (PBCy && (yi-ri < bbox.ymin || yi+ri > bbox.ymax)) || (PBCz && (zi-ri < bbox.zmin || zi+ri > bbox.zmax)))
@@ -244,15 +244,15 @@ public:
 						// 	fflush(stdout);
 						// }
 						if(cells[l] != nullptr)
-			 				cells[l]->findNeighborsRec(id, xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors);
+			 				cells[l]->findNeighborsRec(id, xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors, neighborsCount);
 			 			else
-			 				check_add_start(start[l], count[l], id, xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors);
+			 				check_add_start(start[l], count[l], id, xi+displx, yi+disply, zi+displz, ri, ngmax, neighbors, neighborsCount);
 			 		}
 				}
 			}
 		}
 		else
-			findNeighborsRec(id, xi, yi, zi, ri, ngmax, neighbors);
+			findNeighborsRec(id, xi, yi, zi, ri, ngmax, neighbors, neighborsCount);
 	}
 
 public:

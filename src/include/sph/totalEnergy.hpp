@@ -9,14 +9,22 @@
 
 namespace sphexa
 {
-
-template<typename T = double, typename ArrayT = std::vector<T>>
-class EnergyConservation
+namespace sph
 {
-public:
-	void compute(const std::vector<int> &clist, const ArrayT &u, const ArrayT &vx, const ArrayT &vy, const ArrayT &vz, const ArrayT &m, T &etot, T &ecin, T &eint)
-	{
-		int n = clist.size();
+	template<typename T, class Dataset>
+    void computeTotalEnergy(const std::vector<int> &l, Dataset &d)
+    {
+        const int n = l.size();
+        const int *clist = l.data();
+
+        const T *u =  d.u.data();
+        const T *vx =  d.vx.data();
+        const T *vy =  d.vy.data();
+        const T *vz =  d.vz.data();
+        const T *m =  d.m.data();
+        T &etot = d.etot;
+        T &ecin = d.ecin;
+        T &eint = d.eint;
 
 		T ecintmp = 0.0, einttmp = 0.0;
 		#pragma omp parallel for reduction (+:ecintmp,einttmp)
@@ -38,7 +46,6 @@ public:
         eint = einttmp;
         etot = ecin + eint;
     }
-};
-
+}
 }
 
