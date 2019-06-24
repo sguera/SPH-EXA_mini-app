@@ -4,64 +4,74 @@
 #include "config.hpp"
 
 #ifdef USE_MPI
-	#include "mpi.h"
+#include "mpi.h"
 #endif
 
 namespace sphexa
 {
 
-template<typename T = double>
+template <typename T = double>
 class BBox
 {
 public:
-	BBox(T xmin = -1, T xmax = 1, T ymin = -1, T ymax = 1, T zmin = -1, T zmax = 1, bool PBCx = false, bool PBCy = false, bool PBCz = false) : 
-		xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax), zmin(zmin), zmax(zmax), PBCx(PBCx), PBCy(PBCy), PBCz(PBCz) {}
-
-	inline void compute(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z)
+    BBox(T xmin = -1, T xmax = 1, T ymin = -1, T ymax = 1, T zmin = -1, T zmax = 1, bool PBCx = false, bool PBCy = false, bool PBCz = false)
+        : xmin(xmin)
+        , xmax(xmax)
+        , ymin(ymin)
+        , ymax(ymax)
+        , zmin(zmin)
+        , zmax(zmax)
+        , PBCx(PBCx)
+        , PBCy(PBCy)
+        , PBCz(PBCz)
     {
-        if(!PBCx) xmin = INFINITY;
-        if(!PBCx) xmax = -INFINITY;
-        if(!PBCy) ymin = INFINITY;
-        if(!PBCy) ymax = -INFINITY;
-        if(!PBCz) zmin = INFINITY;
-        if(!PBCz) zmax = -INFINITY;
+    }
 
-        for(int i=0; i<(int)clist.size(); i++)
+    inline void compute(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z)
+    {
+        if (!PBCx) xmin = INFINITY;
+        if (!PBCx) xmax = -INFINITY;
+        if (!PBCy) ymin = INFINITY;
+        if (!PBCy) ymax = -INFINITY;
+        if (!PBCz) zmin = INFINITY;
+        if (!PBCz) zmax = -INFINITY;
+
+        for (int i = 0; i < (int)clist.size(); i++)
         {
             T xx = x[clist[i]];
             T yy = y[clist[i]];
             T zz = z[clist[i]];
 
-            if(!PBCx && xx < xmin) xmin = xx;
-            if(!PBCx && xx > xmax) xmax = xx;
-            if(!PBCy && yy < ymin) ymin = yy;
-            if(!PBCy && yy > ymax) ymax = yy;
-            if(!PBCz && zz < zmin) zmin = zz;
-            if(!PBCz && zz > zmax) zmax = zz;
+            if (!PBCx && xx < xmin) xmin = xx;
+            if (!PBCx && xx > xmax) xmax = xx;
+            if (!PBCy && yy < ymin) ymin = yy;
+            if (!PBCy && yy > ymax) ymax = yy;
+            if (!PBCz && zz < zmin) zmin = zz;
+            if (!PBCz && zz > zmax) zmax = zz;
         }
     }
 
     inline void compute(const Array<T> &x, const Array<T> &y, const Array<T> &z)
     {
-        if(!PBCx) xmin = INFINITY;
-        if(!PBCx) xmax = -INFINITY;
-        if(!PBCy) ymin = INFINITY;
-        if(!PBCy) ymax = -INFINITY;
-        if(!PBCz) zmin = INFINITY;
-        if(!PBCz) zmax = -INFINITY;
+        if (!PBCx) xmin = INFINITY;
+        if (!PBCx) xmax = -INFINITY;
+        if (!PBCy) ymin = INFINITY;
+        if (!PBCy) ymax = -INFINITY;
+        if (!PBCz) zmin = INFINITY;
+        if (!PBCz) zmax = -INFINITY;
 
-        for(int i=0; i<(int)x.size(); i++)
+        for (int i = 0; i < (int)x.size(); i++)
         {
             T xx = x[i];
             T yy = y[i];
             T zz = z[i];
 
-            if(!PBCx && xx < xmin) xmin = xx;
-            if(!PBCx && xx > xmax) xmax = xx;
-            if(!PBCy && yy < ymin) ymin = yy;
-            if(!PBCy && yy > ymax) ymax = yy;
-            if(!PBCz && zz < zmin) zmin = zz;
-            if(!PBCz && zz > zmax) zmax = zz;
+            if (!PBCx && xx < xmin) xmin = xx;
+            if (!PBCx && xx > xmax) xmax = xx;
+            if (!PBCy && yy < ymin) ymin = yy;
+            if (!PBCy && yy > ymax) ymax = yy;
+            if (!PBCz && zz < zmin) zmin = zz;
+            if (!PBCz && zz > zmax) zmax = zz;
         }
     }
 
@@ -91,9 +101,8 @@ public:
     }
 #endif
 
-	T xmin, xmax, ymin, ymax, zmin, zmax;
-	bool PBCx, PBCy, PBCz;
+    T xmin, xmax, ymin, ymax, zmin, zmax;
+    bool PBCx, PBCy, PBCz;
 };
 
-}
-
+} // namespace sphexa

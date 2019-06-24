@@ -9,7 +9,7 @@
 #include "sph/totalEnergy.hpp"
 
 #ifdef USE_MPI
-    #include "mpi.h"
+#include "mpi.h"
 #endif
 
 #include "DistributedDomain.hpp"

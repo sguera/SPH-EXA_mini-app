@@ -2,6 +2,5 @@
 
 #include <vector>
 
-template<typename T>
+template <typename T>
 using Array = std::vector<T>;
-
