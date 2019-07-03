@@ -31,4 +31,31 @@ private:
     TimePoint tstart, tstop, tlast;
 };
 
+class MPITimer : public Timer
+{
+public:
+    MPITimer(int rank)
+        : rank(rank)
+    {
+    }
+
+    float duration() { return rank == 0 ? Timer::duration() : 0.0f; }
+
+    void start()
+    {
+        if (rank == 0) Timer::start();
+    }
+    void stop()
+    {
+        if (rank == 0) Timer::stop();
+    }
+    void step(const std::string &name)
+    {
+        if (rank == 0) Timer::step(name);
+    }
+
+private:
+    int rank;
+};
+
 } // namespace sphexa

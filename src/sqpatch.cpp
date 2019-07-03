@@ -5,9 +5,6 @@
 #include "sphexa.hpp"
 #include "SqPatch.hpp"
 
-#define TIME(name)                                                                                                                         \
-    if (d.rank == 0) timer.step(name)
-
 using namespace std;
 using namespace sphexa;
 
@@ -41,37 +38,37 @@ int main(int argc, char **argv)
 
     std::ofstream constants("constants.txt");
 
-    Timer timer;
+    MPITimer timer(d.rank);
     for (d.iteration = 0; d.iteration <= maxStep; d.iteration++)
     {
         timer.start();
         d.resize(d.count); // Discard halos
         distributedDomain.distribute(clist, d);
-        TIME("domain::build");
+        timer.step("domain::build");
         distributedDomain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
-        TIME("mpi::synchronizeHalos");
+        timer.step("mpi::synchronizeHalos");
         domain.buildTree(d);
-        TIME("BuildTree");
+        timer.step("BuildTree");
         domain.findNeighbors(clist, d);
-        TIME("FindNeighbors");
+        timer.step("FindNeighbors");
 
         sph::computeDensity<Real>(clist, d);
-        TIME("Density");
+        timer.step("Density");
         sph::computeEquationOfState<Real>(clist, d);
-        TIME("EquationOfState");
+        timer.step("EquationOfState");
 
         distributedDomain.resizeArrays(d.count, &d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c); // Discard halos
         distributedDomain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c);
-        TIME("mpi::synchronizeHalos");
+        timer.step("mpi::synchronizeHalos");
 
         sph::computeMomentumAndEnergy<Real>(clist, d);
-        TIME("MomentumEnergy");
+        timer.step("MomentumEnergy");
         sph::computeTimestep<Real>(clist, d);
-        TIME("Timestep"); // AllReduce(min:dt)
+        timer.step("Timestep"); // AllReduce(min:dt)
         sph::computePositions<Real>(clist, d);
-        TIME("UpdateQuantities");
+        timer.step("UpdateQuantities");
         sph::computeTotalEnergy<Real>(clist, d);
-        TIME("EnergyConservation"); // AllReduce(sum:ecin,ein)
+        timer.step("EnergyConservation"); // AllReduce(sum:ecin,ein)
 
         long long int totalNeighbors = domain.neighborsSum(clist, d);
         if (d.rank == 0)
@@ -88,7 +85,7 @@ int main(int argc, char **argv)
         {
             std::ofstream dump("dump" + to_string(d.iteration) + ".txt");
             d.writeData(clist, dump);
-            TIME("writeFile");
+            timer.step("writeFile");
             dump.close();
         }
         d.writeConstants(d.iteration, totalNeighbors, constants);
