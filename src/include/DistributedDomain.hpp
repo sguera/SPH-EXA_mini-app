@@ -7,6 +7,7 @@
 #include <vector>
 #include <cmath>
 #include <map>
+#include <algorithm>
 
 #include "BBox.hpp"
 

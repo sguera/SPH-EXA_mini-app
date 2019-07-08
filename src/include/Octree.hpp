@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 #include <vector>
+#include <algorithm>
 
 #include "BBox.hpp"
 
