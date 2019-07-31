@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "BBox.hpp"
+#include "sph/kernels.hpp"
 
 template <typename T>
 class SqPatch
@@ -277,10 +278,16 @@ public:
     int nrank = 1;
 
     std::vector<std::vector<T> *> data;
-    T sincIndex = 6.0;
-    T K = sphexa::compute_3d_k(sincIndex);
-    T Kcour = 0.2;
-    T maxDtIncrease = 1.1;
-    T dx = 0.01;
-    int64_t ngmin = 5, ng0 = 500, ngmax = 650;
+    constexpr static T sincIndex = 6.0;
+    constexpr static T Kcour = 0.2;
+    constexpr static T maxDtIncrease = 1.1;
+    constexpr static size_t ngmin = 5, ng0 = 500, ngmax = 650;
+    const static T K;
+    static T dx;
 };
+
+template <typename T>
+T SqPatch<T>::dx = 0.01;
+
+template <typename T>
+const T SqPatch<T>::K = sphexa::compute_3d_k(sincIndex);

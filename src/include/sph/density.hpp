@@ -40,7 +40,7 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
                        : clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], m [0:np], h [0:np], x [0:np], y [0:np], z [0:np])  \
     map(from                                                                                                                               \
         : ro [0:n])
-#pragma omp teams distribute // dist_schedule(guided) // parallel for
+#pragma omp teams distribute parallel for// dist_schedule(guided) // parallel for
 #elif defined(USE_ACC)
     const int np = d.x.size();
     const int64_t allNeighbors = n * ngmax;

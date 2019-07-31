@@ -10,7 +10,9 @@ OUTPUT_FILE=constants.txt
 
 BIN_PATH=../bin/
 OMP_BIN=$BIN_PATH/omp.app
-MPIOMP_BIN=$BIN_PATH/mpi+omp.app
+OMP_CUDA_BIN=$BIN_PATH/omp+cuda.app
+MPI_OMP_BIN=$BIN_PATH/mpi+omp.app
+MPI_OMP_CUDA_BIN=$BIN_PATH/mpi+omp+cuda.app
 BIN_PARAMS="-n 25 -s 0"
 
 EXIT_CODE_PASSED=1
@@ -44,9 +46,13 @@ print_verdict() {
 }
 
 run_test "OpenMP" $OMP_BIN; omp_result=$?
-run_test "MPI+OpenMP" $MPIOMP_BIN; mpiomp_result=$?
+run_test "OpenMP+CUDA" $OMP_CUDA_BIN; omp_cuda_result=$?
+run_test "MPI+OpenMP" $MPI_OMP_BIN; mpiomp_result=$?
+run_test "MPI+OpenMP+CUDA" $MPI_OMP_CUDA_BIN; mpiompcuda_result=$?
 
 printf "\n${NOCOLOR}CORRECTNESS TEST SUMMARY\n"
 printf "${NOCOLOR}OpenMP "; print_verdict $omp_result 
+printf "${NOCOLOR}OpenMP+CUDA "; print_verdict $omp_cuda_result 
 printf "${NOCOLOR}MPI+OpenMP "; print_verdict $mpiomp_result
+printf "${NOCOLOR}MPI+OpenMP+CUDA "; print_verdict $mpiompcuda_result
 printf "\n"

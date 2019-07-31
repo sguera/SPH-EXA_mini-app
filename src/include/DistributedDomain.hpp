@@ -14,7 +14,7 @@
 namespace sphexa
 {
 
-template <typename T>
+template <typename T, typename Array = std::vector<T>>
 class DistributedDomain
 {
 #ifdef USE_MPI
@@ -31,7 +31,7 @@ public:
 
     inline bool overlap(T leftA, T rightA, T leftB, T rightB) { return leftA < rightB && rightA > leftB; }
 
-    inline T computeMaxH(const std::vector<int> &clist, const Array<T> &h)
+    inline T computeMaxH(const std::vector<int> &clist, const Array &h)
     {
         T hmax = 0.0;
         for (unsigned int i = 0; i < clist.size(); i++)
@@ -42,7 +42,7 @@ public:
         return hmax;
     }
 
-    inline T computeGlobalMaxH(const std::vector<int> &clist, const Array<T> &h)
+    inline T computeGlobalMaxH(const std::vector<int> &clist, const Array &h)
     {
         T hmax = computeMaxH(clist, h);
 
@@ -51,8 +51,8 @@ public:
         return hmax;
     }
 
-    void distributeParticles(const std::vector<int> &clist, const BBox<T> &globalBBox, const Array<T> &x, const Array<T> &y,
-                             const Array<T> &z)
+    void distributeParticles(const std::vector<int> &clist, const BBox<T> &globalBBox, const Array &x, const Array &y,
+                             const Array &z)
     {
         cellList.clear();
         cellList.resize(ncells);
@@ -118,13 +118,13 @@ public:
         }
     }
 
-    inline void resize(unsigned int size, std::vector<Array<T> *> &data)
+    inline void resize(unsigned int size, std::vector<Array *> &data)
     {
         for (unsigned int i = 0; i < data.size(); i++)
             data[i]->resize(size);
     }
 
-    void synchronize(std::vector<Array<T> *> &data)
+    void synchronize(std::vector<Array *> &data)
     {
         std::map<int, std::vector<int>> toSend;
         std::vector<std::vector<T>> buff;
@@ -332,10 +332,10 @@ public:
         MPI_Comm_free(&graphComm);
     }
 
-    void makeDataArray(std::vector<Array<T> *> &data, Array<T> *d) { data.push_back(d); }
+    void makeDataArray(std::vector<Array *> &data, Array *d) { data.push_back(d); }
 
     template <typename... Args>
-    void makeDataArray(std::vector<Array<T> *> &data, Array<T> *first, Args... args)
+    void makeDataArray(std::vector<Array *> &data, Array *first, Args... args)
     {
         data.push_back(first);
         makeDataArray(data, args...);
@@ -344,12 +344,12 @@ public:
     template <typename... Args>
     void synchronizeHalos(Args... args)
     {
-        std::vector<Array<T> *> data;
+        std::vector<Array *> data;
         makeDataArray(data, args...);
         synchronizeHalos(data);
     }
 
-    void synchronizeHalos(std::vector<Array<T> *> &data)
+    void synchronizeHalos(std::vector<Array *> &data)
     {
         std::vector<std::vector<T>> buff;
         std::vector<MPI_Request> requests;
@@ -400,11 +400,11 @@ public:
         }
     }
 
-    inline void removeIndices(const std::vector<bool> indices, std::vector<Array<T> *> &data)
+    inline void removeIndices(const std::vector<bool> indices, std::vector<Array *> &data)
     {
         for (unsigned int i = 0; i < data.size(); i++)
         {
-            Array<T> &array = *data[i];
+            Array &array = *data[i];
 
             int j = 0;
             std::vector<T> tmp(array.size());
@@ -430,7 +430,7 @@ public:
         }
     }
 
-    void discard(std::vector<Array<T> *> &data)
+    void discard(std::vector<Array *> &data)
     {
         std::vector<bool> discardList;
         computeDiscardList(data[0]->size(), discardList);
@@ -506,13 +506,13 @@ public:
 
 public:
     template <typename... Args>
-    void resizeArrays(const int count, Array<T> *d)
+    void resizeArrays(const int count, Array *d)
     {
         d->resize(count);
     }
 
     template <typename... Args>
-    void resizeArrays(const int count, Array<T> *first, Args... args)
+    void resizeArrays(const int count, Array *first, Args... args)
     {
         first->resize(count);
         resizeArrays(count, args...);

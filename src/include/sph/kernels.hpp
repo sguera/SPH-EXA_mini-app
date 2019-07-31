@@ -1,12 +1,26 @@
 #pragma once
 
-#include <cmath>
-
 #include "math.hpp"
 #include "BBox.hpp"
 
 namespace sphexa
 {
+
+#define PI 3.14159265358979323846
+
+#ifdef USE_STD_MATH_IN_KERNELS
+#define math_namespace std
+#else
+#define math_namespace sphexa::math
+#endif
+
+#ifdef __NVCC__
+#define CUDA_PREFIX __device__
+#else
+#define CUDA_PREFIX
+#endif
+
+
 template <typename T>
 inline T compute_3d_k(T n)
 {
@@ -24,23 +38,26 @@ template <typename T>
 inline T wharmonic(T v, T h, T sincIndex, T K)
 {
     T Pv = (PI / 2.0) * v;
-    T sincv = math::sin(Pv) / Pv;
-    return K / (h * h * h) * math::pow(sincv, (int)sincIndex);
+    T sincv = math_namespace::sin(Pv) / Pv;
+    return K / (h * h * h) * math_namespace::pow(sincv, (int)sincIndex);
 }
 
 template <typename T>
-inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
+CUDA_PREFIX inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
 {
+
     T Pv = (PI / 2.0) * v;
-    T cotv = math::cos(Pv) / math::sin(Pv);
+    T cotv = math_namespace::cos(Pv) / math_namespace::sin(Pv);
     ; // 1.0 / tan(P * v);
-    T sincv = math::sin(Pv) / (Pv);
-    T sincnv = math::pow(sincv, (int)sincIndex);
-    return sincIndex * (Pv * cotv - 1.0) * sincnv * (K / (h * h * h * h * h * v * v));
+    T sincv = math_namespace::sin(Pv) / (Pv);
+    T sincnv = math_namespace::pow(sincv, (int)sincIndex);
+    T ret = sincIndex * (Pv * cotv - 1.0) * sincnv * (K / (h * h * h * h * h * v * v)); 
+    // printf("wharmonic_derivative called with v=%f, cotv=%f, sincIndex=%f, ret=%f\n", v, cotv, sincIndex, ret);
+    return ret;
 }
 
 template <typename T>
-inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, T r_square)
+CUDA_PREFIX inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, T r_square)
 {
     T alpha = 1.0;
     T beta = 2.0;
@@ -63,7 +80,7 @@ inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, 
 }
 
 template <typename T>
-inline void applyPBC(const BBox<T> &bbox, const T r, T &xx, T &yy, T &zz)
+CUDA_PREFIX inline void applyPBC(const BBox<T> &bbox, const T r, T &xx, T &yy, T &zz)
 {
     if (bbox.PBCx && xx > r)
         xx -= (bbox.xmax - bbox.xmin);

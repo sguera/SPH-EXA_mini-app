@@ -3,8 +3,9 @@
 #include <vector>
 
 #include <cmath>
-#include "math.hpp"
 #include "kernels.hpp"
+
+#include "cuda/cudaMomentumAndEnergy.cuh"
 
 namespace sphexa
 {
@@ -13,6 +14,11 @@ namespace sph
 template <typename T, class Dataset>
 void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
 {
+#if defined(USE_CUDA)
+    cudaComputeMomentumAndEnergy(l, d);
+    return;
+#endif
+
     const int64_t n = l.size();
     const int64_t ngmax = d.ngmax;
     const int *clist = l.data();
@@ -55,7 +61,7 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
                          vy [0:np], vz [0:np], h [0:np], m [0:np], ro [0:np], p [0:np], c [0:np])                                          \
     map(from                                                                                                                               \
         : grad_P_x [0:n], grad_P_y [0:n], grad_P_z [0:n], du [0:n])
-#pragma omp teams distribute // dist_schedule(guided)// parallel for
+#pragma omp teams distribute parallel for // dist_schedule(guided)// parallel for
 #elif defined(USE_ACC)
     const int np = d.x.size();
     const int64_t allNeighbors = n * ngmax;
@@ -128,7 +134,7 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
 
             T R_i_j = ep1 * (A_i * std::abs(p[i]) + A_j * std::abs(p[j])) + ep2 * delta_pos_i_j * (std::abs(p[i]) + std::abs(p[j]));
 
-            T r_force_i_j = R_i_j * math::pow(force_i_j_r, (int)mre);
+            T r_force_i_j = R_i_j * sphexa::math::pow(force_i_j_r, (int)mre);
 
             T partial_repulsive_force = (r_force_i_j / (ro[i] * ro[j]));
 

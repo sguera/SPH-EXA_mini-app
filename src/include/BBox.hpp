@@ -1,7 +1,8 @@
 #pragma once
 
 #include <math.h>
-#include "config.hpp"
+#include <vector>
+// #include "config.hpp"
 
 #ifdef USE_MPI
 #include "mpi.h"
@@ -10,7 +11,7 @@
 namespace sphexa
 {
 
-template <typename T = double>
+template <typename T, typename Array = std::vector<T>>
 class BBox
 {
 public:
@@ -27,7 +28,7 @@ public:
     {
     }
 
-    inline void compute(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z)
+    inline void compute(const std::vector<int> &clist, const Array &x, const Array &y, const Array &z)
     {
         if (!PBCx) xmin = INFINITY;
         if (!PBCx) xmax = -INFINITY;
@@ -51,7 +52,7 @@ public:
         }
     }
 
-    inline void compute(const Array<T> &x, const Array<T> &y, const Array<T> &z)
+    inline void compute(const Array &x, const Array &y, const Array &z)
     {
         if (!PBCx) xmin = INFINITY;
         if (!PBCx) xmax = -INFINITY;
@@ -76,7 +77,7 @@ public:
     }
 
 #ifdef USE_MPI
-    inline void computeGlobal(const std::vector<int> &clist, const Array<T> &x, const Array<T> &y, const Array<T> &z, MPI_Comm comm)
+    inline void computeGlobal(const std::vector<int> &clist, const Array &x, const Array &y, const Array &z, MPI_Comm comm)
     {
         compute(clist, x, y, z);
 
@@ -88,7 +89,7 @@ public:
         MPI_Allreduce(MPI_IN_PLACE, &zmax, 1, MPI_DOUBLE, MPI_MAX, comm);
     }
 
-    inline void computeGlobal(const Array<T> &x, const Array<T> &y, const Array<T> &z, MPI_Comm comm)
+    inline void computeGlobal(const Array &x, const Array &y, const Array &z, MPI_Comm comm)
     {
         compute(x, y, z);
 
