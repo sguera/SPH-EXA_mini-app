@@ -67,6 +67,19 @@ struct lookup_table_initializer
     {
         for (int i = 0; i < MAX_CIRCLE_ANGLE; ++i)
             fast_cossin_table[i] = (T)std::sin((T)i * PI / HALF_MAX_CIRCLE_ANGLE);
+
+        #if defined(USE_OMP_TARGET)
+            #pragma omp target enter data map(to: fast_cossin_table[0:MAX_CIRCLE_ANGLE])
+            ;
+        #endif
+    }
+
+    ~lookup_table_initializer()
+    {
+        #if defined(USE_OMP_TARGET)
+            #pragma omp target exit data map(delete: fast_cossin_table[0:MAX_CIRCLE_ANGLE])
+            ;
+        #endif
     }
 };
 

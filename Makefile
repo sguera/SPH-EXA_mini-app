@@ -85,7 +85,7 @@ mpi+omp+acc: $(HPP)
 mpi+omp+cuda: $(BUILDDIR)/cuda_mpi.o $(BUILDDIR)/cuda.o
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(MPICXX) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
+	$(MPICXX) $(CXXFLAGS) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart
 
 $(BUILDDIR)/cuda_mpi.o: src/sqpatch.cpp
 	@mkdir -p $(BUILDDIR)
