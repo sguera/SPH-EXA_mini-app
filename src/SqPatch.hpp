@@ -284,6 +284,9 @@ public:
     constexpr static size_t ngmin = 5, ng0 = 500, ngmax = 650;
     const static T K;
     static T dx;
+
+    // settings
+    constexpr static ushort noOfGpuLoopSplits = 4; // No. of loop splits running in GPU to fit into the GPU memory
 };
 
 template <typename T>

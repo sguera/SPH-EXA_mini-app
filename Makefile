@@ -43,11 +43,8 @@ ifeq ($(ENV),intel)
 	CXXFLAGS += -O2 -std=c++14 -qopenmp -dynamic
 endif
 
-ifeq ($(CXX),clang++)
-	COMPILER_VERSION = $(EBVERSIONCLANGPLUSLLVM)
-	CXXFLAGS = -std=c++14 -g -fopenmp=libomp
-	PE_ENV = CLANG
-	LDFLAGS += $(CXXFLAGS) -dynamic
+ifeq ($(ENV),clang)
+	CXXFLAGS += -O2 -std=c++14 -g -fopenmp=libomp
 endif
 
 all: $(TESTCASE)

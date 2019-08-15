@@ -9,8 +9,8 @@ namespace sphexa
 namespace sph
 {
 
-template <typename T>
-extern void cudaComputeMomentumAndEnergy(const std::vector<int> &l, SqPatch<T> &dataset);
+template <typename T, class Dataset>
+extern void cudaComputeMomentumAndEnergy(const std::vector<int> &l, Dataset &dataset);
 
 } // namespace sph
 } // namespace sphexa
