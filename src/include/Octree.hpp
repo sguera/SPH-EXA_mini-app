@@ -14,9 +14,9 @@ template <typename T = double, class ArrayT = std::vector<T>>
 class Octree
 {
 public:
-    inline T normalize(T d, T min, T max) const { return (d - min) / (max - min); }
+    static inline T normalize(T d, T min, T max) { return (d - min) / (max - min); }
 
-    inline T distancesq(const T x1, const T y1, const T z1, const T x2, const T y2, const T z2) const
+    static inline T distancesq(const T x1, const T y1, const T z1, const T x2, const T y2, const T z2)
     {
         T xx = x1 - x2;
         T yy = y1 - y2;
@@ -28,21 +28,28 @@ public:
     inline void check_add_start(const int start, const int count, const int id, const T xi, const T yi, const T zi, const T r,
                                 const int ngmax, int *neighbors, int &neighborsCount) const
     {
-        T dists[count];
-        for (int i = 0; i < count; i++)
-        {
-            T xx = (*x)[start + i];
-            T yy = (*y)[start + i];
-            T zz = (*z)[start + i];
+        T* xp = &(*x)[start];
+        T* yp = &(*y)[start];
+        T* zp = &(*z)[start];
+        int* op = &(*ordering)[start];
+        T r2 = r*r;
 
-            dists[i] = distancesq(xi, yi, zi, xx, yy, zz);
+        int localCounter = neighborsCount;
+        int maxCount = std::min(count, ngmax - localCounter);
+
+        for (int i = 0; i < maxCount; i++)
+        {
+            T xx = xp[i];
+            T yy = yp[i];
+            T zz = zp[i];
+            int ordi = op[i];
+
+            T dist = distancesq(xi, yi, zi, xx, yy, zz);
+            if (dist < r2 && ordi != id)
+                neighbors[localCounter++] = ordi;
         }
 
-        for (int i = 0; i < count; i++)
-        {
-            if (neighborsCount < ngmax && dists[i] < r * r && (*ordering)[start + i] != id)
-                neighbors[neighborsCount++] = (*ordering)[start + i];
-        }
+        neighborsCount = localCounter;
     }
 
     inline void distributeParticles(const std::vector<int> &list, const ArrayT &ax, const ArrayT &ay, const ArrayT &az,
@@ -144,8 +151,6 @@ public:
             }
             else
             {
-                start[i] = ptr + padding[i];
-                count[i] = cellList[i].size();
                 cells[i] = nullptr;
 
                 for (int j = 0; j < count[i]; j++)
