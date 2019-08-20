@@ -16,9 +16,7 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 HPP := $(wildcard src/include/*.hpp)
 HPP += $(wildcard src/include/tree/*.hpp)
 
-CUDA_FILES += $(wildcard src/include/sph/cuda/*.cu)
-CUDA_FILES += $(wildcard src/include/sph/cuda/*.cuh)
-CUDA_FILES += src/include/sph/kernels.hpp
+CUDA_OBJS := $(BUILDDIR)/cudaMomentumAndEnergy.o $(BUILDDIR)/cudaDensity.o
 
 RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
@@ -59,7 +57,7 @@ mpi+omp: $(HPP)
 	$(info Linking the executable:)
 	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
-omp+cuda: $(BUILDDIR)/cuda_no_mpi.o $(BUILDDIR)/cuda.o
+omp+cuda: $(BUILDDIR)/cuda_no_mpi.o $(CUDA_OBJS)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(CXX) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
@@ -79,7 +77,7 @@ mpi+omp+acc: $(HPP)
 	$(info Linking the executable:)
 	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_ACC src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
-mpi+omp+cuda: $(BUILDDIR)/cuda_mpi.o $(BUILDDIR)/cuda.o
+mpi+omp+cuda: $(BUILDDIR)/cuda_mpi.o $(CUDA_OBJS)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(MPICXX) $(CXXFLAGS) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart
@@ -92,8 +90,7 @@ $(BUILDDIR)/cuda_no_mpi.o: src/sqpatch.cpp
 	@mkdir -p $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) $(INC) -DUSE_CUDA -o $@ -c $<
 
-$(BUILDDIR)/cuda.o: $(CUDA_FILES)
-	@echo $(CUDA_FILES)
+$(BUILDDIR)/%.o: src/include/sph/cuda/%.cu
 	@mkdir -p $(BUILDDIR)
 	$(NVCC) $(NVCCFLAGS) $(INC) -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 -DUSE_STD_MATH_IN_KERNELS -c -o $@ $<
 

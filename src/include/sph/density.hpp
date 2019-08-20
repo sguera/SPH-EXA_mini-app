@@ -3,14 +3,21 @@
 #include <vector>
 
 #include "kernels.hpp"
+#include "cuda/sph.cuh"
 
 namespace sphexa
 {
 namespace sph
 {
+
 template <typename T, class Dataset>
 void computeDensity(const std::vector<int> &l, Dataset &d)
 {
+#if defined(USE_CUDA)
+    cuda::computeDensity<T>(l, d);
+    return;
+#endif
+
     const size_t n = l.size();
     const size_t ngmax = d.ngmax;
     const int *clist = l.data();
@@ -23,7 +30,6 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
     const T *z = d.z.data();
 
     T *ro = d.ro.data();
-    T *ro_0 = d.ro_0.data();
 
     const BBox<T> bbox = d.bbox;
 
@@ -107,16 +113,23 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
     }
 #endif
 
-    // Initialization of fluid density at rest
-    if (d.iteration == 0)
-    {
+    // for (int ii = 0; ii < n; ++ii)
+    // printf("ro[%d]=%0.15f\n", ii, d.ro[ii]);
+}
+
+template <typename T, class Dataset>
+void initFluidDensityAtRest(const std::vector<int> &clist, Dataset &d)
+{
+    const T *ro = d.ro.data();
+    T *ro_0 = d.ro_0.data();
+
 #pragma omp parallel for
-        for (size_t pi = 0; pi < n; ++pi)
-        {
-            const int i = clist[pi];
-            ro_0[i] = ro[i];
-        }
+    for (size_t pi = 0; pi < clist.size(); ++pi)
+    {
+        const int i = clist[pi];
+        ro_0[i] = ro[i];
     }
 }
+
 } // namespace sph
 } // namespace sphexa

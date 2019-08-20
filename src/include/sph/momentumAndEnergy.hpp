@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "kernels.hpp"
-#include "cuda/cudaMomentumAndEnergy.cuh"
+#include "cuda/sph.cuh"
 
 namespace sphexa
 {
@@ -14,7 +14,7 @@ template <typename T, class Dataset>
 void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
 {
 #if defined(USE_CUDA)
-    cudaComputeMomentumAndEnergy<T>(l, d);
+    cuda::computeMomentumAndEnergy<T>(l, d);
     return;
 #endif
 

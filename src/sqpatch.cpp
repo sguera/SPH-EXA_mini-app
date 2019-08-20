@@ -53,7 +53,9 @@ int main(int argc, char **argv)
         timer.step("FindNeighbors");
 
         sph::computeDensity<Real>(clist, d);
+        if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(clist, d); }
         timer.step("Density");
+
         sph::computeEquationOfState<Real>(clist, d);
         timer.step("EquationOfState");
 

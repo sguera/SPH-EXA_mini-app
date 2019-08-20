@@ -34,7 +34,7 @@ inline T compute_3d_k(T n)
 }
 
 template <typename T>
-inline T wharmonic(T v, T h, T sincIndex, T K)
+CUDA_PREFIX inline T wharmonic(T v, T h, T sincIndex, T K)
 {
     T Pv = (PI / 2.0) * v;
     T sincv = math_namespace::sin(Pv) / Pv;
@@ -102,7 +102,7 @@ CUDA_PREFIX inline void applyPBC(const BBox<T> &bbox, const T r, T &xx, T &yy, T
 }
 
 template <typename T>
-inline T distancePBC(const BBox<T> &bbox, const T hi, const T x1, const T y1, const T z1, const T x2, const T y2, const T z2)
+CUDA_PREFIX inline T distancePBC(const BBox<T> &bbox, const T hi, const T x1, const T y1, const T z1, const T x2, const T y2, const T z2)
 {
     T xx = x1 - x2;
     T yy = y1 - y2;
