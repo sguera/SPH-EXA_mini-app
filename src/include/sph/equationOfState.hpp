@@ -29,8 +29,10 @@ void __attribute__((noinline)) computeEquationOfState(const std::vector<int> &l,
     // const T chi = (1000.0 / 7.0) * (35.0 * 35.0);
     const T chi = (density0 / heatCapacityRatio) * (speedOfSound0 * speedOfSound0);
 
-#pragma omp parallel for
-    for (int pi = 0; pi < n; pi++)
+    auto policy = hpx::parallel::execution::par;
+    hpx::parallel::for_loop(policy,
+        0, n,
+    [=](int pi)
     {
         const int i = clist[pi];
 
@@ -39,7 +41,7 @@ void __attribute__((noinline)) computeEquationOfState(const std::vector<int> &l,
         u[i] = 1.0;           //
         // u[i] = 1e-10;
         // 1e7 per unit of mass (1e-3 or 1g)
-    }
+    });
 }
 } // namespace sph
 } // namespace sphexa
