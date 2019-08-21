@@ -33,8 +33,11 @@ void computePositions(const std::vector<int> &l, Dataset &d)
 
     const BBox<T> bbox = d.bbox;
 
-#pragma omp parallel for
-    for (int pi = 0; pi < n; pi++)
+    //for (int pi = 0; pi < n; pi++)
+    auto policy = hpx::parallel::execution::par;
+    hpx::parallel::for_loop(policy, 
+        0, n,
+    [=](int pi)
     {
         int i = clist[pi];
 
@@ -43,10 +46,10 @@ void computePositions(const std::vector<int> &l, Dataset &d)
         T ay = -(grad_P_y[i]); //-G * fy
         T az = -(grad_P_z[i]); //-G * fz
 
-#ifndef NDEBUG
+        #ifndef NDEBUG
         if (std::isnan(ax) || std::isnan(ay) || std::isnan(az))
             printf("ERROR::UpdateQuantities(%d) acceleration: (%f %f %f)\n", i, ax, ay, az);
-#endif
+        #endif
 
         // Update positions according to Press (2nd order)
         T deltaA = dt[i] + 0.5 * dt_m1[i];
@@ -88,15 +91,15 @@ void computePositions(const std::vector<int> &l, Dataset &d)
 
         u[i] += du[i] * deltaB - du_m1[i] * deltaA;
 
-#ifndef NDEBUG
+        #ifndef NDEBUG
         if (std::isnan(u[i]))
             printf("ERROR::UpdateQuantities(%d) internal energy: u %f du %f dB %f du_m1 %f dA %f\n", i, u[i], du[i], deltaB, du_m1[i],
                    deltaA);
-#endif
+        #endif
 
         du_m1[i] = du[i];
         dt_m1[i] = dt[i];
-    }
+    });
 }
 } // namespace sph
 } // namespace sphexa
