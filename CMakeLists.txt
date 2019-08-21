@@ -21,5 +21,6 @@ include_directories(${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/include
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Type of build" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -march=native -mtune=native -DNDEBUG")
 endif()
 message(STATUS "build type: " ${CMAKE_BUILD_TYPE})
