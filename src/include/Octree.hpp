@@ -28,11 +28,11 @@ public:
     inline void check_add_start(const int start, const int count, const int id, const T xi, const T yi, const T zi, const T r,
                                 const int ngmax, int *neighbors, int &neighborsCount) const
     {
-        T* xp = &(*x)[start];
-        T* yp = &(*y)[start];
-        T* zp = &(*z)[start];
-        int* op = &(*ordering)[start];
-        T r2 = r*r;
+        T *xp = &(*x)[start];
+        T *yp = &(*y)[start];
+        T *zp = &(*z)[start];
+        int *op = &(*ordering)[start];
+        T r2 = r * r;
 
         int localCounter = neighborsCount;
         int maxCount = std::min(count, ngmax - localCounter);
@@ -45,8 +45,7 @@ public:
             int ordi = op[i];
 
             T dist = distancesq(xi, yi, zi, xx, yy, zz);
-            if (dist < r2 && ordi != id)
-                neighbors[localCounter++] = ordi;
+            if (dist < r2 && ordi != id) neighbors[localCounter++] = ordi;
         }
 
         neighborsCount = localCounter;

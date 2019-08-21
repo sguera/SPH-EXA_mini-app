@@ -51,8 +51,7 @@ public:
         return hmax;
     }
 
-    void distributeParticles(const std::vector<int> &clist, const BBox<T> &globalBBox, const Array &x, const Array &y,
-                             const Array &z)
+    void distributeParticles(const std::vector<int> &clist, const BBox<T> &globalBBox, const Array &x, const Array &y, const Array &z)
     {
         cellList.clear();
         cellList.resize(ncells);

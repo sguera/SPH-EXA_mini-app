@@ -20,7 +20,6 @@ namespace sphexa
 #define CUDA_PREFIX
 #endif
 
-
 template <typename T>
 inline T compute_3d_k(T n)
 {
@@ -51,7 +50,7 @@ CUDA_PREFIX inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
     ; // 1.0 / tan(P * v);
     T sincv = math_namespace::sin(Pv) / (Pv);
     T sincnv = math_namespace::pow(sincv, (int)sincIndex);
-    T ret = sincIndex * (Pv * cotv - 1.0) * sincnv * (K / (h * h * h * h * h * v * v)); 
+    T ret = sincIndex * (Pv * cotv - 1.0) * sincnv * (K / (h * h * h * h * h * v * v));
     // printf("wharmonic_derivative called with v=%f, cotv=%f, sincIndex=%f, ret=%f\n", v, cotv, sincIndex, ret);
     return ret;
 }
