@@ -61,7 +61,7 @@ void computeTimestep(const std::vector<int> &l, Dataset &d)
 
     hpx::parallel::for_loop(policy,
         0, n,
-    [=](int pi)
+    [&clist, dt, mini](int pi)
     {
         int i = clist[pi];
         dt[i] = mini;
