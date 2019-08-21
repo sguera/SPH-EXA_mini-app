@@ -31,14 +31,27 @@ void computeTimestep(const std::vector<int> &l, Dataset &d)
 
     T mini = INFINITY;
 
-#pragma omp parallel for reduction(min : mini)
-    for (int pi = 0; pi < n; pi++)
-    {
-        int i = clist[pi];
-        // Time-scheme according to Press (2nd order)
-        dt[i] = Kcour * (h[i] / c[i]);
-        if (dt[i] < mini) mini = dt[i];
-    }
+    auto policy = hpx::parallel::execution::par;
+
+    auto min_op = [h, c](T v1, size_t v2)
+                  {
+                    // v2 will assume value of clist[pi]
+                    // Time-scheme according to Press (2nd order)
+                    T quot = h[v2] / c[v2];
+                    if (quot < v1) return quot;
+                    else           return v1;
+                  };
+
+    mini = Kcour * hpx::parallel::reduce(policy, clist, clist+n, mini, min_op);
+
+    //#pragma omp parallel for reduction(min : mini)
+    //for (int pi = 0; pi < n; pi++)
+    //{
+    //    int i = clist[pi];
+    //    // Time-scheme according to Press (2nd order)
+    //    dt[i] = Kcour * (h[i] / c[i]);
+    //    if (dt[i] < mini) mini = dt[i];
+    //}
 
     if (n > 0) mini = std::min(mini, maxDtIncrease * dt_m1[0]);
 
@@ -46,12 +59,13 @@ void computeTimestep(const std::vector<int> &l, Dataset &d)
     MPI_Allreduce(MPI_IN_PLACE, &mini, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
 
-#pragma omp parallel for
-    for (int pi = 0; pi < n; pi++)
+    hpx::parallel::for_loop(policy,
+        0, n,
+    [=](int pi)
     {
         int i = clist[pi];
         dt[i] = mini;
-    }
+    });
 
     ttot += mini;
 }
