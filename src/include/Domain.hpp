@@ -31,33 +31,48 @@ public:
         d.neighbors.resize(n * ngmax);
         d.neighborsCount.resize(n);
 
-#pragma omp parallel for schedule(guided)
-        for (int pi = 0; pi < n; pi++)
-        {
-            int i = clist[pi];
+        //#pragma omp parallel for schedule(guided)
+        //for (int pi = 0; pi < n; pi++)
+        //{
+        //    int i = clist[pi];
 
-            d.neighborsCount[pi] = 0;
-            tree.findNeighbors(i, d.x[i], d.y[i], d.z[i], 2 * d.h[i], ngmax, &d.neighbors[pi * ngmax], d.neighborsCount[pi], d.bbox.PBCx,
-                               d.bbox.PBCy, d.bbox.PBCz);
+        //    d.neighborsCount[pi] = 0;
+        //    tree.findNeighbors(i, d.x[i], d.y[i], d.z[i], 2 * d.h[i], ngmax,
+        //                       &d.neighbors[pi * ngmax], d.neighborsCount[pi], d.bbox.PBCx,
+        //                       d.bbox.PBCy, d.bbox.PBCz);
 
-#ifndef NDEBUG
-            if (d.neighbors[pi].size() == 0)
-                printf("ERROR::FindNeighbors(%d) x %f y %f z %f h = %f ngi %zu\n", i, x[i], y[i], z[i], h[i], neighborsCount[pi]);
-#endif
-        }
+        //    #ifndef NDEBUG
+        //    if (d.neighbors[pi].size() == 0)
+        //        printf("ERROR::FindNeighbors(%d) x %f y %f z %f h = %f ngi %zu\n",
+        //               i, x[i], y[i], z[i], h[i], neighborsCount[pi]);
+        //    #endif
+        //}
+
+        auto policy = hpx::parallel::execution::par;
+        hpx::parallel::for_loop(policy,
+            0, n,
+            [&clist, &d, this](int pi)
+            {
+                int i = clist[pi];
+                d.neighborsCount[pi] = 0;
+                tree.findNeighbors(i, d.x[i], d.y[i], d.z[i], 2 * d.h[i], ngmax,
+                                   &d.neighbors[pi * ngmax], d.neighborsCount[pi], d.bbox.PBCx,
+                                   d.bbox.PBCy, d.bbox.PBCz);
+            }
+        );
     }
 
     template <class Dataset>
     int64_t neighborsSum(const std::vector<int> &clist, const Dataset &d)
     {
         int64_t sum = 0;
-#pragma omp parallel for reduction(+ : sum)
+        #pragma omp parallel for reduction(+ : sum)
         for (unsigned int i = 0; i < clist.size(); i++)
             sum += d.neighborsCount[i];
 
-#ifdef USE_MPI
+        #ifdef USE_MPI
         MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
-#endif
+        #endif
 
         return sum;
     }

@@ -1,6 +1,22 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <functional>
+#include <chrono>
+#include <thread>
+
+//#include <boost/program_options.hpp>
+
+#include <hpx/hpx_init.hpp>
+//#include <hpx/hpx_start.hpp>
+#include <hpx/hpx_suspend.hpp>
+#include <hpx/include/parallel_algorithm.hpp>
+//#include <hpx/include/actions.hpp>
+#include <hpx/include/async.hpp>
+#include <hpx/include/util.hpp>
+//#include <hpx/include/components.hpp>
+#include <hpx/include/iostreams.hpp>
+//#include <hpx/include/lcos.hpp>
 
 #include "sphexa.hpp"
 #include "SqPatch.hpp"
@@ -8,12 +24,11 @@
 using namespace std;
 using namespace sphexa;
 
-int main(int argc, char **argv)
+int hpx_main(boost::program_options::variables_map& vm)
 {
-    ArgParser parser(argc, argv);
-    int cubeSide = parser.getInt("-n", 50);
-    int maxStep = parser.getInt("-s", 10);
-    int writeFrequency = parser.getInt("-w", -1);
+    int cubeSide = vm["cubeside"].as<int>();
+    int maxStep = vm["maxstep"].as<int>();
+    int writeFrequency = vm["writefrequency"].as<int>();
 
 #ifdef _JENKINS
     maxStep = 0;
@@ -47,7 +62,12 @@ int main(int argc, char **argv)
         timer.step("domain::build");
         distributedDomain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
         timer.step("mpi::synchronizeHalos");
-        domain.buildTree(d);
+
+        //domain.buildTree(d);
+        hpx::future<void> f = hpx::async([](Domain<Real, Tree>& dom_, Dataset const& data_) -> void
+                                         { dom_.buildTree(data_); }, std::ref(domain), std::cref(d));
+        f.get();
+
         timer.step("BuildTree");
         domain.findNeighbors(clist, d);
         timer.step("FindNeighbors");
@@ -100,5 +120,27 @@ int main(int argc, char **argv)
     MPI_Finalize();
 #endif
 
-    return 0;
+    return hpx::finalize();
+}
+
+namespace po = boost::program_options;
+
+int main(int argc, char ** argv)
+{
+    po::options_description
+        desc_commandline("Usage: " HPX_APPLICATION_STRING " [options]");
+
+    desc_commandline.add_options()
+        ("cubeside,n", po::value<int>()->default_value(50),
+            "number of particles per cube side")
+        ("maxstep,s", po::value<int>()->default_value(10),
+            "number of SPH iterations to be performed")
+        ("writefrequency,w", po::value<int>()->default_value(-1),
+            "write output every \"w\" steps")
+        ;
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc_commandline), vm);
+
+    return hpx::init(desc_commandline, argc, argv);
 }
