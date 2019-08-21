@@ -66,9 +66,9 @@ public:
     int64_t neighborsSum(const std::vector<int> &clist, const Dataset &d)
     {
         int64_t sum = 0;
-        #pragma omp parallel for reduction(+ : sum)
-        for (unsigned int i = 0; i < clist.size(); i++)
-            sum += d.neighborsCount[i];
+        auto policy = hpx::parallel::execution::par;
+        sum = hpx::parallel::reduce(policy,
+            std::begin(d.neighborsCount), std::begin(d.neighborsCount) + clist.size(), sum);
 
         #ifdef USE_MPI
         MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
