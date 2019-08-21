@@ -8,9 +8,8 @@
 //#include <boost/program_options.hpp>
 
 #include <hpx/hpx_init.hpp>
-//#include <hpx/hpx_start.hpp>
-#include <hpx/hpx_suspend.hpp>
 #include <hpx/include/parallel_algorithm.hpp>
+#include <hpx/include/parallel_reduce.hpp>
 //#include <hpx/include/actions.hpp>
 #include <hpx/include/async.hpp>
 #include <hpx/include/util.hpp>

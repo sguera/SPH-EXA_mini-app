@@ -52,6 +52,9 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
     const int mre = 4;
 
 #if defined(USE_OMP_TARGET)
+
+    // OpenMP Target offload
+
     const int np = d.x.size();
     const size_t allNeighbors = n * ngmax;
 
@@ -67,32 +70,44 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
 
         const int *neighbors = d.neighbors.data() + neighborsOffset;
 
-// clang-format off
-#pragma omp target map(to                                                                                                                  \
+    // clang-format off
+    #pragma omp target map(to                                                                                                                  \
 		       : clist [:n], neighbors[:neighborsChunkSize], neighborsCount[:n], x [0:np], y [0:np], z [0:np], \
                          vx [0:np], vy [0:np], vz [0:np], h [0:np], m [0:np], ro [0:np], p [0:np], c [0:np])                               \
                    map(from                                                                                                                \
                        : grad_P_x [:n], grad_P_y [:n], grad_P_z [:n], du [:n])
-// clang-format on
-#pragma omp teams distribute parallel for // dist_schedule(guided)
+    // clang-format on
+    #pragma omp teams distribute parallel for // dist_schedule(guided)
+
 #elif defined(USE_ACC)
+
+    // OpenACC
+
     const size_t neighborsOffset = 0;
     const int *neighbors = d.neighbors.data();
     const int np = d.x.size();
     const size_t allNeighbors = n * ngmax;
     const size_t begin_n = 0;
     const size_t end_n = n;
-#pragma acc parallel loop copyin(clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], x [0:np], y [0:np], z [0:np], vx [0:np],   \
-                                 vy [0:np], vz [0:np], h [0:np], m [0:np], ro [0:np], p [0:np], c [0:np])                                  \
-    copyout(grad_P_x [0:n], grad_P_y [0:n], grad_P_z [0:n], du [0:n])
+    #pragma acc parallel loop copyin(clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], \
+                                     x [0:np], y [0:np], z [0:np], vx [0:np],   \
+                                     vy [0:np], vz [0:np], h [0:np], m [0:np], ro [0:np], p [0:np], c [0:np]) \
+                                     copyout(grad_P_x [0:n], grad_P_y [0:n], grad_P_z [0:n], du [0:n])
 #else
+
+    // HPX
+
     const size_t neighborsOffset = 0;
     const int *neighbors = d.neighbors.data();
     const size_t begin_n = 0;
     const size_t end_n = n;
-#pragma omp parallel for schedule(guided)
+
 #endif
-        for (size_t pi = begin_n; pi < end_n; pi++)
+
+    auto policy = hpx::parallel::execution::par;
+    hpx::parallel::for_loop(policy,
+        begin_n, end_n,
+        [=](int pi)
         {
             const int i = clist[pi];
             const int nn = neighborsCount[pi];
@@ -151,7 +166,8 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
                 const T delta_pos_i_j = (p[i] > 0.0 && p[j] > 0.0) ? 1.0 : 0.0;
 
                 const T R_i_j =
-                    ep1 * (A_i * std::abs(p[i]) + A_j * std::abs(p[j])) + ep2 * delta_pos_i_j * (std::abs(p[i]) + std::abs(p[j]));
+                    ep1 * (A_i * std::abs(p[i]) + A_j * std::abs(p[j])) + ep2 *
+                    delta_pos_i_j * (std::abs(p[i]) + std::abs(p[j]));
 
                 const T r_force_i_j = R_i_j * sphexa::math::pow(force_i_j_r, (int)mre);
 
@@ -173,16 +189,18 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
 
             du[i] = energy;
 
-#ifndef NDEBUG
-            if (std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))
-                printf("ERROR::MomentumEnergy(%d) MomentumEnergy (%f %f %f)\n", i, momentum_x, momentum_y, momentum_z);
-            if (std::isnan(du[i])) printf("ERROR:Energy du %f energy %f p_i %f gradh_i %f ro_i %f\n", du[i], energy, p[i], gradh_i, ro[i]);
-#endif
+            //#ifndef NDEBUG
+            //if (std::isnan(momentum_x) || std::isnan(momentum_y) || std::isnan(momentum_z))
+            //    printf("ERROR::MomentumEnergy(%d) MomentumEnergy (%f %f %f)\n", i, momentum_x, momentum_y, momentum_z);
+            //if (std::isnan(du[i])) printf("ERROR:Energy du %f energy %f p_i %f gradh_i %f ro_i %f\n",
+            //                              du[i], energy, p[i], gradh_i, ro[i]);
+            //#endif
 
             grad_P_x[i] = momentum_x;
             grad_P_y[i] = momentum_y;
             grad_P_z[i] = momentum_z;
-        }
+        });
+
 #if defined(USE_OMP_TARGET)
     }
 #endif
