@@ -107,7 +107,7 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
     auto policy = hpx::parallel::execution::par;
     hpx::parallel::for_loop(policy,
         begin_n, end_n,
-        [=](int pi)
+        [&](int pi)
         {
             const int i = clist[pi];
             const int nn = neighborsCount[pi];
