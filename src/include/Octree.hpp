@@ -135,6 +135,7 @@ public:
         start.resize(ncells);
         count.resize(ncells);
 
+        std::vector<hpx::future<void>> subcell_tasks;
         for (int i = 0; i < ncells; i++)
         {
             start[i] = ptr + padding[i];
@@ -147,7 +148,15 @@ public:
                 cells[i]->y = y;
                 cells[i]->z = z;
                 cells[i]->ordering = ordering;
-                cells[i]->buildRec(cellList[i], cellBBox[i], ax, ay, az, ah, bucketSize, ptr + padding[i]);
+
+                subcell_tasks.push_back(hpx::async([](auto cellptr, auto const& list, auto const& bbox,
+                                                           auto const& x, auto const& y, auto const& z,
+                                                           auto const& h, int bsz, int offset)
+                                                    { cellptr->buildRec(list, bbox, x, y, z, h, bsz, offset); },
+                                        cells[i], std::cref(cellList[i]), std::cref(cellBBox[i]),
+                                        std::cref(ax), std::cref(ay), std::cref(az), std::cref(ah),
+                                        bucketSize, ptr + padding[i])
+                                       );
             }
             else
             {
@@ -163,6 +172,9 @@ public:
                 }
             }
         }
+
+        // wait for subcells to complete
+        hpx::when_all(subcell_tasks).get();
     }
 
     void build(const BBox<T> &bbox, const ArrayT &ax, const ArrayT &ay, const ArrayT &az, const ArrayT &ah,

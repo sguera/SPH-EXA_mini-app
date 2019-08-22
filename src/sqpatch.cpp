@@ -15,7 +15,7 @@
 #include <hpx/include/util.hpp>
 //#include <hpx/include/components.hpp>
 #include <hpx/include/iostreams.hpp>
-//#include <hpx/include/lcos.hpp>
+#include <hpx/include/lcos.hpp>
 
 #include "sphexa.hpp"
 #include "SqPatch.hpp"
@@ -134,9 +134,6 @@ int main(int argc, char ** argv)
         ("writefrequency,w", po::value<int>()->default_value(-1),
             "write output every \"w\" steps")
         ;
-
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc_commandline), vm);
 
     return hpx::init(desc_commandline, argc, argv);
 }
