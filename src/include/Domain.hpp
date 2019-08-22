@@ -80,7 +80,13 @@ public:
     template <class Dataset>
     inline void buildTree(const Dataset &d)
     {
-        tree.build(d.bbox, d.x, d.y, d.z, d.h, bucketSize);
+        hpx::future<void> f = hpx::async([this](BBox<T> const& bbox,
+                                            auto const& x, auto const& y, auto const& z,
+                                            auto const& h, unsigned bsz) -> void
+                                            { tree.build(bbox, x, y, z, h, bsz); },
+                                         std::cref(d.bbox), std::cref(d.x), std::cref(d.y), std::cref(d.z),
+                                         std::cref(d.h), bucketSize);
+        f.get();
     }
 
 private:

@@ -62,10 +62,7 @@ int hpx_main(boost::program_options::variables_map& vm)
         distributedDomain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
         timer.step("mpi::synchronizeHalos");
 
-        //domain.buildTree(d);
-        hpx::future<void> f = hpx::async([](Domain<Real, Tree>& dom_, Dataset const& data_) -> void
-                                         { dom_.buildTree(data_); }, std::ref(domain), std::cref(d));
-        f.get();
+        domain.buildTree(d);
 
         timer.step("BuildTree");
         domain.findNeighbors(clist, d);
