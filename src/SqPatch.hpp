@@ -17,7 +17,8 @@ public:
         , side(side)
         , count(side * side * side)
         , data({&x, &y,   &z, &x_m1, &y_m1, &z_m1,     &vx,       &vy,       &vz, &ro,    &ro_0, &u,
-                &p, &p_0, &h, &m,    &c,    &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt,   &dt_m1}) //, ng0(ng0), ngmax(1.5*ng0)
+                &p, &p_0, &h, &m,    &c,    &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt,   &dt_m1,
+                &c11, &c12, &c13, &c22, &c23, &c33}) //, ng0(ng0), ngmax(1.5*ng0)
     {
 #ifdef USE_MPI
         comm = MPI_COMM_WORLD;
@@ -259,6 +260,8 @@ public:
     std::vector<T> grad_P_x, grad_P_y, grad_P_z; // gradient of the pressure
     std::vector<T> du, du_m1;                    // variation of the energy
     std::vector<T> dt, dt_m1;
+
+    std::vector<T> c11, c12, c13, c22, c23, c33;
 
     T ttot, etot, ecin, eint;
 
