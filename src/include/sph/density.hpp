@@ -39,7 +39,6 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
 #if defined(USE_OMP_TARGET)
     const size_t np = d.x.size();
     const size_t allNeighbors = n * ngmax;
-
     for (ushort s = 0; s < d.noOfGpuLoopSplits; ++s)
     {
         const size_t begin_n = s * n / d.noOfGpuLoopSplits;
@@ -58,7 +57,7 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
                    map(from                                                                                                                \
                        : ro [:n])
 // clang-format on
-#pragma omp teams distribute parallel for // dist_schedule(guided)
+#pragma omp teams distribute parallel for
 #elif defined(USE_ACC)
     const size_t neighborsOffset = 0;
     const int *neighbors = d.neighbors.data();

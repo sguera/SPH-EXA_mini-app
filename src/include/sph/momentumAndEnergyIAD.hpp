@@ -41,7 +41,30 @@ void computeIAD(const std::vector<int> &l, Dataset &d)
 
     // std::vector<T> checkImem(n, 0), checkDeltaX(n, 0), checkDeltaY(n, 0), checkDeltaZ(n, 0);
 
+#if defined(USE_OMP_TARGET)
+    const int np = d.x.size();
+    const size_t allNeighbors = n * ngmax;
+
+// clang-format off
+#pragma omp target map(to                                                                                                                  \
+		       : clist [:n], neighbors[:allNeighbors], neighborsCount[:n],                                                         \
+                       x [0:np], y [0:np], z [0:np], h [0:np], m [0:np], ro [0:np])                                                        \
+                   map(from                                                                                                                \
+                       : c11[:n], c12[:n], c13[:n], c22[:n], c23[:n], c33[:n])
+// clang-format on
+#pragma omp teams distribute parallel for // dist_schedule(guided)
+#elif defined(USE_ACC)
+    const int np = d.x.size();
+    const size_t allNeighbors = n * ngmax;
+// clang-format off
+//#pragma acc kernels
+ #pragma acc parallel loop copyin(clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n],                                            \
+                                  x [0:np], y [0:np], z [0:np], h [0:np], m [0:np], ro [0:np])                                              \
+                           copyout(c11 [0:n], c12 [0:n], c13 [0:n], c22 [0:n], c23 [0:n], c33 [0:n])
+// clang-format on
+#else
 #pragma omp parallel for schedule(guided)
+#endif
     for (int pi = 0; pi < n; ++pi)
     {
         const int i = clist[pi];
@@ -63,7 +86,7 @@ void computeIAD(const std::vector<int> &l, Dataset &d)
             T r_ijy = (y[i] - y[j]);
             T r_ijz = (z[i] - z[j]);
 
-            applyPBC(bbox, 2.0 * h[i], r_ijx, r_ijy, r_ijz); // with this line energy grows even faster
+            applyPBC(bbox, 2.0 * h[i], r_ijx, r_ijy, r_ijz);
 
             tau11 += r_ijx * r_ijx * m[j] / ro[j] * W;
             tau12 += r_ijx * r_ijy * m[j] / ro[j] * W;
@@ -72,10 +95,12 @@ void computeIAD(const std::vector<int> &l, Dataset &d)
             tau23 += r_ijy * r_ijz * m[j] / ro[j] * W;
             tau33 += r_ijz * r_ijz * m[j] / ro[j] * W;
 
-/*            checkImem[i] += m[j] / ro[j] * W;
+            /*
+            checkImem[i] += m[j] / ro[j] * W;
             checkDeltaX[i] += m[j] / ro[j] * (r_ijx) * W;
             checkDeltaY[i] += m[j] / ro[j] * (r_ijy) * W;
-            checkDeltaZ[i] += m[j] / ro[j] * (r_ijz) * W;*/
+            checkDeltaZ[i] += m[j] / ro[j] * (r_ijz) * W;
+            */
         }
 
         const T det =
@@ -130,8 +155,30 @@ void computeMomentumAndEnergyIAD(const std::vector<int> &l, Dataset &d)
 
     const T sincIndex = d.sincIndex;
     const T K = d.K;
-
+#if defined(USE_OMP_TARGET)
+    const int np = d.x.size();
+    const size_t allNeighbors = n * ngmax;
+// clang-format off
+#pragma omp target map(to                                                                                                                  \
+		       : clist [:n], neighbors[:allNeighbors], neighborsCount[:n], x [0:np], y [0:np], z [0:np],                           \
+                       vx [0:np], vy [0:np], vz [0:np], h [0:np], m [0:np], ro [0:np], p [0:np], c [0:np],                                 \
+                       c11 [0:np], c12 [0:np], c13 [0:np], c22 [0:np], c23 [0:np], c33 [0:np])                                             \
+                   map(from                                                                                                                \
+                       : grad_P_x [:n], grad_P_y [:n], grad_P_z [:n], du [:n])
+// clang-format on
+#pragma omp teams distribute parallel for
+#elif defined(USE_ACC)
+    const int np = d.x.size();
+    const size_t allNeighbors = n * ngmax;
+// clang-format off
+#pragma acc parallel loop copyin(clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], x [0:np], y [0:np], z [0:np], vx [0:np],   \
+                                 vy [0:np], vz [0:np], h [0:np], m [0:np], ro [0:np], p [0:np], c [0:np], c11 [0:np], c12 [0:np],          \
+                                 c13 [0:np], c22 [0:np], c23 [0:np], c33 [0:np])                                                           \
+                          copyout(grad_P_x [0:n], grad_P_y [0:n], grad_P_z [0:n], du [0:n])
+// clang-format on
+#else
 #pragma omp parallel for schedule(guided)
+#endif
     for (int pi = 0; pi < n; ++pi)
     {
         const int i = clist[pi];
@@ -154,7 +201,6 @@ void computeMomentumAndEnergyIAD(const std::vector<int> &l, Dataset &d)
             applyPBC(bbox, 2.0 * h[i], r_jix, r_jiy, r_jiz);
 
             const T dist = std::sqrt(r_ijx * r_ijx + r_ijy * r_ijy + r_ijz * r_ijz);
-            // const T dist = distancePBC(bbox, h[i], x[i], y[i], z[i], x[j], y[j], z[j]); // store the distance from each neighbor
 
             const T v_ijx = (vx[i] - vx[j]);
             const T v_ijy = (vy[i] - vy[j]);

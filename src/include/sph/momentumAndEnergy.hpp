@@ -82,9 +82,11 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
     const size_t allNeighbors = n * ngmax;
     const size_t begin_n = 0;
     const size_t end_n = n;
+// clang-format off
 #pragma acc parallel loop copyin(clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], x [0:np], y [0:np], z [0:np], vx [0:np],   \
                                  vy [0:np], vz [0:np], h [0:np], m [0:np], ro [0:np], p [0:np], c [0:np])                                  \
-    copyout(grad_P_x [0:n], grad_P_y [0:n], grad_P_z [0:n], du [0:n])
+                          copyout(grad_P_x [0:n], grad_P_y [0:n], grad_P_z [0:n], du [0:n])
+// clang-format on
 #else
     const size_t neighborsOffset = 0;
     const int *neighbors = d.neighbors.data();

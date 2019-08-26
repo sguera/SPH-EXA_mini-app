@@ -70,7 +70,6 @@ struct lookup_table_initializer
 
 #if defined(USE_OMP_TARGET)
 #pragma omp target enter data map(to : fast_cossin_table [0:MAX_CIRCLE_ANGLE])
-        ;
 #endif
     }
 
@@ -78,7 +77,6 @@ struct lookup_table_initializer
     {
 #if defined(USE_OMP_TARGET)
 #pragma omp target exit data map(delete : fast_cossin_table [0:MAX_CIRCLE_ANGLE])
-        ;
 #endif
     }
 };
