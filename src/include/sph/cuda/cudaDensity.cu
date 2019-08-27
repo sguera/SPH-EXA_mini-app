@@ -59,18 +59,13 @@ void computeDensity(const std::vector<int> &clist, Dataset &d)
     BBox<T> *d_bbox;
 
     // input data
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_clist, size_n_int_lastChunk));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_neighbors, size_allNeighbors_lastChunk));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_neighborsCount, size_n_int_lastChunk));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_x, size_np_T));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_y, size_np_T));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_z, size_np_T));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_h, size_np_T));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_m, size_np_T));
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_bbox, size_bbox));
+    utils::cudaMalloc(size_n_int_lastChunk, d_clist, d_neighborsCount);
+    utils::cudaMalloc(size_allNeighbors_lastChunk, d_neighbors);
+    utils::cudaMalloc(size_np_T, d_x, d_y, d_z, d_h, d_m);
+    utils::cudaMalloc(size_bbox, d_bbox);
 
     // output data
-    CHECK_CUDA_ERR(cudaMalloc((void **)&d_ro, size_n_T_lastChunk));
+    utils::cudaMalloc(size_n_T_lastChunk, d_ro);
 
     CHECK_CUDA_ERR(cudaMemcpy(d_x, d.x.data(), size_np_T, cudaMemcpyHostToDevice));
     CHECK_CUDA_ERR(cudaMemcpy(d_y, d.y.data(), size_np_T, cudaMemcpyHostToDevice));
@@ -120,16 +115,7 @@ void computeDensity(const std::vector<int> &clist, Dataset &d)
         }
     }
 
-    CHECK_CUDA_ERR(cudaFree(d_clist));
-    CHECK_CUDA_ERR(cudaFree(d_neighbors));
-    CHECK_CUDA_ERR(cudaFree(d_neighborsCount));
-    CHECK_CUDA_ERR(cudaFree(d_x));
-    CHECK_CUDA_ERR(cudaFree(d_y));
-    CHECK_CUDA_ERR(cudaFree(d_z));
-    CHECK_CUDA_ERR(cudaFree(d_h));
-    CHECK_CUDA_ERR(cudaFree(d_m));
-    CHECK_CUDA_ERR(cudaFree(d_bbox));
-    CHECK_CUDA_ERR(cudaFree(d_ro));
+    utils::cudaFree(d_clist, d_neighbors, d_neighborsCount, d_x, d_y, d_z, d_h, d_m, d_bbox, d_ro);
 }
 
 } // namespace cuda
