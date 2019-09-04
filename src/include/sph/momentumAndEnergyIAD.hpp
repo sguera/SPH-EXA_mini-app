@@ -12,7 +12,7 @@ namespace sph
 {
 
 template <typename T, class Dataset>
-void computeIAD(const std::vector<int> &l, Dataset &d)
+void computeIADImpl(const std::vector<int> &l, Dataset &d)
 {
     const int64_t n = l.size();
     const int64_t ngmax = d.ngmax;
@@ -114,9 +114,24 @@ void computeIAD(const std::vector<int> &l, Dataset &d)
         c33[i] = (tau11 * tau22 - tau12 * tau12) / det;
     }
 }
+template <typename T, class Dataset>
+void computeIAD(const std::vector<int> &l, Dataset &d)
+{
+#if defined(USE_CUDA)
+    cuda::computeIAD<T>(l, d);
+#else
+    computeIADImpl<T>(l, d);
+#endif
+
+    // for(size_t i=0; i < l.size(); ++i)
+    // {
+    //     printf("%lu:%.15f ", i, d.c11[i]);
+    //     if (i % 10 == 0) printf("\n");
+    // }
+}
 
 template <typename T, class Dataset>
-void computeMomentumAndEnergyIAD(const std::vector<int> &l, Dataset &d)
+void computeMomentumAndEnergyIADImpl(const std::vector<int> &l, Dataset &d)
 {
     const T gradh_i = 1.0;
     const T gradh_j = 1.0;
@@ -266,5 +281,22 @@ void computeMomentumAndEnergyIAD(const std::vector<int> &l, Dataset &d)
         grad_P_z[i] = momentum_z;
     }
 };
+
+template <typename T, class Dataset>
+void computeMomentumAndEnergyIAD(const std::vector<int> &l, Dataset &d)
+{
+#if defined(USE_CUDA)
+    cuda::computeMomentumAndEnergyIAD<T>(l, d);
+#else
+    computeMomentumAndEnergyIADImpl<T>(l, d);
+#endif
+
+    // for(size_t i=0; i < l.size(); ++i)
+    // {
+    //     printf("%lu:%.15f ", i, d.grad_P_x[i]);
+    //     if (i % 10 == 0) printf("\n");
+    // }
+}
+
 } // namespace sph
 } // namespace sphexa

@@ -16,7 +16,7 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 HPP := $(wildcard src/include/*.hpp)
 HPP += $(wildcard src/include/tree/*.hpp)
 
-CUDA_OBJS := $(BUILDDIR)/cudaMomentumAndEnergy.o $(BUILDDIR)/cudaDensity.o
+CUDA_OBJS := $(BUILDDIR)/cudaMomentumAndEnergy.o $(BUILDDIR)/cudaDensity.o $(BUILDDIR)/cudaIAD.o $(BUILDDIR)/cudaMomentumAndEnergyIAD.o
 
 RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
