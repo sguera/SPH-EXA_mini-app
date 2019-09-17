@@ -55,8 +55,11 @@ __global__ void computeMomentumAndEnergyIAD(const int n, const T sincIndex, cons
 
         const T rv = r_ijx * v_ijx + r_ijy * v_ijy + r_ijz * v_ijz;
 
-        const T W1 = wharmonic(v1, h[i], sincIndex, K);
-        const T W2 = wharmonic(v2, h[j], sincIndex, K);
+        const T w1 = K * math_namespace::pow(wharmonic(v1), (int)sincIndex);
+        const T w2 = K * math_namespace::pow(wharmonic(v2), (int)sincIndex);
+
+        const T W1 = w1 / (h[i] * h[i] * h[i]);
+        const T W2 = w2 / (h[j] * h[j] * h[j]);
 
         const T kern11_i = c11[i] * r_jix;
         const T kern12_i = c12[i] * r_jiy;

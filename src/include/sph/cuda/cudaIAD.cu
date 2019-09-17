@@ -13,9 +13,9 @@ namespace cuda
 namespace kernels
 {
 template <typename T>
-__global__ void computeIAD(const int n, const T sincIndex, const T K, const int ngmax, const BBox<T> *bbox, const int *clist, const int *neighbors,
-                    const int *neighborsCount, const T *x, const T *y, const T *z, const T *h, const T *m, const T *ro, T *c11, T *c12,
-                    T *c13, T *c22, T *c23, T *c33)
+__global__ void computeIAD(const int n, const T sincIndex, const T K, const int ngmax, const BBox<T> *bbox, const int *clist,
+                           const int *neighbors, const int *neighborsCount, const T *x, const T *y, const T *z, const T *h, const T *m,
+                           const T *ro, T *c11, T *c12, T *c13, T *c22, T *c23, T *c33)
 {
     const int tid = blockDim.x * blockIdx.x + threadIdx.x;
     if (tid >= n) return;
@@ -30,7 +30,9 @@ __global__ void computeIAD(const int n, const T sincIndex, const T K, const int 
 
         const T dist = distancePBC(*bbox, h[i], x[i], y[i], z[i], x[j], y[j], z[j]); // store the distance from each neighbor
         const T vloc = dist / h[i];
-        const T W = wharmonic(vloc, h[i], sincIndex, K);
+
+        const T w = K * math_namespace::pow(wharmonic(vloc), (int)sincIndex);
+        const T W = w / (h[i] * h[i] * h[i]);
 
         T r_ijx = (x[i] - x[j]);
         T r_ijy = (y[i] - y[j]);
@@ -103,8 +105,8 @@ void computeIAD(const std::vector<int> &clist, Dataset &d)
     const int threadsPerBlock = 256;
     const int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
 
-    kernels::computeIAD<<<blocksPerGrid, threadsPerBlock>>>(n, d.sincIndex, d.K, d.ngmax, d_bbox, d_clist, d_neighbors, d_neighborsCount, d_x, d_y,
-                                                     d_z, d_h, d_m, d_ro, d_c11, d_c12, d_c13, d_c22, d_c23, d_c33);
+    kernels::computeIAD<<<blocksPerGrid, threadsPerBlock>>>(n, d.sincIndex, d.K, d.ngmax, d_bbox, d_clist, d_neighbors, d_neighborsCount,
+                                                            d_x, d_y, d_z, d_h, d_m, d_ro, d_c11, d_c12, d_c13, d_c22, d_c23, d_c33);
     CHECK_CUDA_ERR(cudaGetLastError());
 
     CHECK_CUDA_ERR(cudaMemcpy(d.c11.data(), d_c11, size_n_T, cudaMemcpyDeviceToHost));

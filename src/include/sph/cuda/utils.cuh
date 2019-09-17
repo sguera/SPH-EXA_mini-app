@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cuda.h>
 #include <type_traits>
 
@@ -7,9 +9,10 @@ namespace sph
 {
 namespace cuda
 {
+#define CHECK_CUDA_ERR(errcode) utils::checkErr((errcode), __FILE__, __LINE__, #errcode);
+
 namespace utils
 {
-#define CHECK_CUDA_ERR(errcode) utils::checkErr((errcode), __FILE__, __LINE__, #errcode);
 
 inline void checkErr(cudaError_t err, const char *filename, int lineno, const char *funcName)
 {

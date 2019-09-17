@@ -58,8 +58,8 @@ __global__ void momenumAndEnergy(const int n, const int dx, const T sincIndex, c
         const T rv_j = r_ij / h[j];
         const T viscosity_ij = artificial_viscosity(ro[i], ro[j], h[i], h[j], c[i], c[j], rv, r_square);
 
-        const T derivative_kernel_i = wharmonic_derivative(rv_i, h[i], sincIndex, K);
-        const T derivative_kernel_j = wharmonic_derivative(rv_j, h[j], sincIndex, K);
+        const T derivative_kernel_i = wharmonic_derivative_deprecated(rv_i, h[i], sincIndex, K);
+        const T derivative_kernel_j = wharmonic_derivative_deprecated(rv_j, h[j], sincIndex, K);
 
         // divide by r_ij? missing h?
         const T grad_v_kernel_x_i = r_ijx * derivative_kernel_i;

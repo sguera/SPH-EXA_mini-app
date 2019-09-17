@@ -27,7 +27,7 @@ NVCCFLAGS := -std=c++14 --expt-relaxed-constexpr -arch=sm_60 -rdc=true
 NVCC_LDFLAGS := -arch=sm_60
 
 ifeq ($(ENV),gnu)
-	CXXFLAGS += -std=c++14 -O2 -Wall -Wextra -fopenmp -fopenacc -march=native -mtune=native
+	CXXFLAGS += -std=c++11 -O2 -Wall -Wextra -fopenmp -fopenacc -march=native -mtune=native
 endif
 
 ifeq ($(ENV),pgi)
@@ -63,6 +63,7 @@ omp+cuda: $(BUILDDIR)/cuda_no_mpi.o $(CUDA_OBJS)
 	$(info Linking the executable:)
 	nvcc $(NVCC_LDFLAGS) -dlink -o cudalinked.o $(CUDA_OBJS) -lcudadevrt -lcudart
 	$(CXX) -o $(BINDIR)/$@.app cudalinked.o $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
+#	$(CXX) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
 
 omp+target: $(HPP)
 	@mkdir -p $(BINDIR)
@@ -77,13 +78,14 @@ mpi+omp+target: $(HPP)
 mpi+omp+acc: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_ACC src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
+	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_STD_MATH_IN_KERNELS -DUSE_ACC src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
 mpi+omp+cuda: $(BUILDDIR)/cuda_mpi.o $(CUDA_OBJS)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	nvcc $(NVCC_LDFLAGS) -dlink -o cudalinked.o $(CUDA_OBJS) -lcudadevrt -lcudart
 	$(MPICXX) $(CXXFLAGS) -o $(BINDIR)/$@.app cudalinked.o $+ -L$(CUDA_PATH)/lib64 -lcudart
+#	$(MPICXX) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
 
 $(BUILDDIR)/cuda_mpi.o: src/sqpatch.cpp
 	@mkdir -p $(BUILDDIR)
@@ -96,6 +98,7 @@ $(BUILDDIR)/cuda_no_mpi.o: src/sqpatch.cpp
 $(BUILDDIR)/%.o: src/include/sph/cuda/%.cu
 	@mkdir -p $(BUILDDIR)
 	$(NVCC) $(NVCCFLAGS) $(INC) -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 -c -o $@ $<
+#	$(NVCC) $(NVCCFLAGS) $(INC) -DUSE_STD_MATH_IN_KERNELS -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 -c -o $@ $<
 
 run_test:
 	@$(MAKE) -f $(THIS_FILE) omp

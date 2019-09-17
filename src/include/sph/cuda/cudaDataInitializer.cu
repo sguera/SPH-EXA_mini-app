@@ -1,6 +1,16 @@
 #include <cuda.h>
 
-#include "../../math.hpp"
+#include "../kernels.hpp"
+#include "../lookupTables.hpp"
 
-__device__ double sphexa::math::fast_cossin_table[MAX_CIRCLE_ANGLE];
-sphexa::math::GpuCosSinLookupTableInitializer<double> sincosInit;
+namespace sphexa
+{
+namespace lookup_tables
+{
+__device__ double fast_cossin_table[lookup_tables::sinCosLTSize];
+__device__ double wharmonicLookupTable[lookup_tables::wharmonicLookupTableSize];
+__device__ double wharmonicDerivativeLookupTable[lookup_tables::wharmonicLookupTableSize];
+GpuLookupTableInitializer<double> ltinit;
+
+} // namespace lookup_tables
+} // namespace sphexa

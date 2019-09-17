@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "kernels.hpp"
+#include "sphUtils.hpp"
 #include "cuda/sph.cuh"
 
 namespace sphexa
@@ -21,7 +22,7 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
     //     if (i % 10 == 0 ) printf("\n");
     //     printf("%f", d.ro[i]);
     // }
-    // return;
+    return;
 #endif
 
     const size_t n = l.size();
@@ -39,8 +40,8 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
 
     const BBox<T> bbox = d.bbox;
 
-    const T sincIndex = d.sincIndex;
     const T K = d.K;
+    const T sincIndex = d.sincIndex;
 
 #if defined(USE_OMP_TARGET)
     const size_t np = d.x.size();
@@ -103,8 +104,8 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
                     printf("ERROR:Density(%d,%d) vloc %f -- x %f %f %f -- %f %f %f -- dist %f -- hi %f\n", i, j, vloc, x[i], y[i], z[i],
                            x[j], y[j], z[j], dist, h[i]);
 #endif
-
-                const T value = wharmonic(vloc, h[i], sincIndex, K);
+                const T w = K * math_namespace::pow(wharmonic(vloc), (int)sincIndex);
+                const T value = w / (h[i] * h[i] * h[i]);
                 roloc += value * m[j];
             }
 
@@ -117,6 +118,12 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
 #if defined(USE_OMP_TARGET)
     }
 #endif
+
+    // for (size_t i = 0; i < l.size(); ++i)
+    // {
+    //     printf("%lu:%.15f ", i, d.ro[i]);
+    //     if (i % 10 == 0) printf("\n");
+    // }
 
     // for (int ii = 0; ii < n; ++ii)
     // printf("ro[%d]=%0.15f\n", ii, d.ro[ii]);

@@ -1,45 +1,73 @@
 #pragma once
 
 #include "math.hpp"
-#include "BBox.hpp"
-
-namespace sphexa
-{
-
-#define PI 3.14159265358979323846
 
 #ifdef USE_STD_MATH_IN_KERNELS
 #define math_namespace std
 #else
-#define math_namespace sphexa::math
+#define math_namespace ::sphexa::math
 #endif
 
+namespace sphexa
+{
 
 template <typename T>
-inline T compute_3d_k(T n)
+CUDA_DEVICE_HOST_FUN inline T wharmonic_std(T v)
 {
-    // b0, b1, b2 and b3 are defined in "SPHYNX: an accurate density-based SPH method for astrophysical applications",
-    // DOI: 10.1051/0004-6361/201630208
-    T b0 = 2.7012593e-2;
-    T b1 = 2.0410827e-2;
-    T b2 = 3.7451957e-3;
-    T b3 = 4.7013839e-2;
+    if (v == 0.0) return 1.0;
 
-    return b0 + b1 * std::sqrt(n) + b2 * n + b3 * std::sqrt(n * n * n);
+    const T Pv = (PI / 2.0) * v;
+
+    return std::sin(Pv) / Pv;
 }
 
 template <typename T>
-CUDA_PREFIX inline T wharmonic(T v, T h, T sincIndex, T K)
+CUDA_DEVICE_HOST_FUN inline T wharmonic_derivative_std(T v)
 {
-    T Pv = (PI / 2.0) * v;
-    T sincv = math_namespace::sin(Pv) / Pv;
-    return K / (h * h * h) * math_namespace::pow(sincv, (int)sincIndex);
+    if (v == 0.0) return 0.0;
+
+    const T Pv = (PI / 2.0) * v;
+    const T sincv = std::sin(Pv) / (Pv);
+
+    return sincv * (PI / 2.0) * ((std::cos(Pv) / std::sin(Pv)) - 1.0 / Pv);
 }
 
 template <typename T>
-CUDA_PREFIX inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
+CUDA_DEVICE_FUN inline T wharmonic_lt(const T v)
 {
+    namespace lt = sphexa::lookup_tables;
 
+    const size_t idx = (v * lt::wharmonicLookupTableSize / 2.0);
+
+    return (idx >= lt::wharmonicLookupTableSize) ? 0.0 : lt::wharmonicLookupTable[idx];
+}
+
+template <typename T>
+CUDA_DEVICE_FUN inline T wharmonic_lt_with_derivative(const T v)
+{
+    namespace lt = sphexa::lookup_tables;
+
+    const size_t halfTableSize = lt::wharmonicLookupTableSize / 2.0;
+    const size_t idx = v * halfTableSize;
+
+    return (idx >= lt::wharmonicLookupTableSize)
+               ? 0.0
+               : lt::wharmonicLookupTable[idx] + lt::wharmonicDerivativeLookupTable[idx] * (v - (T)idx / halfTableSize);
+}
+
+template <typename T>
+CUDA_DEVICE_FUN inline T wharmonic_derivative_lt(const T v)
+{
+    namespace lt = sphexa::lookup_tables;
+
+    const size_t idx = (v * lt::wharmonicLookupTableSize / 2.0);
+
+    return (idx >= lt::wharmonicLookupTableSize) ? -0.5 : lt::wharmonicDerivativeLookupTable[idx];
+}
+
+template <typename T>
+CUDA_DEVICE_HOST_FUN inline T wharmonic_derivative_deprecated(T v, T h, T sincIndex, T K)
+{
     T Pv = (PI / 2.0) * v;
     T cotv = math_namespace::cos(Pv) / math_namespace::sin(Pv);
     ; // 1.0 / tan(P * v);
@@ -50,62 +78,37 @@ CUDA_PREFIX inline T wharmonic_derivative(T v, T h, T sincIndex, T K)
     return ret;
 }
 
-template <typename T>
-CUDA_PREFIX inline T artificial_viscosity(T ro_i, T ro_j, T h_i, T h_j, T c_i, T c_j, T rv, T r_square)
-{
-    T alpha = 1.0;
-    T beta = 2.0;
-    T epsilon = 0.01;
+#ifdef USE_STD_MATH_IN_KERNELS
+constexpr auto wharmonic = wharmonic_std<double>;
+constexpr auto wharmonic_derivative = wharmonic_derivative_std<double>;
+#else
+// constexpr auto wharmonic = wharmonic_lt<double>;
+constexpr auto wharmonic = wharmonic_lt_with_derivative<double>;
+constexpr auto wharmonic_derivative = wharmonic_derivative_lt<double>;
+#endif
 
-    T ro_ij = (ro_i + ro_j) / 2.0;
-    T c_ij = (c_i + c_j) / 2.0;
-    T h_ij = (h_i + h_j) / 2.0;
+template <typename T>
+CUDA_DEVICE_FUN inline T artificial_viscosity(const T ro_i, const T ro_j, const T h_i, const T h_j, const T c_i, const T c_j, const T rv,
+                                          const T r_square)
+{
+    const T alpha = 1.0;
+    const T beta = 2.0;
+    const T epsilon = 0.01;
+
+    const T ro_ij = (ro_i + ro_j) / 2.0;
+    const T c_ij = (c_i + c_j) / 2.0;
+    const T h_ij = (h_i + h_j) / 2.0;
 
     // calculate viscosity_ij according to Monaghan & Gringold 1983
     T viscosity_ij = 0.0;
     if (rv < 0.0)
     {
         // calculate muij
-        T mu_ij = (h_ij * rv) / (r_square + epsilon * h_ij * h_ij);
+        const T mu_ij = (h_ij * rv) / (r_square + epsilon * h_ij * h_ij);
         viscosity_ij = (-alpha * c_ij * mu_ij + beta * mu_ij * mu_ij) / ro_ij;
     }
 
     return viscosity_ij;
-}
-
-template <typename T>
-CUDA_PREFIX inline void applyPBC(const BBox<T> &bbox, const T r, T &xx, T &yy, T &zz)
-{
-    if (bbox.PBCx && xx > r)
-        xx -= (bbox.xmax - bbox.xmin);
-    else if (bbox.PBCx && xx < -r)
-        xx += (bbox.xmax - bbox.xmin);
-
-    if (bbox.PBCy && yy > r)
-        yy -= (bbox.ymax - bbox.ymin);
-    else if (bbox.PBCy && yy < -r)
-        yy += (bbox.ymax - bbox.ymin);
-
-    if (bbox.PBCz && zz > r)
-        zz -= (bbox.zmax - bbox.zmin);
-    else if (bbox.PBCz && zz < -r)
-        zz += (bbox.zmax - bbox.zmin);
-
-    // xx += bbox.PBCx * ((xx < -r) - (xx > r)) * (bbox.xmax-bbox.xmin);
-    // yy += bbox.PBCy * ((yy < -r) - (yy > r)) * (bbox.ymax-bbox.ymin);
-    // zz += bbox.PBCz * ((zz < -r) - (zz > r)) * (bbox.zmax-bbox.zmin);
-}
-
-template <typename T>
-CUDA_PREFIX inline T distancePBC(const BBox<T> &bbox, const T hi, const T x1, const T y1, const T z1, const T x2, const T y2, const T z2)
-{
-    T xx = x1 - x2;
-    T yy = y1 - y2;
-    T zz = z1 - z2;
-
-    applyPBC<T>(bbox, 2.0 * hi, xx, yy, zz);
-
-    return std::sqrt(xx * xx + yy * yy + zz * zz);
 }
 
 } // namespace sphexa

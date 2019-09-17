@@ -36,8 +36,8 @@ void computeIADImpl(const std::vector<int> &l, Dataset &d)
 
     const BBox<T> bbox = d.bbox;
 
-    const T sincIndex = d.sincIndex;
     const T K = d.K;
+    const T sincIndex = d.sincIndex;
 
     // std::vector<T> checkImem(n, 0), checkDeltaX(n, 0), checkDeltaY(n, 0), checkDeltaZ(n, 0);
 
@@ -56,7 +56,7 @@ void computeIADImpl(const std::vector<int> &l, Dataset &d)
 #elif defined(USE_ACC)
     const int np = d.x.size();
     const size_t allNeighbors = n * ngmax;
-// clang-format off
+    // clang-format off
 //#pragma acc kernels
  #pragma acc parallel loop copyin(clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n],                                            \
                                   x [0:np], y [0:np], z [0:np], h [0:np], m [0:np], ro [0:np])                                              \
@@ -80,7 +80,8 @@ void computeIADImpl(const std::vector<int> &l, Dataset &d)
             const T dist = distancePBC(bbox, h[i], x[i], y[i], z[i], x[j], y[j], z[j]); // store the distance from each neighbor
             // calculate the v as ratio between the distance and the smoothing length
             const T vloc = dist / h[i];
-            const T W = wharmonic(vloc, h[i], sincIndex, K);
+            const T w = K * math_namespace::pow(wharmonic(vloc), (int)sincIndex);
+            const T W = w / (h[i] * h[i] * h[i]);
 
             T r_ijx = (x[i] - x[j]);
             T r_ijy = (y[i] - y[j]);
@@ -168,8 +169,9 @@ void computeMomentumAndEnergyIADImpl(const std::vector<int> &l, Dataset &d)
 
     const BBox<T> bbox = d.bbox;
 
-    const T sincIndex = d.sincIndex;
     const T K = d.K;
+    const T sincIndex = d.sincIndex;
+
 #if defined(USE_OMP_TARGET)
     const int np = d.x.size();
     const size_t allNeighbors = n * ngmax;
@@ -226,8 +228,11 @@ void computeMomentumAndEnergyIADImpl(const std::vector<int> &l, Dataset &d)
 
             const T rv = r_ijx * v_ijx + r_ijy * v_ijy + r_ijz * v_ijz;
 
-            const T W1 = wharmonic(v1, h[i], sincIndex, K);
-            const T W2 = wharmonic(v2, h[j], sincIndex, K);
+            const T w1 = K * math_namespace::pow(wharmonic(v1), (int)sincIndex);
+            const T w2 = K * math_namespace::pow(wharmonic(v2), (int)sincIndex);
+
+            const T W1 = w1 / (h[i] * h[i] * h[i]);
+            const T W2 = w2 / (h[j] * h[j] * h[j]);
 
             const T kern11_i = c11[i] * r_jix;
             const T kern12_i = c12[i] * r_jiy;
@@ -291,7 +296,7 @@ void computeMomentumAndEnergyIAD(const std::vector<int> &l, Dataset &d)
     computeMomentumAndEnergyIADImpl<T>(l, d);
 #endif
 
-    // for(size_t i=0; i < l.size(); ++i)
+    // for (size_t i = 0; i < l.size(); ++i)
     // {
     //     printf("%lu:%.15f ", i, d.grad_P_x[i]);
     //     if (i % 10 == 0) printf("\n");

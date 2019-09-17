@@ -27,7 +27,8 @@ __global__ void density(const int n, const T sincIndex, const T K, const int ngm
         const int j = neighbors[tid * ngmax + pj];
         const T dist = distancePBC(*bbox, h[i], x[i], y[i], z[i], x[j], y[j], z[j]);
         const T vloc = dist / h[i];
-        const T value = wharmonic(vloc, h[i], sincIndex, K);
+        const T w = K * math_namespace::pow(wharmonic(vloc), (int)sincIndex);
+        const T value = w / (h[i] * h[i] * h[i]);
         roloc += value * m[j];
     }
 
