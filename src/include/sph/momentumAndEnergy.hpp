@@ -15,6 +15,11 @@ void computeMomentumAndEnergy(const std::vector<int> &l, Dataset &d)
 {
 #if defined(USE_CUDA)
     cuda::computeMomentumAndEnergy<T>(l, d);
+    for (size_t i = 0 ; i < l.size(); ++i)
+    {
+        if (i % 10 == 0 ) printf("\n");
+        printf("%f", d.grad_P_x[i]);
+    }
     return;
 #endif
 

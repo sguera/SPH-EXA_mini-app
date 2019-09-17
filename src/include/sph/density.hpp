@@ -15,7 +15,13 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
 {
 #if defined(USE_CUDA)
     cuda::computeDensity<T>(l, d);
-    return;
+
+    // for (int i = 0 ; i < l.size(); ++i)
+    // {
+    //     if (i % 10 == 0 ) printf("\n");
+    //     printf("%f", d.ro[i]);
+    // }
+    // return;
 #endif
 
     const size_t n = l.size();

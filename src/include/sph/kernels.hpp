@@ -14,11 +14,6 @@ namespace sphexa
 #define math_namespace sphexa::math
 #endif
 
-#ifdef __NVCC__
-#define CUDA_PREFIX __device__
-#else
-#define CUDA_PREFIX
-#endif
 
 template <typename T>
 inline T compute_3d_k(T n)

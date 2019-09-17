@@ -1,6 +1,14 @@
 #pragma once
 
 #include <cmath>
+#include <cstdio>
+#include <array>
+
+#ifdef __NVCC__
+#define CUDA_PREFIX __device__
+#else
+#define CUDA_PREFIX
+#endif
 
 #define PI 3.14159265358979323846
 
@@ -11,7 +19,7 @@ namespace math
 /* Small powers, such as the ones used inside the SPH kernel
  * are transformed into straight multiplications. */
 template <typename T>
-inline T pow(T a, int b)
+CUDA_PREFIX inline T pow(T a, int b)
 {
     if (b == 0)
         return 1;
@@ -39,10 +47,27 @@ constexpr int HALF_MAX_CIRCLE_ANGLE = MAX_CIRCLE_ANGLE / 2;
 constexpr int QUARTER_MAX_CIRCLE_ANGLE = MAX_CIRCLE_ANGLE / 4;
 constexpr int MASK_MAX_CIRCLE_ANGLE = MAX_CIRCLE_ANGLE - 1;
 
-static double fast_cossin_table[MAX_CIRCLE_ANGLE];
+template <typename T, std::size_t N>
+std::array<T, N> createCosSinLookupTable()
+{
+    std::array<T, N> lt;
+
+    const auto halfSize = N / 2;
+    for (size_t i = 0; i < N; ++i)
+        lt[i] = (T)std::sin((T)i * PI / halfSize);
+
+    return lt;
+}
+
+#if defined(__NVCC__)
+// needs to be copied to gpu before any CUDA calculations
+__device__ extern double fast_cossin_table[MAX_CIRCLE_ANGLE];
+#else
+static auto fast_cossin_table = createCosSinLookupTable<double, MAX_CIRCLE_ANGLE>();
+#endif
 
 template <typename T>
-inline T cos(T n)
+CUDA_PREFIX inline T cos(T n)
 {
     const T f = n * HALF_MAX_CIRCLE_ANGLE / PI;
     const int i = static_cast<int>(f);
@@ -52,7 +77,7 @@ inline T cos(T n)
 }
 
 template <typename T>
-inline T sin(T n)
+CUDA_PREFIX inline T sin(T n)
 {
     const T f = n * HALF_MAX_CIRCLE_ANGLE / PI;
     const int i = static_cast<int>(f);
@@ -61,27 +86,27 @@ inline T sin(T n)
 }
 
 template <typename T>
-struct lookup_table_initializer
+struct GpuCosSinLookupTableInitializer
 {
-    lookup_table_initializer()
+    GpuCosSinLookupTableInitializer()
     {
-        for (int i = 0; i < MAX_CIRCLE_ANGLE; ++i)
-            fast_cossin_table[i] = (T)std::sin((T)i * PI / HALF_MAX_CIRCLE_ANGLE);
-
 #if defined(USE_OMP_TARGET)
 #pragma omp target enter data map(to : fast_cossin_table [0:MAX_CIRCLE_ANGLE])
+#elif defined(__NVCC__)
+        cudaMemcpyToSymbol(fast_cossin_table, createCosSinLookupTable<double, MAX_CIRCLE_ANGLE>().data(), MAX_CIRCLE_ANGLE * sizeof(double));
 #endif
     }
 
-    ~lookup_table_initializer()
+    ~GpuCosSinLookupTableInitializer()
     {
 #if defined(USE_OMP_TARGET)
 #pragma omp target exit data map(delete : fast_cossin_table [0:MAX_CIRCLE_ANGLE])
+#elif defined(__NVCC__)
+        cudaFree(fast_cossin_table);
 #endif
     }
 };
-
-static math::lookup_table_initializer<float> ltinit;
+extern math::GpuCosSinLookupTableInitializer<double> ltinit;
 
 } // namespace math
 } // namespace sphexa

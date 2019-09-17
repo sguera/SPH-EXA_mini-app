@@ -16,14 +16,15 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 HPP := $(wildcard src/include/*.hpp)
 HPP += $(wildcard src/include/tree/*.hpp)
 
-CUDA_OBJS := $(BUILDDIR)/cudaMomentumAndEnergy.o $(BUILDDIR)/cudaDensity.o $(BUILDDIR)/cudaIAD.o $(BUILDDIR)/cudaMomentumAndEnergyIAD.o
+CUDA_OBJS := $(BUILDDIR)/cudaMomentumAndEnergy.o $(BUILDDIR)/cudaDensity.o $(BUILDDIR)/cudaIAD.o $(BUILDDIR)/cudaMomentumAndEnergyIAD.o $(BUILDDIR)/cudaDataInitializer.o
 
 RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 
 INC += -Isrc -Isrc/include
 CXXFLAGS += $(RELEASE)
-NVCCFLAGS := -std=c++11 --expt-relaxed-constexpr -arch=sm_60
+NVCCFLAGS := -std=c++14 --expt-relaxed-constexpr -arch=sm_60 -rdc=true
+NVCC_LDFLAGS := -arch=sm_60
 
 ifeq ($(ENV),gnu)
 	CXXFLAGS += -std=c++14 -O2 -Wall -Wextra -fopenmp -fopenacc -march=native -mtune=native
@@ -60,7 +61,8 @@ mpi+omp: $(HPP)
 omp+cuda: $(BUILDDIR)/cuda_no_mpi.o $(CUDA_OBJS)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(CXX) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
+	nvcc $(NVCC_LDFLAGS) -dlink -o cudalinked.o $(CUDA_OBJS) -lcudadevrt -lcudart
+	$(CXX) -o $(BINDIR)/$@.app cudalinked.o $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
 
 omp+target: $(HPP)
 	@mkdir -p $(BINDIR)
@@ -80,7 +82,8 @@ mpi+omp+acc: $(HPP)
 mpi+omp+cuda: $(BUILDDIR)/cuda_mpi.o $(CUDA_OBJS)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(MPICXX) $(CXXFLAGS) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart
+	nvcc $(NVCC_LDFLAGS) -dlink -o cudalinked.o $(CUDA_OBJS) -lcudadevrt -lcudart
+	$(MPICXX) $(CXXFLAGS) -o $(BINDIR)/$@.app cudalinked.o $+ -L$(CUDA_PATH)/lib64 -lcudart
 
 $(BUILDDIR)/cuda_mpi.o: src/sqpatch.cpp
 	@mkdir -p $(BUILDDIR)
@@ -92,7 +95,7 @@ $(BUILDDIR)/cuda_no_mpi.o: src/sqpatch.cpp
 
 $(BUILDDIR)/%.o: src/include/sph/cuda/%.cu
 	@mkdir -p $(BUILDDIR)
-	$(NVCC) $(NVCCFLAGS) $(INC) -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 -DUSE_STD_MATH_IN_KERNELS -c -o $@ $<
+	$(NVCC) $(NVCCFLAGS) $(INC) -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib64 -c -o $@ $<
 
 run_test:
 	@$(MAKE) -f $(THIS_FILE) omp
