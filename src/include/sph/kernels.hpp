@@ -65,19 +65,6 @@ CUDA_DEVICE_FUN inline T wharmonic_derivative_lt(const T v)
     return (idx >= lt::wharmonicLookupTableSize) ? -0.5 : lt::wharmonicDerivativeLookupTable[idx];
 }
 
-template <typename T>
-CUDA_DEVICE_HOST_FUN inline T wharmonic_derivative_deprecated(T v, T h, T sincIndex, T K)
-{
-    T Pv = (PI / 2.0) * v;
-    T cotv = math_namespace::cos(Pv) / math_namespace::sin(Pv);
-    ; // 1.0 / tan(P * v);
-    T sincv = math_namespace::sin(Pv) / (Pv);
-    T sincnv = math_namespace::pow(sincv, (int)sincIndex);
-    T ret = sincIndex * (Pv * cotv - 1.0) * sincnv * (K / (h * h * h * h * h * v * v));
-    // printf("wharmonic_derivative called with v=%f, cotv=%f, sincIndex=%f, ret=%f\n", v, cotv, sincIndex, ret);
-    return ret;
-}
-
 #ifdef USE_STD_MATH_IN_KERNELS
 constexpr auto wharmonic = wharmonic_std<double>;
 constexpr auto wharmonic_derivative = wharmonic_derivative_std<double>;

@@ -3,7 +3,6 @@
 #include "sph/kernels.hpp"
 #include "sph/density.hpp"
 #include "sph/equationOfState.hpp"
-#include "sph/momentumAndEnergy.hpp"
 #include "sph/momentumAndEnergyIAD.hpp"
 #include "sph/timestep.hpp"
 #include "sph/positions.hpp"
