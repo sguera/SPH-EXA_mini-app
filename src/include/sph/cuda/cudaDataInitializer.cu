@@ -7,7 +7,6 @@ namespace sphexa
 {
 namespace lookup_tables
 {
-__device__ double fast_cossin_table[lookup_tables::sinCosLTSize];
 __device__ double wharmonicLookupTable[lookup_tables::wharmonicLookupTableSize];
 __device__ double wharmonicDerivativeLookupTable[lookup_tables::wharmonicLookupTableSize];
 GpuLookupTableInitializer<double> ltinit;
