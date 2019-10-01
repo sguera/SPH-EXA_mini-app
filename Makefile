@@ -31,7 +31,7 @@ ifeq ($(ENV),gnu)
 endif
 
 ifeq ($(ENV),pgi)
-	CXXFLAGS += -O2 -std=c++14 -mp -dynamic -acc -ta=tesla,cc60 -mp=nonuma #-g -Minfo=accel # prints generated accel functions
+	CXXFLAGS += -O2 -std=c++14 -mp -dynamic -acc -ta=tesla,cc60 -mp=nonuma -g -Minfo=accel # prints generated accel functions
 endif
 
 ifeq ($(ENV),cray)
@@ -47,6 +47,11 @@ ifeq ($(ENV),clang)
 endif
 
 all: $(TESTCASE)
+
+openacc:
+	@mkdir -p $(BINDIR)
+	$(info Linking the executable:)
+	$(CXX) $(CXXFLAGS) $(INC)  openacc_problem.cpp -o $(BINDIR)/$@.app $(LIB)
 
 omp: $(HPP)
 	@mkdir -p $(BINDIR)
@@ -79,6 +84,7 @@ mpi+omp+acc: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
 	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_STD_MATH_IN_KERNELS -DUSE_ACC src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
+#	$(MPICXX) $(CXXFLAGS) $(INC) -DUSE_MPI -DUSE_ACC src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
 mpi+omp+cuda: $(BUILDDIR)/cuda_mpi.o $(CUDA_OBJS)
 	@mkdir -p $(BINDIR)

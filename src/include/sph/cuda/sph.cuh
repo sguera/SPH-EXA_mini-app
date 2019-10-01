@@ -12,8 +12,8 @@ namespace cuda
 {
 using ParticleIdxChunk = std::vector<int>;
 
-template <typename T, class Dataset>
-extern void computeDensity(const std::vector<ParticleIdxChunk> &l, Dataset &dataset);
+template <typename T, class KernelFun, class Dataset>
+extern void computeDensity(const std::vector<ParticleIdxChunk> &l, const KernelFun &kernelFun, Dataset &dataset);
 
 template <typename T, class Dataset>
 extern void computeMomentumAndEnergy(const std::vector<ParticleIdxChunk> &l, Dataset &dataset);

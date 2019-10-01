@@ -47,6 +47,51 @@ std::array<T, N> createWharmonicDerivativeLookupTable()
 
     return lt;
 }
+template <typename T>
+struct TestArr
+{
+  TestArr()
+  {
+#if defined (USE_ACC)
+    #pragma acc enter data copyin(this)
+    #pragma acc enter data copyin (arr[0:size])
+#endif
+  }
+    T operator()(const int v) const
+    {
+      return arr[v];
+    }
+    const static size_t size = 10000;
+    const T arr[size] = {0.5};
+};
+
+template <typename T>
+struct Wharmonic
+{
+    Wharmonic()
+        {
+#if defined (USE_ACC)
+    #pragma acc enter data copyin(this)
+#endif
+        }
+    T operator()(const T v) const
+    {
+        // With PGI v18.5-0 lines below won't compile. Workaround: use unsigned or ints here
+        const size_t halfTableSize = size / 2.0;
+        const size_t idx = v * halfTableSize;
+
+       return (idx >= size)
+                     ? 0.0
+         //   : ltt[idx];
+         : arr[idx];// + wharmonicDerivativeLookupTable[idx] * (v - (T)idx / halfTableSize);
+    }
+
+    static const int size = 20000;
+        //const T arr[size] = {0.5};
+    const T* arr = createWharmonicLookupTable<T, size>().data();
+    // const std::array<T, wharmonicLookupTableSize> wharmonicDerivativeLookupTable =
+    //     createWharmonicDerivativeLookupTable<double, wharmonicLookupTableSize>();
+};
 
 constexpr size_t wharmonicLookupTableSize = 20000;
 
@@ -54,8 +99,8 @@ constexpr size_t wharmonicLookupTableSize = 20000;
 __device__ extern double wharmonicLookupTable[wharmonicLookupTableSize];
 __device__ extern double wharmonicDerivativeLookupTable[wharmonicLookupTableSize];
 #else
-static auto wharmonicLookupTable = createWharmonicLookupTable<double, wharmonicLookupTableSize>();
-static auto wharmonicDerivativeLookupTable = createWharmonicDerivativeLookupTable<double, wharmonicLookupTableSize>();
+// static auto wharmonicLookupTable = createWharmonicLookupTable<double, wharmonicLookupTableSize>();
+// static auto wharmonicDerivativeLookupTable = createWharmonicDerivativeLookupTable<double, wharmonicLookupTableSize>();
 #endif
 
 template <typename T>

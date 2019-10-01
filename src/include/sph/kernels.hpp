@@ -32,51 +32,52 @@ CUDA_DEVICE_HOST_FUN inline T wharmonic_derivative_std(T v)
     return sincv * (PI / 2.0) * ((std::cos(Pv) / std::sin(Pv)) - 1.0 / Pv);
 }
 
-template <typename T>
-CUDA_DEVICE_FUN inline T wharmonic_lt(const T v)
-{
-    namespace lt = sphexa::lookup_tables;
+// template <typename T>
+// CUDA_DEVICE_FUN inline T wharmonic_lt(const T v)
+// {
+//     namespace lt = sphexa::lookup_tables;
 
-    const size_t idx = (v * lt::wharmonicLookupTableSize / 2.0);
+//     const size_t idx = (v * lt::wharmonicLookupTableSize / 2.0);
 
-    return (idx >= lt::wharmonicLookupTableSize) ? 0.0 : lt::wharmonicLookupTable[idx];
-}
+//     return (idx >= lt::wharmonicLookupTableSize) ? 0.0 : lt::wharmonicLookupTable[idx];
+// }
 
-template <typename T>
-CUDA_DEVICE_FUN inline T wharmonic_lt_with_derivative(const T v)
-{
-    namespace lt = sphexa::lookup_tables;
+// template <typename T>
+// CUDA_DEVICE_FUN inline T wharmonic_lt_with_derivative(const T v)
+// {
+//     namespace lt = sphexa::lookup_tables;
 
-    const size_t halfTableSize = lt::wharmonicLookupTableSize / 2.0;
-    const size_t idx = v * halfTableSize;
+//     const size_t halfTableSize = lt::wharmonicLookupTableSize / 2.0;
+//     const size_t idx = v * halfTableSize;
 
-    return (idx >= lt::wharmonicLookupTableSize)
-               ? 0.0
-               : lt::wharmonicLookupTable[idx] + lt::wharmonicDerivativeLookupTable[idx] * (v - (T)idx / halfTableSize);
-}
+//     return (idx >= lt::wharmonicLookupTableSize)
+//                ? 0.0
+//                : lt::wharmonicLookupTable[idx] + lt::wharmonicDerivativeLookupTable[idx] * (v - (T)idx / halfTableSize);
+// }
 
-template <typename T>
-CUDA_DEVICE_FUN inline T wharmonic_derivative_lt(const T v)
-{
-    namespace lt = sphexa::lookup_tables;
+// template <typename T>
+// CUDA_DEVICE_FUN inline T wharmonic_derivative_lt(const T v)
+// {
+//     namespace lt = sphexa::lookup_tables;
 
-    const size_t idx = (v * lt::wharmonicLookupTableSize / 2.0);
+//     const size_t idx = (v * lt::wharmonicLookupTableSize / 2.0);
 
-    return (idx >= lt::wharmonicLookupTableSize) ? -0.5 : lt::wharmonicDerivativeLookupTable[idx];
-}
+//     return (idx >= lt::wharmonicLookupTableSize) ? -0.5 : lt::wharmonicDerivativeLookupTable[idx];
+// }
 
 #ifdef USE_STD_MATH_IN_KERNELS
 constexpr auto wharmonic = wharmonic_std<double>;
 constexpr auto wharmonic_derivative = wharmonic_derivative_std<double>;
 #else
 // constexpr auto wharmonic = wharmonic_lt<double>;
-constexpr auto wharmonic = wharmonic_lt_with_derivative<double>;
-constexpr auto wharmonic_derivative = wharmonic_derivative_lt<double>;
+//const auto wharmonic = lookup_tables::Wharmonic<double>();//wharmonic_lt_with_derivative<double>;
+//using wharmonic = lookup_tables::Wharmonic<double>;
+// constexpr auto wharmonic_derivative = wharmonic_derivative_lt<double>;
 #endif
 
 template <typename T>
 CUDA_DEVICE_FUN inline T artificial_viscosity(const T ro_i, const T ro_j, const T h_i, const T h_j, const T c_i, const T c_j, const T rv,
-                                          const T r_square)
+                                              const T r_square)
 {
     const T alpha = 1.0;
     const T beta = 2.0;

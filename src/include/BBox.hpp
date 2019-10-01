@@ -26,6 +26,10 @@ public:
         , PBCy(PBCy)
         , PBCz(PBCz)
     {
+#if defined (USE_ACC)
+      //#pragma acc enter data copyin(this)
+      //#pragma acc enter data copyin(xmin, xmax, ymin, ymax, zmin, zmax, PBCx, PBCy, PBCz)
+#endif
     }
 
     inline void compute(const std::vector<int> &clist, const Array &x, const Array &y, const Array &z)

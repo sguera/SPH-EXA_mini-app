@@ -39,10 +39,11 @@ __global__ void density(const int n, const T sincIndex, const T K, const int ngm
 }
 } // namespace kernels
 
-template void computeDensity<double, SqPatch<double>>(const std::vector<ParticleIdxChunk> &clist, SqPatch<double> &d);
+template void computeDensity<double, Wharmonic<double>, SqPatch<double>>(const std::vector<ParticleIdxChunk> &chunksToCompute,
+                                                                         const Wharmonic<double> &kernelFun, SqPatch<double> &d);
 
-template <typename T, class Dataset>
-void computeDensity(const std::vector<ParticleIdxChunk> &chunksToCompute, Dataset &d)
+template <typename T, class KernelFun, class Dataset>
+void computeDensity(const std::vector<ParticleIdxChunk> &chunksToCompute, const KernelFun &kernelFun, Dataset &d)
 {
     const size_t np = d.x.size();
     const size_t size_np_T = np * sizeof(T);

@@ -12,8 +12,8 @@ namespace sphexa
 namespace sph
 {
 
-template <typename T, class Dataset>
-void computeDensityImpl(const std::vector<int> &l, Dataset &d)
+template <typename T, class KernelFun, class Dataset>
+void computeDensityImpl(const std::vector<int> &l, const KernelFun &kernelFun, Dataset &d)
 {
     const size_t n = l.size();
     const size_t ngmax = d.ngmax;
@@ -39,6 +39,8 @@ void computeDensityImpl(const std::vector<int> &l, Dataset &d)
     const T K = d.K;
     const T sincIndex = d.sincIndex;
 
+    // lookup_tables::Wharmonic<T> wh;
+
 #if defined(USE_OMP_TARGET)
     // Apparently Cray with -O2 has a bug when calling target regions in a loop. (and computeDensityImpl can be called in a loop).
     // A workaround is to call some method or allocate memory to either prevent buggy optimization or other side effect.
@@ -58,8 +60,14 @@ void computeDensityImpl(const std::vector<int> &l, Dataset &d)
 #elif defined(USE_ACC)
     const size_t np = d.x.size();
     const size_t allNeighbors = n * ngmax;
+    namespace lt = ::sphexa::lookup_tables;
 #pragma acc parallel loop copyin(n, clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], m [0:np], h [0:np], x [0:np], y [0:np], \
-                                 z [0:np]) copyout(ro[:n])
+                                 z [0:np]) \
+  copyout(ro[:n])                          \
+  present(kernelFun)                       \
+  copyin(kernelFun.arr[:kernelFun.size])
+
+
 #else
 #pragma omp parallel for
 #endif
@@ -87,7 +95,7 @@ void computeDensityImpl(const std::vector<int> &l, Dataset &d)
                        y[j], z[j], dist, h[i]);
 #endif
 
-            const T w = K * math_namespace::pow(wharmonic(vloc), (int)sincIndex);
+            const T w = K * math_namespace::pow(kernelFun(vloc), (int)sincIndex);
             const T value = w / (h[i] * h[i] * h[i]);
             roloc += value * m[j];
         }
@@ -103,12 +111,15 @@ void computeDensityImpl(const std::vector<int> &l, Dataset &d)
 template <typename T, class Dataset>
 void computeDensity(const std::vector<int> &l, Dataset &d)
 {
+    lookup_tables::Wharmonic<T> wh;
+    lookup_tables::TestArr<T> testarray;
 #if defined(USE_CUDA)
-    cuda::computeDensity<T>(utils::partition(l, d.noOfGpuLoopSplits), d);
+    cuda::computeDensity<T>(utils::partition(l, d.noOfGpuLoopSplits), wh, d);
 #else
+
     for (const auto &clist : utils::partition(l, d.noOfGpuLoopSplits))
     {
-        computeDensityImpl<T>(clist, d);
+        computeDensityImpl<T>(clist, wh, d);
     }
 
 #endif
