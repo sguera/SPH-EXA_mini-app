@@ -16,9 +16,9 @@ public:
         : n(side * side * side)
         , side(side)
         , count(side * side * side)
-        , arrayList({&x, &y,   &z, &x_m1, &y_m1, &z_m1,     &vx,       &vy,       &vz, &ro,    &ro_0, &u,
-                &p, &p_0, &h, &m,    &c,    &grad_P_x, &grad_P_y, &grad_P_z, &du, &du_m1, &dt,   &dt_m1,
-                &c11, &c12, &c13, &c22, &c23, &c33}) //, ng0(ng0), ngmax(1.5*ng0)
+        , arrayList({&x, &y, &z,        &x_m1,     &y_m1,     &z_m1, &vx,    &vy, &vz,    &ro,  &ro_0, &u,   &p,   &p_0, &h,
+                &m, &c, &grad_P_x, &grad_P_y, &grad_P_z, &du,   &du_m1, &dt, &dt_m1, &c11, &c12,  &c13, &c22, &c23, &c33}) //, ng0(ng0),
+                                                                                                                           // ngmax(1.5*ng0)
     {
 #ifdef USE_MPI
         comm = MPI_COMM_WORLD;
@@ -42,6 +42,12 @@ public:
     // void load(const std::string &filename)
     void load()
     {
+        int sideX = side;
+        int sideY = side;
+        int sideZ = 1;//side;
+        n = side * side;
+        bbox.PBCz = false;
+
         count = n / nrank;
         int offset = n % nrank;
 
@@ -65,22 +71,22 @@ public:
         const double myPI = std::acos(-1.0);
 
 #pragma omp parallel for
-        for (int i = 0; i < side; ++i)
+        for (int i = 0; i < sideZ; ++i)
         {
-            double lz = -0.5 + 1.0 / (2.0 * side) + i * 1.0 / side;
+            double lz = -0.5 + 1.0 / (2.0 * sideZ) + i * 1.0 / sideZ;
 
-            for (int j = 0; j < side; ++j)
+            for (int j = 0; j < sideY; ++j)
             {
                 // double ly = -0.5 + 1.0 / (2.0 * side) +  (double)j / (double)side;
-                double lx = -0.5 + 1.0 / (2.0 * side) + j * 1.0 / side;
+                double lx = -0.5 + 1.0 / (2.0 * sideY) + j * 1.0 / sideY;
 
-                for (int k = 0; k < side; ++k)
+                for (int k = 0; k < sideX; ++k)
                 {
-                    int lindex = i * side * side + j * side + k;
+                    int lindex = i * sideZ * sideZ + j * sideY + k;
 
                     if (lindex >= displs[rank] && lindex < displs[rank] + workload[rank])
                     {
-                        double ly = -0.5 + 1.0 / (2.0 * side) + k * 1.0 / side;
+                        double ly = -0.5 + 1.0 / (2.0 * sideX) + k * 1.0 / sideX;
                         // double lx = -0.5 + 1.0 / (2.0 * side) + (double)k / (double)side;
 
                         double lvx = omega * ly;
@@ -119,15 +125,15 @@ public:
             // CGS
             x[i] = x[i] * 100.0;
             y[i] = y[i] * 100.0;
-            z[i] = z[i] * 100.0;
+            z[i] = 0.0;//z[i] * 100.0;
             vx[i] = vx[i] * 100.0;
             vy[i] = vy[i] * 100.0;
-            vz[i] = vz[i] * 100.0;
+            vz[i] = 0.0;//vz[i] * 100.0;
             p[i] = p_0[i] = p_0[i] * 10.0;
 
             m[i] = 1000000.0 / n; // 1.0;//1000000.0/n;//1.0;//0.001;//0.001;//0.001;//1.0;
             c[i] = 3500.0;        // 35.0;//35.0;//35000
-            h[i] = 2.5 * dx;      // 0.02;//0.02;
+            h[i] = 5.0 * dx;//2.5 * dx;      // 0.02;//0.02;
             ro[i] = 1.0;          // 1.0e3;//.0;//1e3;//1e3;
             ro_0[i] = 1.0;        // 1.0e3;//.0;//1e3;//1e3;
 
@@ -138,7 +144,7 @@ public:
 
             x_m1[i] = x[i] - vx[i] * dt[0];
             y_m1[i] = y[i] - vy[i] * dt[0];
-            z_m1[i] = z[i] - vz[i] * dt[0];
+            z_m1[i] = 0.0;//z[i] - vz[i] * dt[0];
         }
 
 #ifdef USE_MPI
@@ -146,7 +152,7 @@ public:
 #else
         bbox.compute(x, y, z);
 #endif
-        bbox.PBCz = true;
+        //bbox.PBCz = true;
         bbox.zmax += dx / 2.0;
         bbox.zmin -= dx / 2.0;
 
@@ -154,7 +160,7 @@ public:
         ttot = 0.0;
         minDt = 0.0;
 
-        if (rank == 0 && 2.0 * h[0] > (bbox.zmax - bbox.zmin) / 2.0)
+        if (bbox.PBCz && rank == 0 && 2.0 * h[0] > (bbox.zmax - bbox.zmin) / 2.0)
         {
             printf("ERROR::SqPatch::init()::SmoothingLength (%.2f) too large (%.2f) (n too small?)\n", h[0], bbox.zmax - bbox.zmin);
 #ifdef USE_MPI

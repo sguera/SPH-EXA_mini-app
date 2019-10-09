@@ -18,11 +18,13 @@ HPP += $(wildcard src/include/tree/*.hpp)
 
 CUDA_OBJS := $(BUILDDIR)/cudaDensity.o $(BUILDDIR)/cudaIAD.o $(BUILDDIR)/cudaMomentumAndEnergyIAD.o $(BUILDDIR)/cudaDataInitializer.o
 
+OPTIONS := $(OPTIONS)
+
 RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 
 INC += -Isrc -Isrc/include
-CXXFLAGS += $(RELEASE)
+CXXFLAGS := $(OPTIONS) $(RELEASE)
 NVCCFLAGS := -std=c++14 --expt-relaxed-constexpr -arch=sm_60 -rdc=true
 NVCC_LDFLAGS := -arch=sm_60
 

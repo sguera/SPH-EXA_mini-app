@@ -6,6 +6,8 @@
 #include "sphexa.hpp"
 #include "SqPatch.hpp"
 
+#include "gnuplot.hpp"
+
 using namespace std;
 using namespace sphexa;
 
@@ -15,6 +17,10 @@ int main(int argc, char **argv)
     int cubeSide = parser.getInt("-n", 50);
     int maxStep = parser.getInt("-s", 10);
     int writeFrequency = parser.getInt("-w", -1);
+
+#ifdef USE_GNUPLOT
+    FILE *gp; gnuplot_init(gp);
+#endif
 
 #ifdef _JENKINS
     maxStep = 0;
@@ -38,7 +44,8 @@ int main(int argc, char **argv)
 
     std::ofstream constants("constants.txt");
 
-    d.bbox.setBox(0, 0, 0, 0, d.bbox.zmin, d.bbox.zmax, false, false, true);
+    //d.bbox.setBox(0, 0, 0, 0, d.bbox.zmin, d.bbox.zmax, false, false, true);
+    d.bbox.setBox(0, 0, 0, 0, d.bbox.zmin, d.bbox.zmax, false, false, false);
     d.bbox.computeGlobal(clist, d.x, d.y, d.z);
     distributedDomain.create(clist, d);
 
@@ -47,48 +54,52 @@ int main(int argc, char **argv)
     {
         timer.start();
 
+        #ifdef USE_GNUPLOT
+            gnuplot_plot<double>(gp, clist, d);
+        #endif
+
         d.bbox.computeGlobal(clist, d.x, d.y, d.z);
         distributedDomain.distribute(clist, d);
-        timer.step("domain::distribute");
+        //timer.step("domain::distribute");
         distributedDomain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h);
-        timer.step("mpi::synchronizeHalos");
+        //timer.step("mpi::synchronizeHalos");
         distributedDomain.buildTree(d);
-        timer.step("domain::buildTree");
+        //timer.step("domain::buildTree");
         distributedDomain.findNeighbors(clist, d);
-        timer.step("FindNeighbors");
+        //timer.step("FindNeighbors");
         sph::computeDensity<Real>(clist, d);
         if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(clist, d); }
-        timer.step("Density");
+        //timer.step("Density");
         sph::computeEquationOfState<Real>(clist, d);
-        timer.step("EquationOfState");
+        //timer.step("EquationOfState");
         distributedDomain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c);
-        timer.step("mpi::synchronizeHalos");
+        //timer.step("mpi::synchronizeHalos");
         sph::computeIAD<Real>(clist, d);
-        timer.step("IAD");
+        //timer.step("IAD");
         distributedDomain.synchronizeHalos(&d.c11, &d.c12, &d.c13, &d.c22, &d.c23, &d.c33);
-        timer.step("mpi::synchronizeHalos");
+        //timer.step("mpi::synchronizeHalos");
         sph::computeMomentumAndEnergyIAD<Real>(clist, d);
-        timer.step("MomentumEnergyIAD");
+        //timer.step("MomentumEnergyIAD");
         sph::computeTimestep<Real>(clist, d);
-        timer.step("Timestep"); // AllReduce(min:dt)
+        //timer.step("Timestep"); // AllReduce(min:dt)
         sph::computePositions<Real>(clist, d);
-        timer.step("UpdateQuantities");
+        //timer.step("UpdateQuantities");
         sph::computeTotalEnergy<Real>(clist, d);
-        timer.step("EnergyConservation"); // AllReduce(sum:ecin,ein)
+        //timer.step("EnergyConservation"); // AllReduce(sum:ecin,ein)
 
         long long int totalNeighbors = distributedDomain.neighborsSum(clist, d);
-        if (d.rank == 0)
-        {
-            cout << "### Check ### Global Tree Nodes: " << distributedDomain.octree.globalNodeCount << ", Particles: " << clist.size()
-                 << ", Halos: " << distributedDomain.haloCount << endl;
-            cout << "### Check ### Computational domain: " << d.bbox.xmin << " " << d.bbox.xmax << " " << d.bbox.ymin << " " << d.bbox.ymax
-                 << " " << d.bbox.zmin << " " << d.bbox.zmax << endl;
-            cout << "### Check ### Total neighbors " << totalNeighbors << ", Avg count per particle: " << totalNeighbors / d.n << endl;
-            cout << "### Check ### Total time: " << d.ttot << ", current time-step: " << d.minDt << endl;
-            cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
-        }
+        // if (d.rank == 0)
+        // {
+        //     cout << "### Check ### Global Tree Nodes: " << distributedDomain.octree.globalNodeCount << ", Particles: " << clist.size()
+        //          << ", Halos: " << distributedDomain.haloCount << endl;
+        //     cout << "### Check ### Computational domain: " << d.bbox.xmin << " " << d.bbox.xmax << " " << d.bbox.ymin << " " << d.bbox.ymax
+        //          << " " << d.bbox.zmin << " " << d.bbox.zmax << endl;
+        //     cout << "### Check ### Total neighbors " << totalNeighbors << ", Avg count per particle: " << totalNeighbors / d.n << endl;
+        //     cout << "### Check ### Total time: " << d.ttot << ", current time-step: " << d.minDt << endl;
+        //     cout << "### Check ### Total energy: " << d.etot << ", (internal: " << d.eint << ", cinetic: " << d.ecin << ")" << endl;
+        // }
 
-        if ((writeFrequency > 0 && d.iteration % writeFrequency == 0))
+        if (writeFrequency > 0 && d.iteration % writeFrequency == 0)
         {
             d.writeData(clist, "dump" + to_string(d.iteration) + ".txt");
             timer.step("writeFile");
@@ -96,7 +107,11 @@ int main(int argc, char **argv)
         d.writeConstants(d.iteration, totalNeighbors, constants);
 
         timer.stop();
-        if (d.rank == 0) cout << "=== Total time for iteration(" << d.iteration << ") " << timer.duration() << "s" << endl << endl;
+        if (d.rank == 0) cout << "=== Total time for iteration(" << d.iteration << ") " << timer.duration() << "s" << endl;// << endl;
+
+        #ifdef USE_GNUPLOT
+            gnuplot_wait();
+        #endif
     }
 
     constants.close();
@@ -105,5 +120,9 @@ int main(int argc, char **argv)
     MPI_Finalize();
 #endif
 
+#ifdef USE_GNUPLOT
+    gnuplot_destroy(gp);
+#endif
+    
     return 0;
 }

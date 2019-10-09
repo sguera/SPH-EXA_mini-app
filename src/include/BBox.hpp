@@ -41,7 +41,6 @@ public:
         this->PBCz = PBCz;
     }
 
-
     inline void compute(const std::vector<int> &clist, const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z)
     {
         if (!PBCx) xmin = INFINITY;

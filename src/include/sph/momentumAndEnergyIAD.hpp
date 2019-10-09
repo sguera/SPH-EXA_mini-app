@@ -17,10 +17,10 @@ void computeIADImpl(const std::vector<int> &l, Dataset &d)
     const int64_t n = l.size();
     const int64_t ngmax = d.ngmax;
     const int *clist = l.data();
-    const size_t neighborsOffset = l.front() * ngmax;
-    const int *neighbors = d.neighbors.data() + neighborsOffset;
-    const size_t nOffset = l.front();
-    const int *neighborsCount = d.neighborsCount.data() + nOffset;
+    //const size_t neighborsOffset = l.front() * ngmax;
+    const int *neighbors = d.neighbors.data();// + neighborsOffset;
+    //const size_t nOffset = l.front();
+    const int *neighborsCount = d.neighborsCount.data();// + nOffset;
 
     const T *h = d.h.data();
     const T *m = d.m.data();
@@ -29,12 +29,12 @@ void computeIADImpl(const std::vector<int> &l, Dataset &d)
     const T *z = d.z.data();
     const T *ro = d.ro.data();
 
-    T *c11 = d.c11.data() + nOffset;
-    T *c12 = d.c12.data() + nOffset;
-    T *c13 = d.c13.data() + nOffset;
-    T *c22 = d.c22.data() + nOffset;
-    T *c23 = d.c23.data() + nOffset;
-    T *c33 = d.c33.data() + nOffset;
+    T *c11 = d.c11.data();// + nOffset;
+    T *c12 = d.c12.data();// + nOffset;
+    T *c13 = d.c13.data();// + nOffset;
+    T *c22 = d.c22.data();// + nOffset;
+    T *c23 = d.c23.data();// + nOffset;
+    T *c33 = d.c33.data();// + nOffset;
 
     const BBox<T> bbox = d.bbox;
 
@@ -112,15 +112,22 @@ void computeIADImpl(const std::vector<int> &l, Dataset &d)
             */
         }
 
+        tau13 = 1e-30;
+        tau23 = 1e-30;
+        tau33 = 1e-30;
+
         const T det =
             tau11 * tau22 * tau33 + 2.0 * tau12 * tau23 * tau13 - tau11 * tau23 * tau23 - tau22 * tau13 * tau13 - tau33 * tau12 * tau12;
 
-        c11[pi] = (tau22 * tau33 - tau23 * tau23) / det;
-        c12[pi] = (tau13 * tau23 - tau33 * tau12) / det;
-        c13[pi] = (tau12 * tau23 - tau22 * tau13) / det;
-        c22[pi] = (tau11 * tau33 - tau13 * tau13) / det;
-        c23[pi] = (tau13 * tau12 - tau11 * tau23) / det;
-        c33[pi] = (tau11 * tau22 - tau12 * tau12) / det;
+        // const T det =
+        //     tau11 * tau22 - tau12 * tau12;
+
+        c11[i] = (tau22 * tau33 - tau23 * tau23) / det;
+        c12[i] = (tau13 * tau23 - tau33 * tau12) / det;
+        c13[i] = (tau12 * tau23 - tau22 * tau13) / det;
+        c22[i] = (tau11 * tau33 - tau13 * tau13) / det;
+        c23[i] = (tau13 * tau12 - tau11 * tau23) / det;
+        c33[i] = (tau11 * tau22 - tau12 * tau12) / det;
     }
 }
 template <typename T, class Dataset>
@@ -129,9 +136,9 @@ void computeIAD(const std::vector<int> &l, Dataset &d)
 #if defined(USE_CUDA)
     cuda::computeIAD<T>(utils::partition(l, d.noOfGpuLoopSplits), d);
 #else
-    for (const auto &clist : utils::partition(l, d.noOfGpuLoopSplits))
+    //for (const auto &clist : utils::partition(l, d.noOfGpuLoopSplits))
     {
-        computeIADImpl<T>(clist, d);
+        computeIADImpl<T>(l, d);
     }
 #endif
 
@@ -151,10 +158,10 @@ void computeMomentumAndEnergyIADImpl(const std::vector<int> &l, Dataset &d)
     const int64_t n = l.size();
     const int64_t ngmax = d.ngmax;
     const int *clist = l.data();
-    const size_t neighborsOffset = l.front() * ngmax;
-    const int *neighbors = d.neighbors.data() + neighborsOffset;
-    const size_t nOffset = l.front();
-    const int *neighborsCount = d.neighborsCount.data() + nOffset;
+    //const size_t neighborsOffset = l.front() * ngmax;
+    const int *neighbors = d.neighbors.data();// + neighborsOffset;
+    //const size_t nOffset = l.front();
+    const int *neighborsCount = d.neighborsCount.data();// + nOffset;
 
     const T *h = d.h.data();
     const T *m = d.m.data();
@@ -175,10 +182,10 @@ void computeMomentumAndEnergyIADImpl(const std::vector<int> &l, Dataset &d)
     const T *c23 = d.c23.data();
     const T *c33 = d.c33.data();
 
-    T *du = d.du.data() + nOffset;
-    T *grad_P_x = d.grad_P_x.data() + nOffset;
-    T *grad_P_y = d.grad_P_y.data() + nOffset;
-    T *grad_P_z = d.grad_P_z.data() + nOffset;
+    T *du = d.du.data();// + nOffset;
+    T *grad_P_x = d.grad_P_x.data();// + nOffset;
+    T *grad_P_y = d.grad_P_y.data();// + nOffset;
+    T *grad_P_z = d.grad_P_z.data();// + nOffset;
 
     const BBox<T> bbox = d.bbox;
 
@@ -298,10 +305,10 @@ void computeMomentumAndEnergyIADImpl(const std::vector<int> &l, Dataset &d)
             energyAV += grad_Px_AV * v_ijx + grad_Py_AV * v_ijy + grad_Pz_AV * v_ijz;
         }
 
-        du[pi] = 0.5 * (energy + energyAV);
-        grad_P_x[pi] = momentum_x;
-        grad_P_y[pi] = momentum_y;
-        grad_P_z[pi] = momentum_z;
+        du[i] = 0.5 * (energy + energyAV);
+        grad_P_x[i] = momentum_x;
+        grad_P_y[i] = momentum_y;
+        grad_P_z[i] = 0.0;//momentum_z;
     }
 };
 
@@ -311,9 +318,9 @@ void computeMomentumAndEnergyIAD(const std::vector<int> &l, Dataset &d)
 #if defined(USE_CUDA)
     cuda::computeMomentumAndEnergyIAD<T>(utils::partition(l, d.noOfGpuLoopSplits), d);
 #else
-    for (const auto &clist : utils::partition(l, d.noOfGpuLoopSplits))
+    //for (const auto &clist : utils::partition(l, d.noOfGpuLoopSplits))
     {
-        computeMomentumAndEnergyIADImpl<T>(clist, d);
+        computeMomentumAndEnergyIADImpl<T>(l, d);
     }
 #endif
 

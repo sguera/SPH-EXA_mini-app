@@ -1,0 +1,26 @@
+2D test:
+
+Octree:
+ 56:static const int nX = 2, nY = 2, nZ = 1;//nZ = 2;
+ findNeighbors:
+ maz = std::max(0, maz);
+
+ SqPatch.hpp: increase h!!
+ init()
+ 	set all z to 0
+ 	set PBCz to false
+ load()
+ 	int sideX = side;
+    int sideY = side;
+    int sideZ = 1;//side;
+    n = side * side;
+    bbox.PBCz = false; (again)
+
+sqpatch.cpp:
+	d.bbox.setBox(0, 0, 0, 0, d.bbox.zmin, d.bbox.zmax, false, false, false);
+
+MomentumAndNegery
+	computeIAD
+	    tau13 = 1e-30;
+        tau23 = 1e-30;
+        tau33 = 1e-30;

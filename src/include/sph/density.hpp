@@ -20,11 +20,11 @@ void computeDensityImpl(const std::vector<int> &l, Dataset &d)
     const int *clist = l.data();
 
     // I assume here that indexes to compute in l are sequentially increasing, e.g 0, 1, 2, 3
-    const size_t neighborsOffset = l.front() * ngmax;
-    const int *neighbors = d.neighbors.data() + neighborsOffset;
+    //const size_t neighborsOffset = l.front() * ngmax;
+    const int *neighbors = d.neighbors.data();// + neighborsOffset;
 
-    const size_t nOffset = l.front();
-    const int *neighborsCount = d.neighborsCount.data() + nOffset;
+    //const size_t nOffset = l.front();
+    const int *neighborsCount = d.neighborsCount.data();// + nOffset;
 
     const T *h = d.h.data();
     const T *m = d.m.data();
@@ -32,7 +32,7 @@ void computeDensityImpl(const std::vector<int> &l, Dataset &d)
     const T *y = d.y.data();
     const T *z = d.z.data();
 
-    T *ro = d.ro.data() + nOffset;
+    T *ro = d.ro.data();// + nOffset;
 
     const BBox<T> bbox = d.bbox;
 
@@ -92,7 +92,7 @@ void computeDensityImpl(const std::vector<int> &l, Dataset &d)
             roloc += value * m[j];
         }
 
-        ro[pi] = roloc + m[i] * K / (h[i] * h[i] * h[i]);
+        ro[i] = roloc + m[i] * K / (h[i] * h[i] * h[i]);
 
 #ifndef NDEBUG
         if (std::isnan(ro[i])) printf("ERROR::Density(%d) density %f, position: (%f %f %f), h: %f\n", i, ro[i], x[i], y[i], z[i], h[i]);
@@ -106,9 +106,9 @@ void computeDensity(const std::vector<int> &l, Dataset &d)
 #if defined(USE_CUDA)
     cuda::computeDensity<T>(utils::partition(l, d.noOfGpuLoopSplits), d);
 #else
-    for (const auto &clist : utils::partition(l, d.noOfGpuLoopSplits))
+    //for (const auto &clist : utils::partition(l, d.noOfGpuLoopSplits))
     {
-        computeDensityImpl<T>(clist, d);
+        computeDensityImpl<T>(l, d);
     }
 
 #endif

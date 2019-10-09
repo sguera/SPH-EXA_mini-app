@@ -53,8 +53,8 @@ public:
 
     bool global = false;
 
-    static const int nX = 2, nY = 2, nZ = 2;
-    static const int ncells = 8;
+    static const int nX = 2, nY = 2, nZ = 1;//nZ = 2;
+    static const int ncells = nX * nY * nZ;
     static const int bucketSize = 64, maxGlobalBucketSize = 512, minGlobalBucketSize = 256;
 
     static inline T normalize(T d, T min, T max) { return (d - min) / (max - min); }
@@ -116,6 +116,7 @@ public:
             int may = std::min((int)(normalize(yi + ri, ymin, ymax) * nY), nY - 1);
             int maz = std::min((int)(normalize(zi + ri, zmin, zmax) * nZ), nZ - 1);
 
+            maz = std::max(0, maz);
             for (int hz = miz; hz <= maz; hz++)
             {
                 for (int hy = miy; hy <= may; hy++)
@@ -168,7 +169,6 @@ public:
                         int hxx = PBCx ? (hx % nX) + (hx < 0) * nX : hx;
 
                         unsigned int l = hzz * nY * nX + hyy * nX + hxx;
-
                         cells[l]->findNeighborsRec(id, x, y, z, xi + displx, yi + disply, zi + displz, ri, ngmax, neighbors,
                                                    neighborsCount);
                     }
