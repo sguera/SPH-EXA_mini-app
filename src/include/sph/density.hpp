@@ -55,8 +55,6 @@ void computeDensityImpl(const Task &t, Dataset &d)
     const size_t allNeighbors = n * ngmax;
 #pragma acc parallel loop copyin(n, clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], m [0:np], h [0:np], x [0:np], y [0:np], \
                                  z [0:np]) copyout(ro[:n])
-#else
-#pragma omp parallel for
 #endif
     for (size_t pi = 0; pi < n; pi++)
     {
@@ -87,7 +85,7 @@ void computeDensityImpl(const Task &t, Dataset &d)
             roloc += value * m[j];
         }
 
-        //ro[pi] = roloc + m[i] * K / (h[i] * h[i] * h[i]);
+        // ro[pi] = roloc + m[i] * K / (h[i] * h[i] * h[i]);
         ro[i] = roloc + m[i] * K / (h[i] * h[i] * h[i]);
 
 #ifndef NDEBUG
@@ -100,10 +98,12 @@ template <typename T, class Dataset>
 void computeDensity(const std::vector<Task> &taskList, Dataset &d)
 {
 #if defined(USE_CUDA)
-    cuda::computeDensity<T>(taskList, d);//utils::partition(l, d.noOfGpuLoopSplits), d);
+    cuda::computeDensity<T>(taskList, d); // utils::partition(l, d.noOfGpuLoopSplits), d);
 #else
+
     for (const auto &task : taskList)
     {
+#pragma omp task
         computeDensityImpl<T>(task, d);
     }
 #endif
@@ -118,7 +118,6 @@ void initFluidDensityAtRestImpl(const Task &t, Dataset &d)
     const T *ro = d.ro.data();
     T *ro_0 = d.ro_0.data();
 
-#pragma omp parallel for
     for (size_t pi = 0; pi < n; ++pi)
     {
         const int i = clist[pi];
@@ -131,6 +130,7 @@ void initFluidDensityAtRest(const std::vector<Task> &taskList, Dataset &d)
 {
     for (const auto &task : taskList)
     {
+#pragma omp task
         initFluidDensityAtRestImpl<T>(task, d);
     }
 }

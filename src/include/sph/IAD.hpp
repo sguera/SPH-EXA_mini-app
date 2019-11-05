@@ -70,8 +70,6 @@ void computeIADImpl(const Task &t, Dataset &d)
                            copyout(c11 [:n], c12 [:n], c13 [:n], c22 [:n], c23 [:n],                                                       \
                                    c33 [:n])
 // clang-format on
-#else
-#pragma omp parallel for schedule(guided)
 #endif
     for (size_t pi = 0; pi < n; ++pi)
     {
@@ -137,10 +135,15 @@ void computeIAD(const std::vector<Task> &taskList, Dataset &d)
 #if defined(USE_CUDA)
     cuda::computeIAD<T>(taskList, d); // utils::partition(l, d.noOfGpuLoopSplits), d);
 #else
+
+#pragma omp parallel
+#pragma omp single
     for (const auto &task : taskList)
     {
+#pragma omp task
         computeIADImpl<T>(task, d);
     }
+
 #endif
 }
 

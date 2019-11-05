@@ -29,7 +29,6 @@ void computeEquationOfStateImpl(const Task &t, Dataset &d)
     // const T chi = (1000.0 / 7.0) * (35.0 * 35.0);
     const T chi = (density0 / heatCapacityRatio) * (speedOfSound0 * speedOfSound0);
 
-#pragma omp parallel for
     for (size_t pi = 0; pi < n; pi++)
     {
         const int i = clist[pi];
@@ -47,6 +46,7 @@ void computeEquationOfState(const std::vector<Task> &taskList, Dataset &d)
 {
     for (const auto &task : taskList)
     {
+#pragma omp task
         computeEquationOfStateImpl<T>(task, d);
     }
 }

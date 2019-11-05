@@ -40,7 +40,7 @@ ifeq ($(ENV),cray)
 endif
 
 ifeq ($(ENV),intel)
-	CXXFLAGS += -O2 -std=c++14 -qopenmp -dynamic
+	CXXFLAGS += -O2 -std=c++14 -qopenmp -dynamic -g
 endif
 
 ifeq ($(ENV),clang)

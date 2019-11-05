@@ -80,8 +80,6 @@ void computeMomentumAndEnergyIADImpl(const Task &t, Dataset &d)
                                  c13 [0:np], c22 [0:np], c23 [0:np], c33 [0:np])                                                           \
                           copyout(grad_P_x [:n], grad_P_y [:n], grad_P_z [:n], du [:n])
 // clang-format on
-#else
-#pragma omp parallel for schedule(guided)
 #endif
     for (size_t pi = 0; pi < n; ++pi)
     {
@@ -180,10 +178,15 @@ void computeMomentumAndEnergyIAD(const std::vector<Task> &taskList, Dataset &d)
 #if defined(USE_CUDA)
     cuda::computeMomentumAndEnergyIAD<T>(taskList, d);//utils::partition(l, d.noOfGpuLoopSplits), d);
 #else
+
+#pragma omp parallel
+#pragma omp single
     for (const auto &task : taskList)
     {
+#pragma omp task
         computeMomentumAndEnergyIADImpl<T>(task, d);
     }
+
 #endif
 }
 

@@ -38,7 +38,7 @@ public:
     {
         int64_t n = t.clist.size();
 
-#pragma omp parallel for schedule(guided)
+// #pragma omp parallel for schedule(guided, 30)
         for (int pi = 0; pi < n; pi++)
         {
             int i = t.clist[pi];

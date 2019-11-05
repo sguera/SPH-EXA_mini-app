@@ -55,15 +55,35 @@ int main(int argc, char **argv)
         timer.step("mpi::synchronizeHalos");
         distributedDomain.buildTree(d);
         timer.step("domain::buildTree");
-        distributedDomain.createTasks(taskList, 64);
+        distributedDomain.createTasks(taskList, 480);
         timer.step("domain::createTasks");
-        distributedDomain.findNeighbors(taskList, d);
-        timer.step("FindNeighbors");
-        sph::computeDensity<Real>(taskList, d);
-        if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList, d); }
-        timer.step("Density");
-        sph::computeEquationOfState<Real>(taskList, d);
-        timer.step("EquationOfState");
+
+        // distributedDomain.findNeighbors(taskList, d);
+        // timer.step("FindNeighbors");
+
+#pragma omp parallel
+#pragma omp single
+        {
+            for (auto &task : taskList)
+            {
+#pragma omp task
+                {
+                    distributedDomain.findNeighborsImpl(task, d);
+                    timer.step("FindNeighbors");
+                    sph::computeDensityImpl<Real>(task, d);
+                    if (d.iteration == 0) { sph::initFluidDensityAtRestImpl<Real>(task, d); }
+                    timer.step("Density");
+                    sph::computeEquationOfStateImpl<Real>(task, d);
+                    timer.step("EquationOfState");
+                }
+            }
+        }
+        // sph::computeDensity<Real>(taskList, d);
+        // if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList, d); }
+        // timer.step("Density");
+        // sph::computeEquationOfState<Real>(taskList, d);
+        // timer.step("EquationOfState");
+
         distributedDomain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c);
         timer.step("mpi::synchronizeHalos");
         sph::computeIAD<Real>(taskList, d);
@@ -82,7 +102,8 @@ int main(int argc, char **argv)
         long long int totalNeighbors = distributedDomain.neighborsSum(taskList);
         if (d.rank == 0)
         {
-            printer.printCheck(distributedDomain.clist.size(), distributedDomain.octree.globalNodeCount, distributedDomain.haloCount, totalNeighbors, std::cout);
+            printer.printCheck(distributedDomain.clist.size(), distributedDomain.octree.globalNodeCount, distributedDomain.haloCount,
+                               totalNeighbors, std::cout);
             printer.printConstants(d.iteration, totalNeighbors, constantsFile);
         }
 
