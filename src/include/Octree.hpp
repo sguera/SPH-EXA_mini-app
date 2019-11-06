@@ -470,8 +470,15 @@ public:
         {
             for (int i = 0; i < ncells; i++)
             {
-                #pragma omp task shared(cellList, x, y, z, ordering) firstprivate(padding)
-                cells[i]->buildTreeRec(cellList[i], x, y, z, ordering, padding);
+                if (list.size() < 10000) // don't create tasks if node has below 10000 particles. It's to avoid creating very fined tasks
+                {
+                    cells[i]->buildTreeRec(cellList[i], x, y, z, ordering, padding);
+                }
+                else
+                {
+#pragma omp task shared(cellList, x, y, z, ordering) firstprivate(padding)
+                    cells[i]->buildTreeRec(cellList[i], x, y, z, ordering, padding);
+                }
                 padding += cellList[i].size();
             }
             #pragma omp taskwait
