@@ -9,6 +9,22 @@
 using namespace std;
 using namespace sphexa;
 
+
+#include "sph/cuda/sph.cuh"
+
+void runAsTasks(const std::vector<Task> &taskList, std::function<void(const Task &)> taskFun)
+{
+#pragma omp parallel
+#pragma omp single
+    {
+        for (auto &task : taskList)
+        {
+#pragma omp task
+            taskFun(task);
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     ArgParser parser(argc, argv);
@@ -55,34 +71,62 @@ int main(int argc, char **argv)
         timer.step("mpi::synchronizeHalos");
         distributedDomain.buildTree(d);
         timer.step("domain::buildTree");
-        distributedDomain.createTasks(taskList, 480);
+        distributedDomain.createTasks(taskList, 4);
         timer.step("domain::createTasks");
 
-        // distributedDomain.findNeighbors(taskList, d);
-        // timer.step("FindNeighbors");
+        distributedDomain.findNeighbors(taskList, d);
+        timer.step("FindNeighbors");
 
-#pragma omp parallel
-#pragma omp single
+        #if defined(USE_CUDA)
+        sph::cuda::copyInDensity<double>(d);
+        #endif
+        runAsTasks(taskList, [&](const Task &task) {
+            // distributedDomain.findNeighborsImpl(task, d);
+            // printf("Computing density for task %d\n", task.clist.front());
+
+            sph::computeDensity<Real>(task, d);
+            // printf("Computed density for task %d\n", task.clist.front());
+            // if (d.iteration == 0) { sph::initFluidDensityAtRestImpl<Real>(task, d); }
+            //                     timer.step("Density");
+            // sph::computeEquationOfStateImpl<Real>(task, d);
+            //                     timer.step("EquationOfState");
+        });
+        #if defined(USE_CUDA)
+        sph::cuda::copyOutDensity<double>(d);
+        #endif
+        /*
+        for (int i = 0; i < d.ro.size(); ++i)
         {
-            for (auto &task : taskList)
-            {
-#pragma omp task
-                {
-                    distributedDomain.findNeighborsImpl(task, d);
-                    timer.step("FindNeighbors");
-                    sph::computeDensityImpl<Real>(task, d);
-                    if (d.iteration == 0) { sph::initFluidDensityAtRestImpl<Real>(task, d); }
-                    timer.step("Density");
-                    sph::computeEquationOfStateImpl<Real>(task, d);
-                    timer.step("EquationOfState");
-                }
-            }
+            int pi = i;
+            printf("%d:%f ", pi, d.ro[pi]);
+            if (i == 10) printf("\n");
         }
+        */
+        timer.step("Density + EquationOfState");
+
+        // #pragma omp parallel
+        // #pragma omp single
+        //         {
+        //             for (auto &task : taskList)
+        //             {
+        // #pragma omp task
+        //                 {
+        //                     distributedDomain.findNeighborsImpl(task, d);
+        //                     timer.step("FindNeighbors");
+        //                     sph::computeDensityImpl<Real>(task, d);
+        //                     if (d.iteration == 0) { sph::initFluidDensityAtRestImpl<Real>(task, d); }
+        //                     timer.step("Density");
+        //                     sph::computeEquationOfStateImpl<Real>(task, d);
+        //                     timer.step("EquationOfState");
+        //                 }
+        //             }
+        //         }
+
         // sph::computeDensity<Real>(taskList, d);
-        // if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList, d); }
-        // timer.step("Density");
-        // sph::computeEquationOfState<Real>(taskList, d);
-        // timer.step("EquationOfState");
+        if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList, d); }
+        timer.step("Density");
+        sph::computeEquationOfState<Real>(taskList, d);
+        timer.step("EquationOfState");
 
         distributedDomain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c);
         timer.step("mpi::synchronizeHalos");

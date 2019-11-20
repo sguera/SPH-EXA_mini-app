@@ -38,7 +38,7 @@ public:
     {
         int64_t n = t.clist.size();
 
-// #pragma omp parallel for schedule(guided, 30)
+        #pragma omp parallel for schedule(guided, 30)
         for (int pi = 0; pi < n; pi++)
         {
             int i = t.clist[pi];
@@ -57,8 +57,11 @@ public:
     template <class Dataset>
     void findNeighbors(std::vector<Task> &taskList, Dataset &d)
     {
+// #pragma omp parallel
+// #pragma omp single
         for (auto &task : taskList)
         {
+// #pragma omp task
             findNeighborsImpl(task, d);
         }
     }

@@ -56,6 +56,12 @@ struct ParticlesData
 
     // settings
     constexpr static ushort noOfGpuLoopSplits = 4; // No. of loop splits running in GPU to fit into the GPU memory
+
+    //CUDA
+    T *d_x, *d_y, *d_z, *d_m, *d_h;
+    T *d_ro;
+    BBox<T> *d_bbox;
+
 };
 
 template <typename T>

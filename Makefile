@@ -24,11 +24,11 @@ DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 INC += -Isrc -Isrc/include
 CXXFLAGS += $(RELEASE)
 NVCCARCH := sm_60
-NVCCFLAGS := -std=c++14 --expt-relaxed-constexpr -rdc=true -arch=$(NVCCARCH)
+NVCCFLAGS := -std=c++14 --expt-relaxed-constexpr -rdc=true -arch=$(NVCCARCH) --default-stream per-thread -Xcompiler -fopenmp -lgomp
 NVCCLDFLAGS := -arch=$(NVCCARCH) -rdc=true
 
 ifeq ($(ENV),gnu)
-	CXXFLAGS += -std=c++11 -O2 -Wall -Wextra -fopenmp -fopenacc -march=native -mtune=native
+	CXXFLAGS += -std=c++14 -O2 -Wall -Wextra -fopenmp -fopenacc -march=native -mtune=native
 endif
 
 ifeq ($(ENV),pgi)
@@ -52,7 +52,7 @@ all: $(TESTCASE)
 omp: $(HPP)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(CXX) $(CXXFLAGS) $(INC) src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
+	$(CXX) $(CXXFLAGS) $(INC) -DUSE_TASKS src/sqpatch.cpp -o $(BINDIR)/$@.app $(LIB)
 
 mpi+omp: $(HPP)
 	@mkdir -p $(BINDIR)
@@ -62,8 +62,8 @@ mpi+omp: $(HPP)
 omp+cuda: $(BUILDDIR)/cuda_no_mpi.o $(CUDA_OBJS)
 	@mkdir -p $(BINDIR)
 	$(info Linking the executable:)
-	$(NVCC) $(NVCCLDFLAGS) -DUSE_CUDA -dlink -o cudalinked.o $(CUDA_OBJS) -lcudadevrt -lcudart
-	$(CXX) $(CXXFLAGS) -o $(BINDIR)/$@.app cudalinked.o $+ -L$(CUDA_PATH)/lib64 -lcudart -lcudadevrt
+	$(NVCC) $(NVCCLDFLAGS) -DUSE_CUDA -DUSE_TASKS -dlink -o cudalinked.o $(CUDA_OBJS) -lcudadevrt -lcudart -lgomp
+	$(CXX) $(CXXFLAGS) -o $(BINDIR)/$@.app cudalinked.o $+ -L$(CUDA_PATH)/lib64 -lcudart -lcudadevrt -lgomp
 #	$(CXX) -o $(BINDIR)/$@.app $+ -L$(CUDA_PATH)/lib64 -lcudart -fopenmp
 
 omp+target: $(HPP)
@@ -94,7 +94,7 @@ $(BUILDDIR)/cuda_mpi.o: src/sqpatch.cpp
 
 $(BUILDDIR)/cuda_no_mpi.o: src/sqpatch.cpp
 	@mkdir -p $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) $(INC) -DUSE_CUDA -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(INC) -DUSE_CUDA -DUSE_TASKS -o $@ -c $<
 
 $(BUILDDIR)/%.o: src/include/sph/cuda/%.cu
 	@mkdir -p $(BUILDDIR)

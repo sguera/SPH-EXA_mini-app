@@ -29,6 +29,7 @@ void computeEquationOfStateImpl(const Task &t, Dataset &d)
     // const T chi = (1000.0 / 7.0) * (35.0 * 35.0);
     const T chi = (density0 / heatCapacityRatio) * (speedOfSound0 * speedOfSound0);
 
+// #pragma omp parallel for
     for (size_t pi = 0; pi < n; pi++)
     {
         const int i = clist[pi];
@@ -38,12 +39,19 @@ void computeEquationOfStateImpl(const Task &t, Dataset &d)
         u[i] = 1.0;           //
         // u[i] = 1e-10;
         // 1e7 per unit of mass (1e-3 or 1g)
+        if (std::isnan(p[i]) || std::isnan(c[i]) || isnan(u[i]))
+            printf("%d: p=%f c=%f u=%f\n", i, p[i], c[i], u[i]);
+
     }
+
 }
 
 template <typename T, class Dataset>
 void computeEquationOfState(const std::vector<Task> &taskList, Dataset &d)
 {
+#pragma omp parallel
+#pragma omp single
+
     for (const auto &task : taskList)
     {
 #pragma omp task

@@ -55,6 +55,9 @@ void computeDensityImpl(const Task &t, Dataset &d)
     const size_t allNeighbors = n * ngmax;
 #pragma acc parallel loop copyin(n, clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], m [0:np], h [0:np], x [0:np], y [0:np], \
                                  z [0:np]) copyout(ro[:n])
+#elif !defined(USE_TASKS)
+    printf("Using parallel for\n");
+#pragma omp parallel for
 #endif
     for (size_t pi = 0; pi < n; pi++)
     {
@@ -98,15 +101,38 @@ template <typename T, class Dataset>
 void computeDensity(const std::vector<Task> &taskList, Dataset &d)
 {
 #if defined(USE_CUDA)
-    cuda::computeDensity<T>(taskList, d); // utils::partition(l, d.noOfGpuLoopSplits), d);
+    cuda::computeDensity<T>(taskList, d);
 #else
 
+#pragma omp parallel
+#pragma omp single
     for (const auto &task : taskList)
     {
 #pragma omp task
         computeDensityImpl<T>(task, d);
     }
+
 #endif
+}
+
+template <typename T, class Dataset>
+void computeDensity(const Task &task, Dataset &d)
+{
+
+#if defined(USE_CUDA)
+  // cuda::copyInDensity(d);
+  cuda::computeDensity<T>(task, d);
+  // cuda::copyOutDensity(d);
+#else
+    computeDensityImpl<T>(task, d);
+#endif
+
+    // for (int i = 0; i < task.clist.size(); ++i)
+    // {
+    //     int pi = task.clist[i];
+    //     printf("%d:%f ", pi, d.ro[pi]);
+    //     if (i == 10) printf("\n");
+    // }
 }
 
 template <typename T, class Dataset>
@@ -128,6 +154,8 @@ void initFluidDensityAtRestImpl(const Task &t, Dataset &d)
 template <typename T, class Dataset>
 void initFluidDensityAtRest(const std::vector<Task> &taskList, Dataset &d)
 {
+#pragma omp parallel
+#pragma omp single
     for (const auto &task : taskList)
     {
 #pragma omp task
