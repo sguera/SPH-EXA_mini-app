@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
         distributedDomain.findNeighbors(taskList, d);
         timer.step("FindNeighbors");
-
+        /*
         #if defined(USE_CUDA)
         sph::cuda::copyInDensity<double>(d);
         #endif
@@ -94,6 +94,8 @@ int main(int argc, char **argv)
         #if defined(USE_CUDA)
         sph::cuda::copyOutDensity<double>(d);
         #endif
+
+        */
         /*
         for (int i = 0; i < d.ro.size(); ++i)
         {
@@ -102,6 +104,8 @@ int main(int argc, char **argv)
             if (i == 10) printf("\n");
         }
         */
+        sph::computeDensity<Real>(taskList, d);
+
         timer.step("Density + EquationOfState");
 
         // #pragma omp parallel
