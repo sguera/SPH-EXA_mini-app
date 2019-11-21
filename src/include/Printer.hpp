@@ -15,7 +15,7 @@ public:
     {
         if (d.rank == 0)
         {
-            out << iteration << ' ' << d.ttot << ' ' << d.dt[0] << ' ' << d.etot << ' ' << d.ecin << ' ' << d.eint << ' ' << nntot << ' '
+            out << iteration << ' ' << d.ttot << ' ' << d.minDt << ' ' << d.etot << ' ' << d.ecin << ' ' << d.eint << ' ' << nntot << ' '
                 << std::endl;
             out.flush();
         }

@@ -20,5 +20,6 @@ struct Task
     std::vector<int> neighborsCount;
 
     constexpr static size_t ngmax = 300;
+    constexpr static size_t ng0 = 100;
 };
 } // namespace sphexa

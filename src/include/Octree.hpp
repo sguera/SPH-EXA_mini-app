@@ -71,7 +71,8 @@ public:
 
     static const int nX = 2, nY = 2, nZ = 2;
     static const int ncells = 8;
-    static const int bucketSize = 64, maxGlobalBucketSize = 65536, minGlobalBucketSize = 4096;
+    //static const int bucketSize = 2048, maxGlobalBucketSize = 65536, minGlobalBucketSize = 4096;
+    static const int bucketSize = 64, maxGlobalBucketSize = 1024, minGlobalBucketSize = 128;
 
     static inline T normalize(T d, T min, T max) { return (d - min) / (max - min); }
 
@@ -184,6 +185,8 @@ public:
 
                         size_t l = hzz * nY * nX + hyy * nX + hxx;
 
+                        //if(l >= ncells)
+                        //printf("[%d %d %d] x[%f %f] y[%f %f] z[%f %f] (%f %f %f %f)\n", hzz, hyy, hxx, xmin, xmax, ymin, ymax, zmin, zmax, xi, yi, zi, ri);
                         cells[l]->findNeighborsRec(id, x, y, z, xi + displx, yi + disply, zi + displz, ri, ngmax, neighbors,
                                                    neighborsCount);
                     }

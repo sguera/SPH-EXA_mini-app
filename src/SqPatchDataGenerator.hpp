@@ -98,10 +98,9 @@ public:
 
     static void init(ParticlesData<T> &pd)
     {
-        pd.dx = 100.0 / pd.side;
-
         const T firstTimeStep = 1e-6;
-
+        const T dx = 100.0 / pd.side;
+        
         #pragma omp parallel for
         for (size_t i = 0; i < pd.count; i++)
         {
@@ -116,7 +115,7 @@ public:
 
             pd.m[i] = 1000000.0 / pd.n; // 1.0;//1000000.0/n;//1.0;//0.001;//0.001;//0.001;//1.0;
             pd.c[i] = 3500.0;           // 35.0;//35.0;//35000
-            pd.h[i] = 2.0 * pd.dx;      // 0.02;//0.02;
+            pd.h[i] = 2.0 * dx;         // 0.02;//0.02;
             pd.ro[i] = 1.0;             // 1.0e3;//.0;//1e3;//1e3;
             pd.ro_0[i] = 1.0;           // 1.0e3;//.0;//1e3;//1e3;
 
@@ -133,8 +132,8 @@ public:
 
         pd.bbox.computeGlobal(pd.x, pd.y, pd.z);
 
-        pd.bbox.zmax += pd.dx / 2.0;
-        pd.bbox.zmin -= pd.dx / 2.0;
+        pd.bbox.zmax += dx / 2.0;
+        pd.bbox.zmin -= dx / 2.0;
         pd.bbox.setBox(0, 0, 0, 0, pd.bbox.zmin, pd.bbox.zmax, false, false, true);
 
         pd.etot = pd.ecin = pd.eint = 0.0;
