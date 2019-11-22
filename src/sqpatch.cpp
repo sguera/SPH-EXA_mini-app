@@ -7,6 +7,7 @@
 
 #include "sphexa.hpp"
 #include "SqPatchDataGenerator.hpp"
+#include "omp.h"
 
 using namespace std;
 using namespace sphexa;
@@ -52,18 +53,37 @@ void runAsTaskIters(
     // auto futureCudaFunction = std::async(std::launch::async, [&]() { cudaIterTaskFun(taskList.begin(),
     // taskList.begin() + splitPoint);
     // });
-    auto futureCudaFunction =
-      std::async(std::launch::async, [&]() { taskIterFun(taskList.begin(), taskList.begin() + splitPoint, sph::ParallelModel::CUDA); });
+    // auto futureCudaFunction =
+    //      std::async(std::launch::async, [&]() { taskIterFun(taskList.begin(), taskList.begin() + splitPoint, sph::ParallelModel::CUDA); }); // 
 
+    //    taskIterFun(taskList.begin(), taskList.begin() + splitPoint, sph::ParallelModel::CUDA);
+
+    //    taskIterFun(taskList.begin(), taskList.end(), sph::ParallelModel::CUDA); 
+    int i = 0;
 #pragma omp parallel
+    {
 #pragma omp single
+    {
+#pragma omp task
+      {
+      std::cout << 
+                    "starting CUDA task " << i++ << 
+                    " on thread " << omp_get_thread_num() << "\n";
+		taskIterFun(taskList.begin(), taskList.begin() + splitPoint, sph::ParallelModel::CUDA);
+      }
     for (auto it = taskList.begin() + splitPoint; it != taskList.end() - 1; ++it)
 #pragma omp task
     {
-        taskIterFun(it, it + 1, sph::ParallelModel::OpenMP);
+      std::cout << 
+                    "starting task " << i++ << 
+                    " on thread " << omp_get_thread_num() << "\n";
+      taskIterFun(it, it + 1, sph::ParallelModel::OpenMP);
     }
+    }
+    }
+    //*/
     // taskIterFun(taskList.begin() + splitPoint, taskList.end());
-    futureCudaFunction.get();
+    //    futureCudaFunction.get();
 }
 
 void runAsTaskList(const std::vector<Task> &taskList, std::function<void(const std::vector<Task> &)> taskListFun,
