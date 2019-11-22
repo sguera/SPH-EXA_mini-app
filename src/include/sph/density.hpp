@@ -146,19 +146,30 @@ void computeDensity(const std::vector<Task> &taskList, Dataset &d)
     // #endif
 }
 
-template <typename T, class Dataset>
-void computeDensity(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend, Dataset &d)
+enum class ParallelModel
 {
-#pragma omp parallel
-#pragma omp single
-    for (auto it = tbegin; it != tend; ++it)
+    OpenMP,
+    CUDA
+};
+
+template <typename T, class Dataset>
+void computeDensity(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend, ParallelModel model, Dataset &d)
+{
+    // #if defined(USE_CUDA)
+    //     cuda::computeDensity<T>(tbegin, tend, d);
+    // #else
+
+    // #pragma omp parallel
+    // #pragma omp single
+    if (model == ParallelModel::CUDA) { cuda::computeDensity<T>(tbegin, tend, d); }
+    else if (model == ParallelModel::OpenMP)
     {
-#pragma omp task
-      {
-        // printf("Density: Running task\n");
-        computeDensityImpl<T>(*it, d);
-      }
+        for (auto it = tbegin; it != tend; ++it)
+        {
+            computeDensityImpl<T>(*it, d);
+        }
     }
+    // #endif
 }
 
 template <typename T, class Dataset>

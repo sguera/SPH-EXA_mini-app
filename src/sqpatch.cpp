@@ -42,14 +42,27 @@ void runAsTaskQueue(std::vector<Task> &taskList, std::function<void(TaskQueue &)
     }
 }
 
-void runAsTaskIters(std::vector<Task> &taskList, MPITimer &timer,
-                    std::function<void(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend)> taskIterFun,
-                    std::function<void(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend)> cudaIterTaskFun)
+void runAsTaskIters(
+    std::vector<Task> &taskList,
+    std::function<void(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend, sph::ParallelModel model)> taskIterFun)
+// ,
+//                   std::function<void(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend)> cudaIterTaskFun)
 {
     const size_t splitPoint = 32;
-    auto futureCudaFunction = std::async(std::launch::async, [&]() { cudaIterTaskFun(taskList.begin(), taskList.begin() + splitPoint); });
+    // auto futureCudaFunction = std::async(std::launch::async, [&]() { cudaIterTaskFun(taskList.begin(),
+    // taskList.begin() + splitPoint);
+    // });
+    auto futureCudaFunction =
+      std::async(std::launch::async, [&]() { taskIterFun(taskList.begin(), taskList.begin() + splitPoint, sph::ParallelModel::CUDA); });
 
-    taskIterFun(taskList.begin() + splitPoint, taskList.end());
+#pragma omp parallel
+#pragma omp single
+    for (auto it = taskList.begin() + splitPoint; it != taskList.end() - 1; ++it)
+#pragma omp task
+    {
+        taskIterFun(it, it + 1, sph::ParallelModel::OpenMP);
+    }
+    // taskIterFun(taskList.begin() + splitPoint, taskList.end());
     futureCudaFunction.get();
 }
 
@@ -168,12 +181,12 @@ int main(int argc, char **argv)
         */
         // sph::cuda::computeDensity<Real>(taskList.begin(), taskList.end() - 2, d);
         // sph::cuda::computeDensity<Real>(taskList.end() - 2, taskList.end(), d);
-        runAsTaskIters(
-            taskList, timer,
-            [&](std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend) { sph::computeDensity<Real>(tbegin, tend, d); },
-            [&](std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend) {
-                sph::cuda::computeDensity<Real>(tbegin, tend, d);
-            });
+        runAsTaskIters(taskList, [&](std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend, sph::ParallelModel model) {
+            sph::computeDensity<Real>(tbegin, tend, model, d);
+        });
+        // [&](std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend) {
+        //   sph::cuda::computeDensity<Real>(tbegin, tend, d);
+        // });
 
         /*
         runAsTaskList(taskList,
