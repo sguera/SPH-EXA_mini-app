@@ -9,13 +9,13 @@
 
 namespace sphexa
 {
-template <typename T>
+template <typename T, class Allocator = std::allocator<T>>
 class SqPatchDataGenerator
 {
 public:
-    static ParticlesData<T> generate(const size_t side)
+    static ParticlesData<T, Allocator> generate(const size_t side)
     {
-        ParticlesData<T> pd;
+        ParticlesData<T, Allocator> pd;
 
 #ifdef USE_MPI
         pd.comm = MPI_COMM_WORLD;
@@ -35,20 +35,18 @@ public:
     }
 
     // void load(const std::string &filename)
-    static void load(ParticlesData<T> &pd)
+    static void load(ParticlesData<T, Allocator> &pd)
     {
         int split = pd.n / pd.nrank;
         int remaining = pd.n - pd.nrank * split;
 
         pd.count = split;
-        if(pd.rank == 0)
-            pd.count += remaining;
+        if (pd.rank == 0) pd.count += remaining;
 
         pd.resize(pd.count);
 
         int offset = pd.rank * split;
-        if(pd.rank > 0)
-            offset += remaining;
+        if (pd.rank > 0) offset += remaining;
 
         const double omega = 5.0;
         const double myPI = std::acos(-1.0);
@@ -98,13 +96,13 @@ public:
         }
     }
 
-    static void init(ParticlesData<T> &pd)
+    static void init(ParticlesData<T, Allocator> &pd)
     {
         pd.dx = 100.0 / pd.side;
 
         const T firstTimeStep = 1e-6;
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (int i = 0; i < pd.count; i++)
         {
             // CGS

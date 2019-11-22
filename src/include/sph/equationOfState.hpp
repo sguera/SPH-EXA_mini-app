@@ -39,8 +39,10 @@ void computeEquationOfStateImpl(const Task &t, Dataset &d)
         u[i] = 1.0;           //
         // u[i] = 1e-10;
         // 1e7 per unit of mass (1e-3 or 1g)
-        if (std::isnan(p[i]) || std::isnan(c[i]) || isnan(u[i]))
+        if (std::isnan(p[i]) || std::isnan(c[i]) || isnan(u[i])){
             printf("%d: p=%f c=%f u=%f\n", i, p[i], c[i], u[i]);
+            exit(0);
+        }
 
     }
 

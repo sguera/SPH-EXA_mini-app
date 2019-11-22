@@ -56,8 +56,10 @@ void computeDensityImpl(const Task &t, Dataset &d)
 #pragma acc parallel loop copyin(n, clist [0:n], neighbors [0:allNeighbors], neighborsCount [0:n], m [0:np], h [0:np], x [0:np], y [0:np], \
                                  z [0:np]) copyout(ro[:n])
 #elif !defined(USE_TASKS)
-    printf("Using parallel for\n");
+    // printf("Density: Using parallel for\n");
 #pragma omp parallel for
+#else
+    // printf("Density: Using non-parallel for\n");
 #endif
     for (size_t pi = 0; pi < n; pi++)
     {
@@ -98,21 +100,65 @@ void computeDensityImpl(const Task &t, Dataset &d)
 }
 
 template <typename T, class Dataset>
-void computeDensity(const std::vector<Task> &taskList, Dataset &d)
+void computeDensity(TaskQueue &taskQueue, Dataset &d)
 {
-#if defined(USE_CUDA)
-    cuda::computeDensity<T>(taskList, d);
-#else
+    printf("TaskQueue size is %lu\n", taskQueue.size());
 
 #pragma omp parallel
 #pragma omp single
+    for (int i = 0; i < taskQueue.size(); ++i)
+    {
+        printf("Creating CPU density task no %d\n", i);
+
+#pragma omp task
+        {
+            if (taskQueue.areAllProcessed()) { printf("No work for CPU, all tasks processed\n"); }
+            const auto &t = taskQueue.pop();
+            // if (taskQueue.lastProcessedTask < i)
+            {
+                printf("Calculating CPU Density calculations for task nr %d\n", taskQueue.lastProcessedTask - 1);
+
+                computeDensityImpl<T>(t, d);
+            }
+            // else
+            // {
+            //     printf("Skipping CPU Density calculations for task nr %d\n", i);
+            // }
+        }
+    }
+}
+
+template <typename T, class Dataset>
+void computeDensity(const std::vector<Task> &taskList, Dataset &d)
+{
+    // #if defined(USE_CUDA)
+    // cuda::computeDensity<T>(taskList, d);
+    // #else
+
+    // #pragma omp parallel
+    // #pragma omp single
     for (const auto &task : taskList)
     {
-#pragma omp task
+        // #pragma omp task
         computeDensityImpl<T>(task, d);
     }
 
-#endif
+    // #endif
+}
+
+template <typename T, class Dataset>
+void computeDensity(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend, Dataset &d)
+{
+#pragma omp parallel
+#pragma omp single
+    for (auto it = tbegin; it != tend; ++it)
+    {
+#pragma omp task
+      {
+        // printf("Density: Running task\n");
+        computeDensityImpl<T>(*it, d);
+      }
+    }
 }
 
 template <typename T, class Dataset>
@@ -120,9 +166,9 @@ void computeDensity(const Task &task, Dataset &d)
 {
 
 #if defined(USE_CUDA)
-  // cuda::copyInDensity(d);
-  cuda::computeDensity<T>(task, d);
-  // cuda::copyOutDensity(d);
+    // cuda::copyInDensity(d);
+    cuda::computeDensity<T>(task, d);
+    // cuda::copyOutDensity(d);
 #else
     computeDensityImpl<T>(task, d);
 #endif

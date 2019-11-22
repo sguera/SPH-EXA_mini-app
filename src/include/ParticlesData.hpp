@@ -7,7 +7,7 @@
 
 namespace sphexa
 {
-template <typename T>
+template <typename T, class Allocator = std::allocator<T>>
 struct ParticlesData
 {
     inline void resize(const size_t size)
@@ -18,25 +18,25 @@ struct ParticlesData
 
     int iteration;                               // Current iteration
     int n, side, count;                          // Number of particles
-    std::vector<T> x, y, z, x_m1, y_m1, z_m1;    // Positions
-    std::vector<T> vx, vy, vz;                   // Velocities
-    std::vector<T> ro, ro_0;                     // Density
-    std::vector<T> u;                            // Internal Energy
-    std::vector<T> p, p_0;                       // Pressure
-    std::vector<T> h;                            // Smoothing Length
-    std::vector<T> m;                            // Mass
-    std::vector<T> c;                            // Speed of sound
-    std::vector<T> grad_P_x, grad_P_y, grad_P_z; // gradient of the pressure
-    std::vector<T> du, du_m1;                    // variation of the energy
-    std::vector<T> dt, dt_m1;
-    std::vector<T> c11, c12, c13, c22, c23, c33; // IAD components
+    std::vector<T, Allocator> x, y, z, x_m1, y_m1, z_m1;    // Positions
+    std::vector<T, Allocator> vx, vy, vz;                   // Velocities
+    std::vector<T, Allocator> ro, ro_0;                     // Density
+    std::vector<T, Allocator> u;                            // Internal Energy
+    std::vector<T, Allocator> p, p_0;                       // Pressure
+    std::vector<T, Allocator> h;                            // Smoothing Length
+    std::vector<T, Allocator> m;                            // Mass
+    std::vector<T, Allocator> c;                            // Speed of sound
+    std::vector<T, Allocator> grad_P_x, grad_P_y, grad_P_z; // gradient of the pressure
+    std::vector<T, Allocator> du, du_m1;                    // variation of the energy
+    std::vector<T, Allocator> dt, dt_m1;
+    std::vector<T, Allocator> c11, c12, c13, c22, c23, c33; // IAD components
 
     T ttot, etot, ecin, eint;
     T minDt;
 
     BBox<T> bbox;
 
-    std::vector<std::vector<T> *> data{&x,    &y,     &z,  &x_m1,  &y_m1, &z_m1, &vx,  &vy,       &vz,       &ro,
+    std::vector<std::vector<T, Allocator> *> data{&x,    &y,     &z,  &x_m1,  &y_m1, &z_m1, &vx,  &vy,       &vz,       &ro,
                                        &ro_0, &u,     &p,  &p_0,   &h,    &m,    &c,   &grad_P_x, &grad_P_y, &grad_P_z,
                                        &du,   &du_m1, &dt, &dt_m1, &c11,  &c12,  &c13, &c22,      &c23,      &c33};
 #ifdef USE_MPI
@@ -64,10 +64,10 @@ struct ParticlesData
 
 };
 
-template <typename T>
-T ParticlesData<T>::dx = 0.01;
+template <typename T, class Allocator>
+T ParticlesData<T, Allocator>::dx = 0.01;
 
-template <typename T>
-const T ParticlesData<T>::K = sphexa::compute_3d_k(sincIndex);
+template <typename T, class Allocator>
+const T ParticlesData<T, Allocator>::K = sphexa::compute_3d_k(sincIndex);
 
 } // namespace sphexa

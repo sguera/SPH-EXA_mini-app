@@ -2,13 +2,14 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <atomic>
+#include <future>
 
 #include "sphexa.hpp"
 #include "SqPatchDataGenerator.hpp"
 
 using namespace std;
 using namespace sphexa;
-
 
 #include "sph/cuda/sph.cuh"
 
@@ -21,6 +22,69 @@ void runAsTasks(const std::vector<Task> &taskList, std::function<void(const Task
         {
 #pragma omp task
             taskFun(task);
+        }
+    }
+}
+
+void runAsTaskQueue(std::vector<Task> &taskList, std::function<void(TaskQueue &)> taskQueueFun,
+                    std::function<void(TaskQueue &)> cudaTaskQueueFun)
+{
+    TaskQueue tq(taskList);
+#pragma omp parallel
+    {
+#pragma omp single
+        {
+#pragma omp task
+            cudaTaskQueueFun(tq);
+            // #pragma omp task
+            // taskQueueFun(tq);
+        }
+    }
+}
+
+void runAsTaskIters(std::vector<Task> &taskList, MPITimer &timer,
+                    std::function<void(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend)> taskIterFun,
+                    std::function<void(std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend)> cudaIterTaskFun)
+{
+    const size_t splitPoint = 32;
+    auto futureCudaFunction = std::async(std::launch::async, [&]() { cudaIterTaskFun(taskList.begin(), taskList.begin() + splitPoint); });
+
+    taskIterFun(taskList.begin() + splitPoint, taskList.end());
+    futureCudaFunction.get();
+}
+
+void runAsTaskList(const std::vector<Task> &taskList, std::function<void(const std::vector<Task> &)> taskListFun,
+                   std::function<void(const std::vector<Task> &)> cudaTaskListFun)
+{
+
+    const auto tl = sphexa::utils::partition(taskList, taskList.size() / 8);
+
+    // TaskQueue tq(taskList);
+
+    {
+
+#pragma omp parallel
+#pragma omp single
+        for (int i = 0; i < tl.size(); i += 8)
+        {
+            // taskListFun(taskList);
+#pragma omp task
+            taskListFun(tl[i]);
+#pragma omp task
+            {
+                cudaTaskListFun(tl[i + 1]);
+                cudaTaskListFun(tl[i + 2]);
+                cudaTaskListFun(tl[i + 3]);
+                cudaTaskListFun(tl[i + 4]);
+                cudaTaskListFun(tl[i + 5]);
+                cudaTaskListFun(tl[i + 6]);
+                cudaTaskListFun(tl[i + 7]);
+            }
+            // cudaTaskListFun(taskList);
+
+            // cudaTaskListFun(tl[1]);
+            // taskListFun(b, taskList.begin() + count);
+            // }
         }
     }
 }
@@ -38,7 +102,13 @@ int main(int argc, char **argv)
 #endif
 
     using Real = double;
-    using Dataset = ParticlesData<Real>;
+#ifdef USE_CUDA
+    //    using Dataset = ParticlesData<Real, sph::cuda::CudaAllocator<Real>>;
+    //    using Dataset = ParticlesData<Real, sph::cuda::Mallocator<Real>>;
+    using Dataset = ParticlesData<Real, std::allocator<Real>>;
+#else
+    // using Dataset = ParticlesData<Real>;
+#endif
 
 #ifdef USE_MPI
     MPI_Init(NULL, NULL);
@@ -71,11 +141,12 @@ int main(int argc, char **argv)
         timer.step("mpi::synchronizeHalos");
         distributedDomain.buildTree(d);
         timer.step("domain::buildTree");
-        distributedDomain.createTasks(taskList, 4);
+        distributedDomain.createTasks(taskList, 64);
         timer.step("domain::createTasks");
 
         distributedDomain.findNeighbors(taskList, d);
         timer.step("FindNeighbors");
+
         /*
         #if defined(USE_CUDA)
         sph::cuda::copyInDensity<double>(d);
@@ -94,19 +165,43 @@ int main(int argc, char **argv)
         #if defined(USE_CUDA)
         sph::cuda::copyOutDensity<double>(d);
         #endif
-
         */
+        // sph::cuda::computeDensity<Real>(taskList.begin(), taskList.end() - 2, d);
+        // sph::cuda::computeDensity<Real>(taskList.end() - 2, taskList.end(), d);
+        runAsTaskIters(
+            taskList, timer,
+            [&](std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend) { sph::computeDensity<Real>(tbegin, tend, d); },
+            [&](std::vector<Task>::iterator tbegin, std::vector<Task>::iterator tend) {
+                sph::cuda::computeDensity<Real>(tbegin, tend, d);
+            });
+
         /*
-        for (int i = 0; i < d.ro.size(); ++i)
-        {
-            int pi = i;
-            printf("%d:%f ", pi, d.ro[pi]);
-            if (i == 10) printf("\n");
-        }
+        runAsTaskList(taskList,
+                      [&](const std::vector<Task> &taskList) {
+                          sph::computeDensity<Real>(taskList, d);
+                          if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList, d); }
+                      },
+                      [&](const std::vector<Task> &taskList) {
+                          sph::cuda::computeDensity<Real>(taskList, d);
+                          if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList, d); }
+                      });
         */
-        sph::computeDensity<Real>(taskList, d);
 
-        timer.step("Density + EquationOfState");
+        /*
+        runAsTaskQueue(taskList, [&](TaskQueue &taskQueue) { sph::computeDensity<Real>(taskQueue, d); },
+                       [&](TaskQueue &taskQueue) { sph::cuda::computeDensity<Real>(taskQueue, d); });
+        */
+
+        // for (int i = 0; i < d.ro.size(); ++i)
+        // {
+        //     int pi = i;
+        //     printf("%d:%f ", pi, d.ro[pi]);
+        //     if (i == 10) printf("\n");
+        // }
+
+        // sph::computeDensity<Real>(taskList, d);
+
+        // timer.step("Density + EquationOfState");
 
         // #pragma omp parallel
         // #pragma omp single
