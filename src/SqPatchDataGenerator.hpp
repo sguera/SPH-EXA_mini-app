@@ -37,39 +37,35 @@ public:
     // void load(const std::string &filename)
     static void load(ParticlesData<T> &pd)
     {
-        int split = pd.n / pd.nrank;
-        int remaining = pd.n - pd.nrank * split;
+        size_t split = pd.n / pd.nrank;
+        size_t remaining = pd.n - pd.nrank * split;
 
         pd.count = split;
-        if(pd.rank == 0)
-            pd.count += remaining;
+        if (pd.rank == 0) pd.count += remaining;
 
         pd.resize(pd.count);
 
-        int offset = pd.rank * split;
-        if(pd.rank > 0)
-            offset += remaining;
+        size_t offset = pd.rank * split;
+        if (pd.rank > 0) offset += remaining;
 
         const double omega = 5.0;
         const double myPI = std::acos(-1.0);
 
 #pragma omp parallel for
-        for (int i = 0; i < pd.side; ++i)
+        for (size_t i = 0; i < pd.side; ++i)
         {
             double lz = -0.5 + 1.0 / (2.0 * pd.side) + i * 1.0 / pd.side;
-
-            for (int j = 0; j < pd.side; ++j)
+            for (size_t j = 0; j < pd.side; ++j)
             {
-                // double ly = -0.5 + 1.0 / (2.0 * pd.side) +  (double)j / (double)pd.side;
                 double lx = -0.5 + 1.0 / (2.0 * pd.side) + j * 1.0 / pd.side;
-
-                for (int k = 0; k < pd.side; ++k)
+                for (size_t k = 0; k < pd.side; ++k)
                 {
-                    int lindex = i * pd.side * pd.side + j * pd.side + k;
+                    size_t lindex = i * pd.side * pd.side + j * pd.side + k;
 
                     if (lindex >= offset && lindex < offset + pd.count)
                     {
                         double ly = -0.5 + 1.0 / (2.0 * pd.side) + k * 1.0 / pd.side;
+
                         // double lx = -0.5 + 1.0 / (2.0 * pd.side) + (double)k / (double)pd.side;
 
                         double lvx = omega * ly;
@@ -77,8 +73,8 @@ public:
                         double lvz = 0.;
                         double lp_0 = 0.;
 
-                        for (int m = 1; m <= 39; m += 2)
-                            for (int l = 1; l <= 39; l += 2)
+                        for (size_t m = 1; m <= 39; m += 2)
+                            for (size_t l = 1; l <= 39; l += 2)
                                 lp_0 = lp_0 - 32.0 * (omega * omega) / (m * l * (myPI * myPI)) /
                                                   ((m * myPI) * (m * myPI) + (l * myPI) * (l * myPI)) * sin(m * myPI * (lx + 0.5)) *
                                                   sin(l * myPI * (ly + 0.5));
@@ -100,12 +96,11 @@ public:
 
     static void init(ParticlesData<T> &pd)
     {
-        pd.dx = 100.0 / pd.side;
-
         const T firstTimeStep = 1e-6;
+        const T dx = 100.0 / pd.side;
 
-        #pragma omp parallel for
-        for (int i = 0; i < pd.count; i++)
+#pragma omp parallel for
+        for (size_t i = 0; i < pd.count; i++)
         {
             // CGS
             pd.x[i] = pd.x[i] * 100.0;
@@ -118,7 +113,7 @@ public:
 
             pd.m[i] = 1000000.0 / pd.n; // 1.0;//1000000.0/n;//1.0;//0.001;//0.001;//0.001;//1.0;
             pd.c[i] = 3500.0;           // 35.0;//35.0;//35000
-            pd.h[i] = 2.5 * pd.dx;      // 0.02;//0.02;
+            pd.h[i] = 2.0 * dx;         // 0.02;//0.02;
             pd.ro[i] = 1.0;             // 1.0e3;//.0;//1e3;//1e3;
             pd.ro_0[i] = 1.0;           // 1.0e3;//.0;//1e3;//1e3;
 
@@ -135,8 +130,8 @@ public:
 
         pd.bbox.computeGlobal(pd.x, pd.y, pd.z);
 
-        pd.bbox.zmax += pd.dx / 2.0;
-        pd.bbox.zmin -= pd.dx / 2.0;
+        pd.bbox.zmax += dx / 2.0;
+        pd.bbox.zmin -= dx / 2.0;
         pd.bbox.setBox(0, 0, 0, 0, pd.bbox.zmin, pd.bbox.zmax, false, false, true);
 
         pd.etot = pd.ecin = pd.eint = 0.0;

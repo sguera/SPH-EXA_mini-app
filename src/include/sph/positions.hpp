@@ -32,7 +32,7 @@ void computePositionsImpl(const Task &t, Dataset &d)
     T *du_m1 = d.du_m1.data();
     T *dt_m1 = d.dt_m1.data();
 
-    const BBox<T> bbox = d.bbox;
+    const BBox<T> &bbox = d.bbox;
 
 #pragma omp parallel for
     for (size_t pi = 0; pi < n; pi++)
@@ -70,18 +70,40 @@ void computePositionsImpl(const Task &t, Dataset &d)
         y[i] += dt[i] * valy + (vy[i] - valy) * dt[i] * deltaB / deltaA;
         z[i] += dt[i] * valz + (vz[i] - valz) * dt[i] * deltaB / deltaA;
 
+        const T xw = (bbox.xmax - bbox.xmin);
+        const T yw = (bbox.ymax - bbox.ymin);
+        const T zw = (bbox.zmax - bbox.zmin);
+
         if (bbox.PBCx && x[i] < bbox.xmin)
-            x[i] += (bbox.xmax - bbox.xmin);
+        {
+            x[i] += xw;
+            x_m1[i] += xw;
+        }
         else if (bbox.PBCx && x[i] > bbox.xmax)
-            x[i] -= (bbox.xmax - bbox.xmin);
+        {
+            x[i] -= xw;
+            x_m1[i] -= xw;
+        }
         if (bbox.PBCy && y[i] < bbox.ymin)
-            y[i] += (bbox.ymax - bbox.ymin);
+        {
+            y[i] += yw;
+            y_m1[i] += yw;
+        }
         else if (bbox.PBCy && y[i] > bbox.ymax)
-            y[i] -= (bbox.ymax - bbox.ymin);
+        {
+            y[i] -= yw;
+            y_m1[i] -= yw;
+        }
         if (bbox.PBCz && z[i] < bbox.zmin)
-            z[i] += (bbox.zmax - bbox.zmin);
+        {
+            z[i] += zw;
+            z_m1[i] += zw;
+        }
         else if (bbox.PBCz && z[i] > bbox.zmax)
-            z[i] -= (bbox.zmax - bbox.zmin);
+        {
+            z[i] -= zw;
+            z_m1[i] -= zw;
+        }
 
         // Update the energy according to Adams-Bashforth (2nd order)
         deltaA = 0.5 * dt[i] * dt[i] / dt_m1[i];

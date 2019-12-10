@@ -70,8 +70,6 @@ struct GpuLookupTableInitializer
 
         // cuda::CHECK_CUDA_ERR(cuda::utils::cudaMalloc(wharmonicLookupTableSize * sizeof(T), wharmonicLookupTable,
         // wharmonicDerivativeLookupTable));
-        printf("CUDA: Initializing lookup table in the GPU\n");
-
         cuda::CHECK_CUDA_ERR(cudaMemcpyToSymbol(wharmonicLookupTable, createWharmonicLookupTable<T, wharmonicLookupTableSize>().data(),
                                                 wharmonicLookupTableSize * sizeof(T)));
         cuda::CHECK_CUDA_ERR(cudaMemcpyToSymbol(wharmonicDerivativeLookupTable,

@@ -48,6 +48,7 @@ void computeMomentumAndEnergyIADImpl(const Task &t, Dataset &d)
     T *grad_P_x = d.grad_P_x.data();
     T *grad_P_y = d.grad_P_y.data();
     T *grad_P_z = d.grad_P_z.data();
+    T *maxvsignal = d.maxvsignal.data();
 
     const BBox<T> bbox = d.bbox;
 
@@ -88,6 +89,7 @@ void computeMomentumAndEnergyIADImpl(const Task &t, Dataset &d)
         const int i = clist[pi];
         const int nn = neighborsCount[pi];
 
+        T maxvsignali = 0.0;
         T momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0, energy = 0.0, energyAV = 0.0;
         for (int pj = 0; pj < nn; ++pj)
         {
@@ -155,6 +157,11 @@ void computeMomentumAndEnergyIADImpl(const Task &t, Dataset &d)
             const T r_square = dist * dist;
             const T viscosity_ij = artificial_viscosity(ro[i], ro[j], h[i], h[j], c[i], c[j], rv, r_square);
 
+            // For time-step calculations
+            const T wij = rv / dist;
+            const T vijsignal = c[i] + c[j] - 3.0 * wij;
+            if(vijsignal > maxvsignali) maxvsignali = vijsignal;
+
             const T grad_Px_AV = 0.5 * (m[i] / ro[i] * viscosity_ij * termA1_i + m[j] / ro[j] * viscosity_ij * termA1_j);
             const T grad_Py_AV = 0.5 * (m[i] / ro[i] * viscosity_ij * termA2_i + m[j] / ro[j] * viscosity_ij * termA2_j);
             const T grad_Pz_AV = 0.5 * (m[i] / ro[i] * viscosity_ij * termA3_i + m[j] / ro[j] * viscosity_ij * termA3_j);
@@ -171,6 +178,7 @@ void computeMomentumAndEnergyIADImpl(const Task &t, Dataset &d)
         grad_P_x[i] = momentum_x;
         grad_P_y[i] = momentum_y;
         grad_P_z[i] = momentum_z;
+        maxvsignal[i] = maxvsignali;
     }
 };
 

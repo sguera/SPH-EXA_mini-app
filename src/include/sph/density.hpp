@@ -6,7 +6,6 @@
 #include "Task.hpp"
 #include "lookupTables.hpp"
 #include "cuda/sph.cuh"
-#include "utils.hpp"
 
 namespace sphexa
 {

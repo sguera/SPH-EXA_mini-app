@@ -22,6 +22,7 @@ void computeMinTimestepImpl(const Task &t, Dataset &d, T &minDt)
 
     const T *h = d.h.data();
     const T *c = d.c.data();
+    const T *maxvsignal = d.maxvsignal.data();
     const T Kcour = d.Kcour;
 
     T minDtTmp = INFINITY;
@@ -31,8 +32,16 @@ void computeMinTimestepImpl(const Task &t, Dataset &d, T &minDt)
     {
         int i = clist[pi];
         // Time-scheme according to Press (2nd order)
-        T dt = Kcour * (h[i] / c[i]);
-        if (dt < minDtTmp) minDtTmp = dt;
+        if(maxvsignal[i] > 0.0)
+        {
+            T dt = Kcour*h[i]/maxvsignal[i];
+            if (dt < minDtTmp) minDtTmp = dt;
+        }
+        else
+        {
+            T dt = Kcour * (h[i] / c[i]);
+            if (dt < minDtTmp) minDtTmp = dt;
+        }
     }
 
     minDt = minDtTmp;

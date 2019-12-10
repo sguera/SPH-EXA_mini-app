@@ -1,3 +1,6 @@
+[![Build Status](https://api.travis-ci.org/unibas-dmi-hpc/SPH-EXA_mini-app.svg?branch=develop)](https://travis-ci.org/unibas-dmi-hpc/SPH-EXA_mini-app)
+
+
 # SPH
 
 The smooth particle hydrodynamics (SPH) technique is a purely Lagrangian method.

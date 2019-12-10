@@ -31,10 +31,10 @@ private:
     TimePoint tstart, tstop, tlast;
 };
 
-class MPITimer : public Timer
+class MasterProcessTimer : public Timer
 {
 public:
-    MPITimer(int rank)
+    MasterProcessTimer(int rank)
         : rank(rank)
     {
     }
