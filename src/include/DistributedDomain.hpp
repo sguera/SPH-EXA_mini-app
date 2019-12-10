@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <map>
 
 #include "Domain.hpp"
 
@@ -111,222 +112,109 @@ public:
     {
         static unsigned short int tag = 0;
 
-        // typedef std::chrono::high_resolution_clock Clock;
-        // typedef std::chrono::time_point<Clock> TimePoint;
-        // typedef std::chrono::duration<float> Time;
-
-        std::unordered_map<int, Octree<T> *> cellMap;
-
-        struct ToSend
-        {
-            std::vector<int> ptris;
-            int ptriCount;
-
-            std::vector<std::vector<T>> buff;
-            int count;
-        };
-
-        std::unordered_map<int, ToSend> sendMap;
         int needed = 0;
 
-        // MPI_Barrier(MPI_COMM_WORLD);
+        std::map<int, std::vector<int>> recvHalos, sendHalos;
+        std::map<int, Octree<T>*> recvCellMap, sendCellMap;
+        std::map<int, int> recvCount, sendCount;
 
-        // TimePoint tstart = Clock::now();
-
-        // Which tree node to send to which processor
-        for (auto const &itProc : toSendHalos)
+        for (auto const& proc : toSendHalos)
         {
-            int to = itProc.first;
-
-            ToSend &_toSend = sendMap[to];
-
-            for (auto const &itNodes : itProc.second)
+            int to = proc.first;
+            for (auto const& halo : proc.second)
             {
-                int ptri = itNodes.first;
-
-                Octree<T> *cell = itNodes.second;
-
-                int cellCount = cell->globalParticleCount;
+                int ptri = halo.first;
+                Octree<T>* cell = halo.second;
                 int from = cell->assignee;
 
-                // store corresponding cell for when recving
-                cellMap[ptri] = cell;
-
-                if (to == comm_rank && from != comm_rank)
-                    needed += cellCount;
-                else if (from == comm_rank && to != comm_rank)
+                if (to == comm_rank)
                 {
-                    _toSend.ptris.push_back(ptri);
-                    _toSend.count += cellCount;
+                    recvHalos[from].push_back(ptri);
+                    recvCellMap[ptri] = cell;
+                    recvCount[from] += cell->globalParticleCount;
+                    needed += cell->globalParticleCount;
                 }
-            }
-        }
-
-        // MPI_Barrier(MPI_COMM_WORLD);
-
-        // TimePoint tstop = Clock::now();
-        // float elaspedTime = std::chrono::duration_cast<Time>(tstop-tstart).count();
-
-        // if(comm_rank == 0)
-        // {
-        //     printf("synchronizeHalos::collect() %f\n", elaspedTime);
-        //     fflush(stdout);
-        // }
-
-        // tstart = Clock::now();
-
-        // Fill buffer
-        for (auto &it : sendMap)
-        {
-            ToSend &_toSend = it.second;
-            _toSend.ptriCount = _toSend.ptris.size();
-            _toSend.buff.resize(data.size(), std::vector<T>(_toSend.count));
-
-            int current = 0;
-            for (const int &ptri : _toSend.ptris)
-            {
-                Octree<T> *cell = cellMap[ptri];
-
-                int cellCount = cell->globalParticleCount;
-                int padding = cell->localPadding;
-
-                for (unsigned int i = 0; i < data.size(); i++)
+                else
                 {
-                    T *_buff = &(*data[i])[padding];
-                    T *_toSendBuff = &_toSend.buff[i][current];
-
-                    for (int j = 0; j < cellCount; j++)
-                        _toSendBuff[j] = _buff[j];
+                    sendHalos[to].push_back(ptri);
+                    sendCellMap[ptri] = cell;
+                    sendCount[to] += cell->globalParticleCount;
                 }
-
-                current += cellCount;
             }
         }
 
         std::vector<MPI_Request> requests;
 
-        // MPI_Barrier(MPI_COMM_WORLD);
-
-        // tstop = Clock::now();
-        // elaspedTime = std::chrono::duration_cast<Time>(tstop-tstart).count();
-
-        // if(comm_rank == 0)
-        // {
-        //     printf("synchronizeHalos::fill() %f\n", elaspedTime);
-        //     fflush(stdout);
-        // }
-
-        // tstart = Clock::now();
-
-        // Send!!
-        for (auto &it : sendMap)
+        // Fill Buffers
+        std::vector<std::vector<std::vector<T>>> sendBuffers;
+        for (auto& procPtriVec : sendHalos)
         {
-            int to = it.first;
-            ToSend &_toSend = it.second;
+            int to = procPtriVec.first; 
 
-            int rcount = requests.size();
-            requests.resize(rcount + data.size() + 4);
+            std::vector<std::vector<T>> procBuff(data.size());
+            for (auto& vec : procBuff) vec.reserve(sendCount[to]);
 
-            // Send rank
-            MPI_Isend(&comm_rank, 1, MPI_INT, to, tag + data.size() + 0, MPI_COMM_WORLD, &requests[rcount]);
-
-            // Send ptriBuff
-            MPI_Isend(&_toSend.ptriCount, 1, MPI_INT, to, tag + data.size() + 1, MPI_COMM_WORLD, &requests[rcount + 1]);
-            MPI_Isend(&_toSend.ptris[0], _toSend.ptriCount, MPI_INT, to, tag + data.size() + 2, MPI_COMM_WORLD, &requests[rcount + 2]);
-
-            // Send bigBuffer
-            MPI_Isend(&_toSend.count, 1, MPI_INT, to, tag + data.size() + 3, MPI_COMM_WORLD, &requests[rcount + 3]);
-
-            // printf("[%d] send %d to %d\n", comm_rank, toSendCount[to], to); fflush(stdout);
-            for (unsigned int i = 0; i < data.size(); i++)
+            for (const int& ptri : procPtriVec.second)
             {
-                MPI_Isend(&_toSend.buff[i][0], _toSend.count, MPI_DOUBLE, to, tag + data.size() + 4 + i, MPI_COMM_WORLD,
-                          &requests[rcount + 4 + i]);
+                Octree<T> *cell = sendCellMap[ptri];
+
+                int cellCount = cell->globalParticleCount;
+                int padding = cell->localPadding;
+
+                for (size_t i = 0; i < data.size(); i++)
+                {
+                    auto src = (*data[i]).begin() + padding;
+                    std::copy(src, src + cellCount, std::back_inserter(procBuff[i]));
+                }
             }
+
+            // send
+            requests.emplace_back(MPI_Request());
+            MPI_Isend(&comm_rank, 1, MPI_INT, to, tag + data.size() + 0, MPI_COMM_WORLD, &(*requests.rbegin()));
+
+            for (size_t i = 0; i < data.size(); i++)
+            {
+                requests.emplace_back(MPI_Request());
+                MPI_Isend(procBuff[i].data(), procBuff[i].size(), MPI_DOUBLE, to, tag + data.size() + 1 + i, MPI_COMM_WORLD,
+                          &(*requests.rbegin()));
+            }
+
+            sendBuffers.emplace_back(std::move(procBuff));
         }
 
-        // MPI_Barrier(MPI_COMM_WORLD);
 
-        // tstop = Clock::now();
-        // elaspedTime = std::chrono::duration_cast<Time>(tstop-tstart).count();
-
-        // if(comm_rank == 0)
-        // {
-        //     printf("synchronizeHalos::send() %f\n", elaspedTime);
-        //     fflush(stdout);
-        // }
-
-        // tstart = Clock::now();
-
-        std::vector<std::vector<int>> ptriBuffs;
+        std::vector<int> fromIdx;
         std::vector<std::vector<std::vector<T>>> recvBuffs;
         while (needed > 0)
         {
-            MPI_Status status[data.size() + 4];
+            MPI_Status status[data.size() + 1];
 
             int from = -1;
             MPI_Recv(&from, 1, MPI_INT, MPI_ANY_SOURCE, tag + data.size() + 0, MPI_COMM_WORLD, &status[0]);
+            fromIdx.push_back(from);
 
-            // int rcount = requests.size();
-            // requests.resize(rcount + data.size());
+            int count = recvCount[from];
+            recvBuffs.emplace_back(std::vector<std::vector<T>>(data.size(), std::vector<T>(count)));
 
-            int ptriCount = 0;
-
-            // Recv ptriBuff
-            MPI_Recv(&ptriCount, 1, MPI_INT, from, tag + data.size() + 1, MPI_COMM_WORLD, &status[1]);
-
-            int ptriBuffCount = ptriBuffs.size();
-            ptriBuffs.resize(ptriBuffCount + 1);
-
-            std::vector<int> &ptriBuff = ptriBuffs[ptriBuffCount++];
-            ptriBuff.resize(ptriCount);
-
-            MPI_Recv(&ptriBuff[0], ptriCount, MPI_INT, from, tag + data.size() + 2, MPI_COMM_WORLD, &status[2]);
-
-            int count = 0;
-
-            // Recv bigBuffer
-            MPI_Recv(&count, 1, MPI_INT, from, tag + data.size() + 3, MPI_COMM_WORLD, &status[3]);
-
-            int recvBuffCount = recvBuffs.size();
-            recvBuffs.resize(recvBuffCount + 1);
-
-            std::vector<std::vector<T>> &recvBuff = recvBuffs[recvBuffCount++];
-            recvBuff.resize(data.size());
-
-            // printf("[%d] recv %d from %d\n", comm_rank, count, from); fflush(stdout);
             for (unsigned int i = 0; i < data.size(); i++)
             {
-                recvBuff[i].resize(count);
-                MPI_Recv(&recvBuffs[recvBuffCount - 1][i][0], count, MPI_DOUBLE, from, tag + data.size() + 4 + i, MPI_COMM_WORLD,
-                         &status[4 + i]);
+                MPI_Recv((*recvBuffs.rbegin())[i].data(), count, MPI_DOUBLE, from, tag + data.size() + 1 + i, MPI_COMM_WORLD,
+                         &status[1 + i]);
             }
 
             needed -= count;
         }
 
-        // MPI_Barrier(MPI_COMM_WORLD);
-
-        // tstop = Clock::now();
-        // elaspedTime = std::chrono::duration_cast<Time>(tstop-tstart).count();
-
-        // if(comm_rank == 0)
-        // {
-        //     printf("synchronizeHalos::recv() %f\n", elaspedTime);
-        //     fflush(stdout);
-        // }
-
-        // tstart = Clock::now();
 
         for (unsigned int bi = 0; bi < recvBuffs.size(); bi++)
         {
-            std::vector<int> &ptriBuff = ptriBuffs[bi];
+            std::vector<int> &ptriBuff = recvHalos[fromIdx[bi]];
             std::vector<std::vector<T>> &recvBuff = recvBuffs[bi];
 
             int current = 0;
             for (const int &ptri : ptriBuff)
             {
-                Octree<T> *cell = cellMap[ptri];
+                Octree<T> *cell = recvCellMap[ptri];
 
                 int cellCount = cell->globalParticleCount;
                 int padding = cell->localPadding;
@@ -342,18 +230,7 @@ public:
             }
         }
 
-        // MPI_Barrier(MPI_COMM_WORLD);
-
-        // tstop = Clock::now();
-        // elaspedTime = std::chrono::duration_cast<Time>(tstop-tstart).count();
-
-        // if(comm_rank == 0)
-        // {
-        //     printf("synchronizeHalos::finalize() %f\n", elaspedTime);
-        //     fflush(stdout);
-        // }
-
-        tag += data.size() + 4;
+        tag += data.size() + 1;
 
         if (requests.size() > 0)
         {

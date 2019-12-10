@@ -64,10 +64,10 @@ void checkParticlesRec(Octree<T>* node,
             // is not true!
             //EXPECT_EQ(node->localParticleCount, node->globalParticleCount);
 
-            std::cout << "[" << node->comm_rank << "]: " << node
-                             << ": " << xmin << "," << xmax
-                             << " " << ymin << "," << ymax
-                             << " " << zmin << "," << zmax << std::endl;
+            //std::cout << "[" << node->comm_rank << "]: " << node
+            //                 << ": " << xmin << "," << xmax
+            //                 << " " << ymin << "," << ymax
+            //                 << " " << zmin << "," << zmax << std::endl;
             for (int i = 0; i < npart; i++)
             {
                 EXPECT_TRUE(inRange(x[offset + i], xmin, xmax));
@@ -99,6 +99,57 @@ TEST(Octree, SpaceCurveIndexCorrect) {
     distributedDomain.distribute(d);
 
     checkParticles(distributedDomain.octree, d);
+}
+
+
+// Check whether each node is assigned to process p
+// if all its children are assigned to proc p
+template <class T>
+void checkProcessAssignmentRec(Octree<T>* node)
+{
+    int ncells = Octree<T>::ncells;
+
+    if (node->assignee == -1)
+    {
+        if ((int)(node->cells).size() == ncells)
+        {
+            int assignee0 = (node->cells)[0]->assignee;
+            bool all_equal = true;
+            for (int i = 0; i < ncells; i++)
+            {
+                all_equal = all_equal && (assignee0 == (node->cells)[i]->assignee);
+            }
+            EXPECT_FALSE(all_equal);
+
+            for (int i = 0; i < ncells; i++)
+            {
+                checkProcessAssignmentRec((node->cells)[i].get());
+            }
+        }
+    }
+}
+
+template <class T>
+void checkProcessAssignment(Octree<T>& tree)
+{
+    checkProcessAssignmentRec(&tree);
+}
+
+TEST(Octree, processAssignment) {
+
+    using Real = double;
+    using Dataset = ParticlesData<Real>;
+
+    const int cubeSide = 50;
+    const int maxStep = 10;
+
+    auto d = SqPatchDataGenerator<Real>::generate(cubeSide);
+    DistributedDomain<Real> distributedDomain;
+
+    distributedDomain.create(d);
+    distributedDomain.distribute(d);
+
+    checkProcessAssignment(distributedDomain.octree);
 }
 
 int main(int argc, char **argv) {

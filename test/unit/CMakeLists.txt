@@ -27,8 +27,15 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
                  ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
                  EXCLUDE_FROM_ALL)
 
-add_executable(run_tests test_main.cpp)
-target_include_directories(run_tests PRIVATE ../../src)
-target_include_directories(run_tests PRIVATE ../../src/include)
-target_link_libraries(run_tests gtest_main)
-add_test(NAME run_tests COMMAND run_tests.exe)
+add_executable(run_mpi_tests test_main.cpp)
+target_include_directories(run_mpi_tests PRIVATE ../../src)
+target_include_directories(run_mpi_tests PRIVATE ../../src/include)
+target_link_libraries(run_mpi_tests gtest_main)
+add_test(NAME run_mpi_tests COMMAND run_mpi_tests.exe)
+
+add_executable(run_sync_test test_sync.cpp)
+target_include_directories(run_sync_test PRIVATE ../../src)
+target_include_directories(run_sync_test PRIVATE ../../src/include)
+target_link_libraries(run_sync_test gtest_main)
+add_test(NAME run_sync_test COMMAND run_mpi_tests.exe)
+
