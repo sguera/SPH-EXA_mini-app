@@ -44,7 +44,7 @@ int main(int argc, char **argv)
         timer.step("domain::distribute");
         domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h);
         timer.step("mpi::synchronizeHalos");
-        domain.buildTree(d);
+        domain.buildTreeInc(d);
         timer.step("domain::buildTree");
         domain.createTasks(taskList, 64);
         timer.step("domain::createTasks");

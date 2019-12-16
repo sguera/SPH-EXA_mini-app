@@ -112,6 +112,23 @@ public:
         octree.mapList(clist);
     }
 
+    void buildTreeInc(Dataset &d)
+    {
+        // Finally remap everything
+        std::vector<int> ordering(d.x.size());
+
+//        std::vector<int> list(d.x.size());
+//#pragma omp parallel for
+//        for (int i = 0; i < (int)d.x.size(); i++)
+//            list[i] = i;
+
+        // We need this to expand halo
+        octree.buildTreeInc(d.x, d.y, d.z, ordering);
+        reorder(ordering, d);
+
+        octree.mapList(clist);
+    }
+
     void createTasks(std::vector<Task> &taskList, const size_t nTasks)
     {
         const int partitionSize = clist.size() / nTasks;

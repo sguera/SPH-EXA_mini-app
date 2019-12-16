@@ -430,6 +430,7 @@ public:
         buildTreeWithHalosRec(list, x, y, z, ordering);
     }
 
+
     void buildTreeRec(const std::vector<int> &list, const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
                       std::vector<int> &ordering, int padding = 0)
     {
@@ -447,11 +448,11 @@ public:
         {
             for (int i = 0; i < ncells; i++)
             {
-#pragma omp task shared(cellList, x, y, z, ordering) firstprivate(padding)
+//#pragma omp task shared(cellList, x, y, z, ordering) firstprivate(padding)
                 cells[i]->buildTreeRec(cellList[i], x, y, z, ordering, padding);
                 padding += cellList[i].size();
             }
-#pragma omp taskwait
+//#pragma omp taskwait
         }
         else
         {
@@ -463,10 +464,49 @@ public:
     void buildTree(const std::vector<int> &list, const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
                    std::vector<int> &ordering)
     {
-#pragma omp parallel
-#pragma omp single
+//#pragma omp parallel
+//#pragma omp single
         buildTreeRec(list, x, y, z, ordering);
     }
+
+
+    void buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+                         std::vector<int> &ordering, int depth=0)
+    {
+        if (global && (assignee == -1 || assignee == comm_rank))
+        {
+            // global leaf node
+            if ((int)cells.size() == 0)
+            {
+                int padding = this->localPadding;
+                int pc = this->localParticleCount;
+
+                std::vector<int> list(pc);
+                for (int i = 0; i < pc; ++i)
+                    list[i] = padding + i;
+
+                this->buildTreeRec(list, x, y, z, ordering, padding);
+            }
+            else
+            {
+                for (int i = 0; i < ncells; i++)
+                {
+#pragma omp task shared(x, y, z, ordering)
+                    cells[i]->buildTreeIncRec(x, y, z, ordering);
+                }
+#pragma omp taskwait
+            }
+        }
+    }
+
+    void buildTreeInc(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+                   std::vector<int> &ordering)
+    {
+#pragma omp parallel
+#pragma omp single
+        buildTreeIncRec(x, y, z, ordering);
+    }
+
 
     void assignProcessesRec(std::vector<size_t> &work, size_t &pi)
     {
