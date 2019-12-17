@@ -470,9 +470,55 @@ public:
     }
 
 
-    void buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
-                         std::vector<int> &ordering, int depth=0)
+    hpx::future<void> buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+                                      std::vector<int> &ordering, int depth=0)
     {
+#ifdef USE_HPX
+        //std::cout << comm_rank << ": I am executed on thread " << hpx::get_worker_thread_num() << std::endl;
+        std::array<hpx::future<void>, 8> subcell_tasks;
+        if (global && (assignee == -1 || assignee == comm_rank))
+        {
+            // global leaf node
+            if ((int)cells.size() == 0)
+            {
+                int padding = this->localPadding;
+                int pc = this->localParticleCount;
+
+                std::vector<int> list(pc);
+                for (int i = 0; i < pc; ++i)
+                    list[i] = padding + i;
+
+                this->buildTreeRec(list, x, y, z, ordering, padding);
+            }
+            else
+            {
+                if (assignee == comm_rank && localParticleCount > 8*maxGlobalBucketSize)
+                {
+                    for (int i = 0; i < ncells; i++)
+                    {
+                        auto lambda = [&](int depth)
+                            {
+                                cells[i]->buildTreeIncRec(x, y, z, ordering, depth);
+                            };
+                        auto fut = hpx::async(lambda, depth+1);
+                        subcell_tasks[i] = std::move(fut);
+                    }
+                    //hpx::when_all(subcell_tasks).get();
+
+                    hpx::future<void> ret = hpx::when_all(subcell_tasks);
+                    return ret;
+                }
+                else
+                {
+                    for (int i = 0; i < ncells; i++)
+                    {
+                        cells[i]->buildTreeIncRec(x, y, z, ordering, depth);
+                    }
+                }
+            }
+            return hpx::make_ready_future<void>();
+        }
+#else
         if (global && (assignee == -1 || assignee == comm_rank))
         {
             // global leaf node
@@ -497,6 +543,7 @@ public:
 #pragma omp taskwait
             }
         }
+#endif
     }
 
     void buildTreeInc(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
@@ -504,7 +551,7 @@ public:
     {
 #pragma omp parallel
 #pragma omp single
-        buildTreeIncRec(x, y, z, ordering);
+        buildTreeIncRec(x, y, z, ordering).get();
     }
 
 
