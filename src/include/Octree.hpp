@@ -470,14 +470,16 @@ public:
     }
 
 
-    hpx::future<void> buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+    //hpx::future<void> buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+    void                  buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
                                       std::vector<int> &ordering, int depth=0)
     {
-#ifdef USE_HPX
+#ifdef USE_HPX2
         //std::cout << comm_rank << ": I am executed on thread " << hpx::get_worker_thread_num() << std::endl;
-        std::array<hpx::future<void>, 8> subcell_tasks;
         if (global && (assignee == -1 || assignee == comm_rank))
         {
+            std::array<hpx::future<void>, 8> subcell_tasks;
+            //std::vector<hpx::future<void>> subcell_tasks;
             // global leaf node
             if ((int)cells.size() == 0)
             {
@@ -493,6 +495,7 @@ public:
             else
             {
                 if (assignee == comm_rank && localParticleCount > 8*maxGlobalBucketSize)
+                //if (assignee == comm_rank && depth > 3)
                 {
                     for (int i = 0; i < ncells; i++)
                     {
@@ -502,11 +505,12 @@ public:
                             };
                         auto fut = hpx::async(lambda, depth+1);
                         subcell_tasks[i] = std::move(fut);
+                        //subcell_tasks.push_back(std::move(fut));
                     }
-                    //hpx::when_all(subcell_tasks).get();
+                    hpx::when_all(subcell_tasks).get();
 
-                    hpx::future<void> ret = hpx::when_all(subcell_tasks);
-                    return ret;
+                    //hpx::future<void> ret = hpx::when_all(subcell_tasks);
+                    //return ret;
                 }
                 else
                 {
@@ -516,8 +520,8 @@ public:
                     }
                 }
             }
-            return hpx::make_ready_future<void>();
         }
+        //return hpx::make_ready_future<void>();
 #else
         if (global && (assignee == -1 || assignee == comm_rank))
         {
@@ -551,7 +555,8 @@ public:
     {
 #pragma omp parallel
 #pragma omp single
-        buildTreeIncRec(x, y, z, ordering).get();
+        //buildTreeIncRec(x, y, z, ordering).get();
+        buildTreeIncRec(x, y, z, ordering);
     }
 
 
