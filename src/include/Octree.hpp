@@ -472,7 +472,7 @@ public:
 
     //hpx::future<void> buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
     void                  buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
-                                      std::vector<int> &ordering, int depth=0)
+                                      std::vector<int> &ordering)
     {
 #ifdef USE_HPX2
         //std::cout << comm_rank << ": I am executed on thread " << hpx::get_worker_thread_num() << std::endl;
@@ -495,15 +495,14 @@ public:
             else
             {
                 if (assignee == comm_rank && localParticleCount > 8*maxGlobalBucketSize)
-                //if (assignee == comm_rank && depth > 3)
                 {
                     for (int i = 0; i < ncells; i++)
                     {
-                        auto lambda = [&](int depth)
+                        auto lambda = [&]()
                             {
-                                cells[i]->buildTreeIncRec(x, y, z, ordering, depth);
+                                cells[i]->buildTreeIncRec(x, y, z, ordering);
                             };
-                        auto fut = hpx::async(lambda, depth+1);
+                        auto fut = hpx::async(lambda);
                         subcell_tasks[i] = std::move(fut);
                         //subcell_tasks.push_back(std::move(fut));
                     }
@@ -516,7 +515,7 @@ public:
                 {
                     for (int i = 0; i < ncells; i++)
                     {
-                        cells[i]->buildTreeIncRec(x, y, z, ordering, depth);
+                        cells[i]->buildTreeIncRec(x, y, z, ordering);
                     }
                 }
             }
