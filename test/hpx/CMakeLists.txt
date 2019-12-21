@@ -51,6 +51,11 @@ target_compile_definitions(sqpatch PUBLIC USE_CUDA)
 set_target_properties(sqpatch PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(sqpatch PUBLIC numeric_gpu)
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(sqpatch PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 
 #if(NOT CMAKE_BUILD_TYPE)
 #  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Type of build" FORCE)
