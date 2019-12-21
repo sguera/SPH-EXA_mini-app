@@ -3,28 +3,45 @@
 #include <string>
 #include <vector>
 
+#include "mpi.h"
+
+#ifndef USE_MPI
+#define USE_MPI
+#endif
+
+#ifndef USE_HPX
+#define USE_HPX
+#endif
+
+#include <hpx/hpx_init.hpp>
+#include <hpx/include/parallel_algorithm.hpp>
+#include <hpx/include/parallel_reduce.hpp>
+//#include <hpx/include/actions.hpp>
+#include <hpx/include/async.hpp>
+#include <hpx/include/util.hpp>
+//#include <hpx/include/components.hpp>
+#include <hpx/include/iostreams.hpp>
+#include <hpx/include/lcos.hpp>
+
+
+#include <pthread.h>
+
 #include "sphexa.hpp"
 #include "SqPatchDataGenerator.hpp"
 
-using namespace std;
 using namespace sphexa;
 
-int main(int argc, char **argv)
+
+int hpx_main(boost::program_options::variables_map& vm)
 {
-    ArgParser parser(argc, argv);
-    const size_t cubeSide = parser.getInt("-n", 50);
-    const size_t maxStep = parser.getInt("-s", 10);
-    const int writeFrequency = parser.getInt("-w", -1);
+    int cubeSide = vm["cubeside"].as<int>();
+    int maxStep = vm["maxstep"].as<int>();
+    int writeFrequency = vm["writefrequency"].as<int>();
 
     using Real = double;
     using Dataset = ParticlesData<Real>;
 
-#ifdef USE_MPI
-    MPI_Init(NULL, NULL);
     DistributedDomain<Real, Dataset> domain;
-#else
-    Domain<Real, Dataset> domain;
-#endif
 
     auto d = SqPatchDataGenerator<Real>::generate(cubeSide);
     Printer<Dataset> printer(d);
@@ -81,7 +98,7 @@ int main(int argc, char **argv)
 
         if ((writeFrequency > 0 && d.iteration % writeFrequency == 0) || writeFrequency == 0)
         {
-            printer.printAllDataToFile(domain.clist, "dump" + to_string(d.iteration) + ".txt");
+            printer.printAllDataToFile(domain.clist, "dump" + std::to_string(d.iteration) + ".txt");
             timer.step("writeFile");
         }
 
@@ -92,9 +109,28 @@ int main(int argc, char **argv)
 
     constantsFile.close();
 
-#ifdef USE_MPI
-    MPI_Finalize();
-#endif
+    return hpx::finalize();
+}
 
-    return 0;
+namespace po = boost::program_options;
+
+int main(int argc, char **argv)
+{
+    MPI_Init(NULL, NULL);
+
+    po::options_description
+        desc_commandline("Usage: " HPX_APPLICATION_STRING " [options]");
+
+    desc_commandline.add_options()
+        ("cubeside,n", po::value<int>()->default_value(50),
+            "number of particles per cube side")
+        ("maxstep,s", po::value<int>()->default_value(10),
+            "number of SPH iterations to be performed")
+        ("writefrequency,w", po::value<int>()->default_value(-1),
+            "write output every \"w\" steps")
+        ;
+
+    hpx::init(desc_commandline, argc, argv);
+
+    MPI_Finalize();
 }
