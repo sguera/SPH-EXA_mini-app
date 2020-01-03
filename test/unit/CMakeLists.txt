@@ -39,3 +39,8 @@ target_include_directories(run_sync_test PRIVATE ../../src/include)
 target_link_libraries(run_sync_test gtest_main)
 add_test(NAME run_sync_test COMMAND run_mpi_tests.exe)
 
+add_executable(run_buildTree_tests test_buildTree.cpp)
+target_include_directories(run_buildTree_tests PRIVATE ../../src)
+target_include_directories(run_buildTree_tests PRIVATE ../../src/include)
+target_link_libraries(run_buildTree_tests gtest_main)
+add_test(NAME run_buildTree_tests COMMAND run_mpi_tests.exe)

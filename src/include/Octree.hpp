@@ -476,7 +476,7 @@ public:
     {
 #ifdef USE_HPX2
         //std::cout << comm_rank << ": I am executed on thread " << hpx::get_worker_thread_num() << std::endl;
-        if (global && (assignee == -1 || assignee == comm_rank))
+        if (global && (assignee == -1 || assignee == comm_rank || halo))
         {
             std::array<hpx::future<void>, 8> subcell_tasks;
             //std::vector<hpx::future<void>> subcell_tasks;
@@ -522,7 +522,7 @@ public:
         }
         //return hpx::make_ready_future<void>();
 #else
-        if (global && (assignee == -1 || assignee == comm_rank))
+        if (global && (assignee == -1 || assignee == comm_rank || halo))
         {
             // global leaf node
             if ((int)cells.size() == 0)
