@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project(sphexa CXX CUDA)
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -march=native -mtune=native -DNDEBUG")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O2 -DNDEBUG")
@@ -38,12 +37,12 @@ set_target_properties(numeric_gpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 #export(TARGETS numeric_gpu APPEND FILE "${PROJECT_BINARY_DIR}/DMRGTargets.cmake")
 
 
-#add_executable(main main.cpp)
+add_executable(sqpatch_hpx main.cpp)
 
-#target_compile_definitions(main PUBLIC USE_CUDA)
-#set_target_properties(main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-#target_link_libraries(main PUBLIC numeric_gpu)
-#hpx_setup_target(main COMPONENT_DEPENDENCIES iostreams)
+target_compile_definitions(sqpatch_hpx PUBLIC USE_CUDA)
+set_target_properties(sqpatch_hpx PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+target_link_libraries(sqpatch_hpx PUBLIC numeric_gpu)
+hpx_setup_target(sqpatch_hpx COMPONENT_DEPENDENCIES iostreams)
 
 add_executable(sqpatch ${PROJECT_SOURCE_DIR}/../../src/sqpatch.cpp)
 
@@ -56,9 +55,3 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(sqpatch PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-
-#if(NOT CMAKE_BUILD_TYPE)
-#  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Type of build" FORCE)
-#  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -march=native -mtune=native -DNDEBUG")
-#endif()
-#message(STATUS "build type: " ${CMAKE_BUILD_TYPE})

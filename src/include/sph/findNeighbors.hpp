@@ -32,10 +32,19 @@ void findNeighborsImpl(const Octree<T> &o, Task &t, Dataset &d)
 template <typename T, class Dataset>
 void findNeighbors(const Octree<T> &o, std::vector<Task> &taskList, Dataset &d)
 {
+#ifdef USE_HPX
+    auto policy = hpx::parallel::execution::par;
+    hpx::parallel::for_loop(policy, 0, taskList.size(),
+        [&o, &taskList, &d](int i) {
+            findNeighborsImpl(o, taskList[i], d);
+        }
+    );
+#else
     for (auto &task : taskList)
     {
         findNeighborsImpl(o, task, d);
     }
+#endif
 }
 
 size_t neighborsSumImpl(const Task &t)
