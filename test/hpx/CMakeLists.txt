@@ -46,7 +46,7 @@ hpx_setup_target(sqpatch_hpx COMPONENT_DEPENDENCIES iostreams)
 
 add_executable(sqpatch ${PROJECT_SOURCE_DIR}/../../src/sqpatch.cpp)
 
-target_compile_definitions(sqpatch PUBLIC USE_CUDA)
+target_compile_definitions(sqpatch PUBLIC USE_CUDA USE_MPI)
 set_target_properties(sqpatch PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(sqpatch PUBLIC numeric_gpu)
 
