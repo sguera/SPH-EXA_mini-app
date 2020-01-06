@@ -37,10 +37,21 @@ void updateSmoothingLengthImpl(Task &t, Dataset &d)
 template <typename T, class Dataset>
 void updateSmoothingLength(std::vector<Task> &taskList, Dataset &d)
 {
+#ifdef USE_HPX
+    auto policy = hpx::parallel::execution::par;
+    hpx::parallel::for_loop(policy, 0, taskList.size(),
+        [&taskList, &d](size_t i)
+        {
+            updateSmoothingLengthImpl<T>(taskList[i], d);
+        }
+    );
+#else
     for (auto &task : taskList)
     {
         updateSmoothingLengthImpl<T>(task, d);
     }
+#endif
+
 }
 
 } // namespace sph
