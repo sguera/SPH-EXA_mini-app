@@ -125,10 +125,20 @@ void computePositionsImpl(const Task &t, Dataset &d)
 template <typename T, class Dataset>
 void computePositions(const std::vector<Task> &taskList, Dataset &d)
 {
+#ifdef USE_HPX
+    auto policy = hpx::parallel::execution::par;
+    hpx::parallel::for_loop(policy, 0, taskList.size(),
+        [&taskList, &d](size_t i)
+        {
+            computePositionsImpl<T>(taskList[i], d);
+        }
+    );
+#else
     for (const auto &task : taskList)
     {
         computePositionsImpl<T>(task, d);
     }
+#endif
 }
 
 } // namespace sph
