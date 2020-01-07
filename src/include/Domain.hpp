@@ -29,8 +29,17 @@ void reorderSwap(const std::vector<int> &ordering, std::vector<T> &arrayList)
 template <typename T>
 void reorder(const std::vector<int> &ordering, std::vector<std::vector<T> *> &arrayList)
 {
+#ifdef USE_HPX
+    auto policy = hpx::parallel::execution::par;
+    hpx::parallel::for_loop (policy, 0, arrayList.size(),
+        [&ordering, &arrayList](size_t i) {
+            reorderSwap(ordering, *arrayList[i]);
+        }
+    );
+#else
     for (unsigned int i = 0; i < arrayList.size(); i++)
         reorderSwap(ordering, *arrayList[i]);
+#endif
 }
 
 template <class Dataset>
