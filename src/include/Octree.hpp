@@ -470,16 +470,14 @@ public:
     }
 
 
+//#ifdef USE_HPX
+#if false
     //hpx::future<void> buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
-    void                  buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+    void buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
                                       std::vector<int> &ordering)
     {
-#ifdef USE_HPX2
-        //std::cout << comm_rank << ": I am executed on thread " << hpx::get_worker_thread_num() << std::endl;
         if (global && (assignee == -1 || assignee == comm_rank || halo))
         {
-            std::array<hpx::future<void>, 8> subcell_tasks;
-            //std::vector<hpx::future<void>> subcell_tasks;
             // global leaf node
             if ((int)cells.size() == 0)
             {
@@ -494,22 +492,23 @@ public:
             }
             else
             {
-                if (assignee == comm_rank && localParticleCount > 8*maxGlobalBucketSize)
+                if (localParticleCount > 8*maxGlobalBucketSize)
                 {
-                    for (int i = 0; i < ncells; i++)
-                    {
-                        auto lambda = [&]()
-                            {
-                                cells[i]->buildTreeIncRec(x, y, z, ordering);
-                            };
-                        auto fut = hpx::async(lambda);
-                        subcell_tasks[i] = std::move(fut);
-                        //subcell_tasks.push_back(std::move(fut));
-                    }
-                    hpx::when_all(subcell_tasks).get();
+                  std::array<hpx::future<void>, ncells> subcell_tasks;
 
-                    //hpx::future<void> ret = hpx::when_all(subcell_tasks);
-                    //return ret;
+                  for (int i = 0; i < ncells; i++)
+                  {
+                      auto lambda = [&x, &y, &z, &ordering](Octree<T>* node)
+                          {
+                              node->buildTreeIncRec(x, y, z, ordering);
+                          };
+                      auto fut = hpx::async(lambda, cells[i].get());
+                      subcell_tasks[i] = std::move(fut);
+                  }
+                  hpx::when_all(subcell_tasks).get();
+
+                  //hpx::future<void> ret = hpx::when_all(subcell_tasks);
+                  //return ret;
                 }
                 else
                 {
@@ -521,7 +520,13 @@ public:
             }
         }
         //return hpx::make_ready_future<void>();
+    }
+
 #else
+
+    void buildTreeIncRec(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+                     std::vector<int> &ordering)
+    {
         if (global && (assignee == -1 || assignee == comm_rank || halo))
         {
             // global leaf node
@@ -546,16 +551,20 @@ public:
 #pragma omp taskwait
             }
         }
-#endif
     }
+#endif
 
     void buildTreeInc(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
                    std::vector<int> &ordering)
     {
-#pragma omp parallel
-#pragma omp single
+#ifdef USE_HPX
         //buildTreeIncRec(x, y, z, ordering).get();
         buildTreeIncRec(x, y, z, ordering);
+#else
+#pragma omp parallel
+#pragma omp single
+        buildTreeIncRec(x, y, z, ordering);
+#endif
     }
 
 

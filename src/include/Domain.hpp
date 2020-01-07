@@ -117,11 +117,6 @@ public:
         // Finally remap everything
         std::vector<int> ordering(d.x.size());
 
-//        std::vector<int> list(d.x.size());
-//#pragma omp parallel for
-//        for (int i = 0; i < (int)d.x.size(); i++)
-//            list[i] = i;
-
         // We need this to expand halo
         octree.buildTreeInc(d.x, d.y, d.z, ordering);
         reorder(ordering, d);
@@ -136,6 +131,21 @@ public:
 
         taskList.resize(nTasks);
 
+#ifdef USE_HPX
+        auto policy = hpx::parallel::execution::par;
+        hpx::parallel::for_loop (policy, 0, nTasks,
+            [&taskList, &clist=this->clist, partitionSize, nTasks, lastPartitionOffset](size_t i)
+            {
+                const int begin = i * partitionSize;
+                const int end = (i + 1) * partitionSize + (i == nTasks - 1 ? lastPartitionOffset : 0);
+                const size_t size = end - begin;
+
+                taskList[i].resize(size);
+                for (size_t j = 0; j < size; j++)
+                    taskList[i].clist[j] = clist[j + begin];
+            }
+        );
+#else
 #pragma omp parallel for
         for (size_t i = 0; i < nTasks; ++i)
         {
@@ -147,6 +157,7 @@ public:
             for (size_t j = 0; j < size; j++)
                 taskList[i].clist[j] = clist[j + begin];
         }
+#endif
     }
 
     // placeholder for the non-distributed domain implementation
