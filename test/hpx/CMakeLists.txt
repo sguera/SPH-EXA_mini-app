@@ -32,10 +32,6 @@ target_compile_features(numeric_gpu PUBLIC cxx_std_14)
 set_target_properties(numeric_gpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 
-# *** Install
-#install(TARGETS numeric_gpu EXPORT DMRGTargets COMPONENT libraries DESTINATION lib)
-#export(TARGETS numeric_gpu APPEND FILE "${PROJECT_BINARY_DIR}/DMRGTargets.cmake")
-
 
 add_executable(sqpatch_hpx main.cpp)
 
@@ -44,6 +40,7 @@ set_target_properties(sqpatch_hpx PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(sqpatch_hpx PUBLIC numeric_gpu)
 hpx_setup_target(sqpatch_hpx COMPONENT_DEPENDENCIES iostreams)
 
+# OpenMP+MPI version for comparison
 add_executable(sqpatch ${PROJECT_SOURCE_DIR}/../../src/sqpatch.cpp)
 
 target_compile_definitions(sqpatch PUBLIC USE_CUDA USE_MPI)
