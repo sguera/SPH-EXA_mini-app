@@ -13,7 +13,7 @@ void findNeighborsImpl(const Octree<T> &o, Task &t, Dataset &d)
 {
     const size_t n = t.clist.size();
 
-#pragma omp parallel for schedule(guided)
+#pragma omp parallel for schedule(static)
     for (size_t pi = 0; pi < n; pi++)
     {
         const int i = t.clist[pi];

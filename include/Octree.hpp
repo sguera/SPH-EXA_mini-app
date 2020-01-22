@@ -644,10 +644,10 @@ public:
                             * TEMP HACK TO MAKE EVRARD COLLAPSE WORK WITH MPI
                             * uncomment lines below
                             */
-                            // const auto tmpH = this->globalMaxH;
-                            // this->globalMaxH = 1000;
+                             const auto tmpH = this->globalMaxH;
+                             this->globalMaxH = 1000;
                             haloCount += root->findHalosList(this, toSendHalos);
-                            // this->globalMaxH = tmpH;
+                             this->globalMaxH = tmpH;
 
                             xmin = oldxmin;
                             xmax = oldxmax;
