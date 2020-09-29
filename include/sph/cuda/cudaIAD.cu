@@ -161,7 +161,7 @@ void computeIAD(const LinearOctree<T> &o, const std::vector<Task> &taskList, Dat
     }
 
     /*
-    d.d_o.unmapLinearOctreeFromDevice();
+    d.devicePtrs.d_o.unmapLinearOctreeFromDevice();
     */
 
     CHECK_CUDA_ERR(cudaMemcpy(d.c11.data(), d.devicePtrs.d_c11, size_np_T, cudaMemcpyDeviceToHost));
