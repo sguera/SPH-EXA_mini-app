@@ -60,9 +60,9 @@ struct ParticlesDataSqPatch
 #endif
 
 #if defined(USE_CUDA)
-    ParticlesData() : devicePtrs(*this) {}
+    ParticlesDataSqPatch() : devicePtrs(*this) {};
 
-    sph::cuda::DeviceParticlesData<T, ParticlesData> devicePtrs;
+    sph::cuda::DeviceParticlesData<T, ParticlesDataSqPatch> devicePtrs;
 #endif
 
     int rank = 0;
@@ -75,7 +75,7 @@ struct ParticlesDataSqPatch
 };
 
 template <typename T>
-const T ParticlesData<T>::K = sphexa::compute_3d_k(sincIndex);
+const T ParticlesDataSqPatch<T>::K = sphexa::compute_3d_k(sincIndex);
 
 template <typename T>
 struct ParticlesDataEvrard
