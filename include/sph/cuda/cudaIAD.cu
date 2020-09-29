@@ -161,8 +161,9 @@ void computeIAD(const LinearOctree<T> &o, const std::vector<Task> &taskList, Dat
         CHECK_CUDA_ERR(cudaGetLastError());
     }
 
-    
-    // d.d_o.unmapLinearOctreeFromDevice();
+    /*
+    d.d_o.unmapLinearOctreeFromDevice();
+    */
 
     CHECK_CUDA_ERR(cudaMemcpy(d.c11.data(), d.devicePtrs.d_c11, size_np_T, cudaMemcpyDeviceToHost));
     CHECK_CUDA_ERR(cudaMemcpy(d.c12.data(), d.devicePtrs.d_c12, size_np_T, cudaMemcpyDeviceToHost));
@@ -170,7 +171,6 @@ void computeIAD(const LinearOctree<T> &o, const std::vector<Task> &taskList, Dat
     CHECK_CUDA_ERR(cudaMemcpy(d.c22.data(), d.devicePtrs.d_c22, size_np_T, cudaMemcpyDeviceToHost));
     CHECK_CUDA_ERR(cudaMemcpy(d.c23.data(), d.devicePtrs.d_c23, size_np_T, cudaMemcpyDeviceToHost));
     CHECK_CUDA_ERR(cudaMemcpy(d.c33.data(), d.devicePtrs.d_c33, size_np_T, cudaMemcpyDeviceToHost));
-    
 
     for (int i = 0; i < NST; ++i)
         CHECK_CUDA_ERR(cudaStreamDestroy(streams[i]));
