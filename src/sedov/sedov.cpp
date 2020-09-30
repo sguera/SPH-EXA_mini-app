@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     std::ostream &output = quiet ? nullOutput : std::cout;
 
     using Real = double;
-    using Dataset = ParticlesData<Real>;
+    using Dataset = ParticlesDataSqPatch<Real>;
     using Tree = Octree<Real>;
 
 #ifdef USE_MPI
