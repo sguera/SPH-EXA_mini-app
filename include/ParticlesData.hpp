@@ -116,9 +116,9 @@ struct ParticlesData
 
 
 #if defined(USE_CUDA)
-    ParticlesDataSqPatch() : devicePtrs(*this) {};
+    ParticlesData() : devicePtrs(*this) {};
 
-    sph::cuda::DeviceParticlesData<T, ParticlesDataSqPatch> devicePtrs;
+    sph::cuda::DeviceParticlesData<T, ParticlesData> devicePtrs;
 #endif
 
 
