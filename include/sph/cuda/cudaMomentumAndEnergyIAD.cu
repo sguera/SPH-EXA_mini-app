@@ -167,7 +167,7 @@ void computeMomentumAndEnergyIAD(const LinearOctree<T> &o, const std::vector<Tas
     const size_t ltsize = d.wh.size();
 
     // input data
-    CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d.devicePtrs.d_vx, d.devicePtrs.d_vy, d.devicePtrs.d_vz, d.devicePtrs.d_p, d.devicePtrs.d_c, d.devicePtrs.d_grad_P_x, d.devicePtrs.d_grad_P_y, d.devicePtrs.d_grad_P_z, d.devicePtrs.d_du, d.devicePtrs.d_maxvsignal));
+    //CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d.devicePtrs.d_vx, d.devicePtrs.d_vy, d.devicePtrs.d_vz, d.devicePtrs.d_p, d.devicePtrs.d_c, d.devicePtrs.d_grad_P_x, d.devicePtrs.d_grad_P_y, d.devicePtrs.d_grad_P_z, d.devicePtrs.d_du, d.devicePtrs.d_maxvsignal));
     for (int i = 0; i < NST; ++i)
         CHECK_CUDA_ERR(utils::cudaMalloc(size_largerNChunk_int, d_clist[i], d_neighborsCount[i]));
     for (int i = 0; i < NST; ++i)
@@ -237,8 +237,8 @@ void computeMomentumAndEnergyIAD(const LinearOctree<T> &o, const std::vector<Tas
    for (int i = 0; i < NST; ++i)
         CHECK_CUDA_ERR(cudaStreamDestroy(streams[i]));
 
-    CHECK_CUDA_ERR(utils::cudaFree(d.devicePtrs.d_bbox, d.devicePtrs.d_x, d.devicePtrs.d_y, d.devicePtrs.d_z, d.devicePtrs.d_vx, d.devicePtrs.d_vy, d.devicePtrs.d_vz, d.devicePtrs.d_h, d.devicePtrs.d_m, d.devicePtrs.d_ro, d.devicePtrs.d_p,
-        d.devicePtrs.d_c, d.devicePtrs.d_c11, d.devicePtrs.d_c12, d.devicePtrs.d_c13, d.devicePtrs.d_c22, d.devicePtrs.d_c23, d.devicePtrs.d_c33, d.devicePtrs.d_grad_P_x, d.devicePtrs.d_grad_P_y, d.devicePtrs.d_grad_P_z, d.devicePtrs.d_du, d.devicePtrs.d_maxvsignal, d.devicePtrs.d_wh, d.devicePtrs.d_whd));
+    //CHECK_CUDA_ERR(utils::cudaFree(d.devicePtrs.d_bbox, d.devicePtrs.d_x, d.devicePtrs.d_y, d.devicePtrs.d_z, d.devicePtrs.d_vx, d.devicePtrs.d_vy, d.devicePtrs.d_vz, d.devicePtrs.d_h, d.devicePtrs.d_m, d.devicePtrs.d_ro, d.devicePtrs.d_p,
+    //    d.devicePtrs.d_c, d.devicePtrs.d_c11, d.devicePtrs.d_c12, d.devicePtrs.d_c13, d.devicePtrs.d_c22, d.devicePtrs.d_c23, d.devicePtrs.d_c33, d.devicePtrs.d_grad_P_x, d.devicePtrs.d_grad_P_y, d.devicePtrs.d_grad_P_z, d.devicePtrs.d_du, d.devicePtrs.d_maxvsignal, d.devicePtrs.d_wh, d.devicePtrs.d_whd));
     for (int i = 0; i < NST; ++i)
         CHECK_CUDA_ERR(utils::cudaFree(d_clist[i], d_neighbors[i], d_neighborsCount[i]));
 }

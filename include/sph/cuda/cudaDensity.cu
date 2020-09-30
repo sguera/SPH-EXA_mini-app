@@ -86,9 +86,9 @@ void computeDensity(const LinearOctree<T> &o, std::vector<Task> &taskList, Parti
     const size_t size_lt_T = ltsize * sizeof(T);
 
     // input data
-    CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d.devicePtrs.d_x, d.devicePtrs.d_y, d.devicePtrs.d_z, d.devicePtrs.d_h, d.devicePtrs.d_m, d.devicePtrs.d_ro));
-    CHECK_CUDA_ERR(utils::cudaMalloc(size_lt_T, d.devicePtrs.d_wh, d.devicePtrs.d_whd));
-    CHECK_CUDA_ERR(utils::cudaMalloc(size_bbox, d.devicePtrs.d_bbox));
+    //CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d.devicePtrs.d_x, d.devicePtrs.d_y, d.devicePtrs.d_z, d.devicePtrs.d_h, d.devicePtrs.d_m, d.devicePtrs.d_ro));
+    //CHECK_CUDA_ERR(utils::cudaMalloc(size_lt_T, d.devicePtrs.d_wh, d.devicePtrs.d_whd));
+    //CHECK_CUDA_ERR(utils::cudaMalloc(size_bbox, d.devicePtrs.d_bbox));
 
     for (int i = 0; i < NST; ++i)
         CHECK_CUDA_ERR(utils::cudaMalloc(size_largerNChunk_int, d_clist[i], d_neighborsCount[i]));

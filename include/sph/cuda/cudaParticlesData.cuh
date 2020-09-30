@@ -2,6 +2,7 @@
 
 #include "LinearOctree.hpp"
 #include "cudaUtils.cuh"
+#include "BBox.hpp"
 
 namespace sphexa
 {
@@ -66,18 +67,37 @@ struct DeviceParticlesData
     // number of CUDA streams to use
     static const int NST = 2;
 
-    cudaStream_t streams[NST];
+    struct neighbors_stream {
+        cudaStream_t streams;
+        int *d_clist, *d_neighbors, *d_neighborsCount;
+    };
 
-    int *d_clist[NST], *d_neighbors[NST], *d_neighborsCount[NST]; // work arrays per stream
+    struct neighbors_stream d_stream[NST];
+
     T *d_x, *d_y, *d_z, *d_vx, *d_vy, *d_vz, *d_m, *d_h, *d_ro, *d_p, *d_c, *d_c11, *d_c12, *d_c13, *d_c22, *d_c23, *d_c33, *d_wh, *d_whd;
     BBox<T> *d_bbox;
     T *d_grad_P_x, *d_grad_P_y, *d_grad_P_z, *d_du, *d_maxvsignal;
 
     DeviceLinearOctree<T> d_o;
 
-    DeviceParticlesData(const ParticleData &pd) {}
+    DeviceParticlesData(const ParticleData &pd)
+    {
+        const size_t np = pd.x.size();
+        const size_t size_np_T = np * sizeof(T);
+        const size_t size_bbox = sizeof(BBox<T>);
 
-    ~DeviceParticlesData() {}
+        CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d_x, d_y, d_z, d_h, d_m, d_ro));
+        CHECK_CUDA_ERR(utils::cudaMalloc(size_lt_T, d_wh, d_whd));
+        CHECK_CUDA_ERR(utils::cudaMalloc(size_bbox, d_bbox));
+        CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d_c11, d_c12, d_c13, d_c22, d_c23, d_c33));
+        CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d_vx, d_vy, d_vz, d_p, d_c, d_grad_P_x, d_grad_P_y, d_grad_P_z, d_du, d_maxvsignal));
+    }
+
+    ~DeviceParticlesData()
+    {
+        CHECK_CUDA_ERR(utils::cudaFree(d_bbox, d_x, d_y, d_z, d_vx, d_vy, d_vz, d_h, d_m, d_ro, d_p,
+            d_c, d_c11, d_c12, d_c13, d_c22, d_c23, d_c33, d_grad_P_x, d_grad_P_y, d_grad_P_z, d_du, d_maxvsignal, d_wh, d_whd));
+    }
 };
 } // namespace cuda
 } // namespace sph
