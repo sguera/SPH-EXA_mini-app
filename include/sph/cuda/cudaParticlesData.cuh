@@ -84,7 +84,11 @@ struct DeviceParticlesData
     {
         const size_t np = pd.x.size();
         const size_t size_np_T = np * sizeof(T);
+        
         const size_t size_bbox = sizeof(BBox<T>);
+
+        const size_t ltsize = pd.wh.size();
+        const size_t size_lt_T = ltsize * sizeof(T);
 
         CHECK_CUDA_ERR(utils::cudaMalloc(size_np_T, d_x, d_y, d_z, d_h, d_m, d_ro));
         CHECK_CUDA_ERR(utils::cudaMalloc(size_lt_T, d_wh, d_whd));
