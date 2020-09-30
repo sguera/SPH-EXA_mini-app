@@ -117,7 +117,6 @@ void computeIAD(const LinearOctree<T> &o, const std::vector<Task> &taskList, Dat
     // CHECK_CUDA_ERR(cudaMemcpy(d_wh, d.wh.data(), size_lt_T, cudaMemcpyHostToDevice));
     // CHECK_CUDA_ERR(cudaMemcpy(d_whd, d.whd.data(), size_lt_T, cudaMemcpyHostToDevice));
     // CHECK_CUDA_ERR(cudaMemcpy(d_bbox, &d.bbox, size_bbox, cudaMemcpyHostToDevice));
-    
 
     cudaStream_t streams[NST];
     for (int i = 0; i < NST; ++i)
@@ -161,7 +160,7 @@ void computeIAD(const LinearOctree<T> &o, const std::vector<Task> &taskList, Dat
     }
 
     /*
-    d.devicePtrs.d_o.unmapLinearOctreeFromDevice();
+    d.d_o.unmapLinearOctreeFromDevice();
     */
 
     CHECK_CUDA_ERR(cudaMemcpy(d.c11.data(), d.devicePtrs.d_c11, size_np_T, cudaMemcpyDeviceToHost));
