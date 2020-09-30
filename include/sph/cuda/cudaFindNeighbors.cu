@@ -235,7 +235,7 @@ void computeFindNeighbors2(const LinearOctree<T> &o, std::vector<Task> &taskList
         CHECK_CUDA_ERR(utils::cudaFree(d_clist[i], d_neighbors[i], d_neighborsCount[i]));
 }
 
-template void computeFindNeighbors2<double, ParticlesData<double>>(const LinearOctree<double> &o, std::vector<Task> &taskList, ParticlesData<double> &d);
+template void computeFindNeighbors2<double, ParticlesDataSqPatch<double>>(const LinearOctree<double> &o, std::vector<Task> &taskList, ParticlesData<double> &d);
 
 } // namespace cuda
 } // namespace sph
