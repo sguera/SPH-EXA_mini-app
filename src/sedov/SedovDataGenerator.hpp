@@ -13,9 +13,9 @@ template <typename T>
 class SedovDataGenerator
 {
 public:
-    static ParticlesDataSqPatch<T> generate(const size_t side)
+    static ParticlesData<T> generate(const size_t side)
     {
-        ParticlesDataSqPatch<T> pd;
+        ParticlesData<T> pd;
 
 #ifdef USE_MPI
         pd.comm = MPI_COMM_WORLD;
@@ -35,7 +35,7 @@ public:
     }
 
     // void load(const std::string &filename)
-    static void load(ParticlesDataSqPatch<T> &pd)
+    static void load(ParticlesData<T> &pd)
     {
         size_t split = pd.n / pd.nrank;
         size_t remaining = pd.n - pd.nrank * split;
@@ -78,7 +78,7 @@ public:
         }
     }
 
-    static void init(ParticlesDataSqPatch<T> &pd)
+    static void init(ParticlesData<T> &pd)
     {
         const T firstTimeStep = 1e-6;
         const T dx = 1.0 / pd.side;
