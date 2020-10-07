@@ -19,7 +19,7 @@ DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 
 INC += -Isrc -Iinclude
 CXXFLAGS += $(RELEASE)
-NVCCARCH := sm_60
+NVCCARCH := sm_52
 NVCCFLAGS := -std=c++14 --expt-relaxed-constexpr -rdc=true -arch=$(NVCCARCH)
 NVCCLDFLAGS := -arch=$(NVCCARCH) -rdc=true
 

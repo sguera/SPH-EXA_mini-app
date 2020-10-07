@@ -1,1 +1,1 @@
-srun --pty cuda-gdb bin/mpi+omp+cuda
+cuda-gdb bin/mpi+omp+cuda.app

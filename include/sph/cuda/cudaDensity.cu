@@ -97,6 +97,8 @@ void computeDensity(const LinearOctree<T> &o, std::vector<Task> &taskList, Parti
     //CHECK_CUDA_ERR(utils::cudaMalloc(size_largerNChunk_int, d_clist, d_neighborsCount));
     //CHECK_CUDA_ERR(utils::cudaMalloc(size_largerNeighborsChunk_int, d_neighbors));
 
+    printf("[DEBUG] -- d.devPtrs.d_x: %p\n", d.devicePtrs.d_x);
+
     CHECK_CUDA_ERR(cudaMemcpy(d.devicePtrs.d_x, d.x.data(), size_np_T, cudaMemcpyHostToDevice));
     CHECK_CUDA_ERR(cudaMemcpy(d.devicePtrs.d_y, d.y.data(), size_np_T, cudaMemcpyHostToDevice));
     CHECK_CUDA_ERR(cudaMemcpy(d.devicePtrs.d_z, d.z.data(), size_np_T, cudaMemcpyHostToDevice));
