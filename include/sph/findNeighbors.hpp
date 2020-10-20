@@ -5,7 +5,7 @@
 #include "ParticlesData.hpp"
 #include "Octree.hpp"
 #include "LinearOctree.hpp"
-//#include "cuda/sph.cuh"
+#include "cuda/sph.cuh"
 
 namespace sphexa
 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(USE_CUDA)
 #include <vector>
 
 #include "Task.hpp"
@@ -37,3 +38,5 @@ extern void computeMomentumAndEnergyIAD(const std::vector<Task> &taskList, Datas
 } // namespace cuda
 } // namespace sph
 } // namespace sphexa
+
+#endif
