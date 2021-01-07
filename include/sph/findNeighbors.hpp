@@ -96,6 +96,10 @@ void findNeighborsDispl(const int pi, const int *clist, const T *x, const T *y, 
         int node = collisionNodes[ni];
         T r2 = ri * ri;
 
+        #ifdef SPEC_OPENMP
+        #pragma omp simd
+        #endif
+
         for (int pj = 0; pj < o_localParticleCount[node]; pj++)
         {
             int j = o_localPadding[node] + pj;
@@ -110,7 +114,13 @@ void findNeighborsDispl(const int pi, const int *clist, const T *x, const T *y, 
 
             T dist = xx * xx + yy * yy + zz * zz;
 
-            if (dist < r2 && i != j && ngc < ngmax) neighbors[ngc++] = j;
+            if (dist < r2 && i != j && ngc < ngmax)
+            {
+            #ifdef SPEC_OPENMP
+            #pragma omp ordered simd monotonic(ngc:1)
+            #endif 
+                neighbors[ngc++] = j;
+            }
         }
     }
 
