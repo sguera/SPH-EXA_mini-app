@@ -70,9 +70,7 @@ void computeDensityImpl(const Task &t, Dataset &d)
         T roloc = 0.0;
 
         // int converstion to avoid a bug that prevents vectorization with some compilers
-        #ifdef SPEC_OPENMP
         #pragma omd simd
-        #endif
         for (int pj = 0; pj < nn; pj++)
         {
             const int j = neighbors[pi * ngmax + pj];

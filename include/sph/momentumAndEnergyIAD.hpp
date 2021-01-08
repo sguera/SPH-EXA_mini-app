@@ -94,9 +94,7 @@ void computeMomentumAndEnergyIADImpl(const Task &t, Dataset &d)
 
         T maxvsignali = 0.0;
         T momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0, energy = 0.0, energyAV = 0.0;
-        #ifdef SPEC_OPENMP
         #pragma omp simd
-        #endif
         for (int pj = 0; pj < nn; ++pj)
         {
             const int j = neighbors[pi * ngmax + pj];

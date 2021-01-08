@@ -82,9 +82,7 @@ void computeIADImpl(const Task &t, Dataset &d)
         const int nn = neighborsCount[pi];
 
         T tau11 = 0.0, tau12 = 0.0, tau13 = 0.0, tau22 = 0.0, tau23 = 0.0, tau33 = 0.0;
-        #ifdef SPEC_OPENMP
         #pragma omp simd
-        #endif
         for (int pj = 0; pj < nn; ++pj)
         {
             const int j = neighbors[pi * ngmax + pj];
