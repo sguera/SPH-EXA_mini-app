@@ -113,7 +113,7 @@ void findNeighborsDispl(const int pi, const int *clist, const T *x, const T *y, 
 
             if (dist < r2 && i != j && ngc < ngmax)
             {
-            #pragma omp ordered simd monotonic(ngc:1)
+            //#pragma omp ordered simd monotonic(ngc:1)
                 neighbors[ngc++] = j;
             }
         }
