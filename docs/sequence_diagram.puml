@@ -1,0 +1,147 @@
+@startuml
+
+participant Main
+participant SPH #99FF99
+participant DistributedDomain
+
+box "Calculations (SPH method)" #LightSeaGreen
+	participant SPH
+end box
+
+box "MPI" #Tomato
+	participant DistributedDomain
+end box
+
+box "I/O" #LightGrey
+	participant OutputDataWriter
+	participant InputDataReader
+end box
+
+note over Main
+Each MPI rank generates own part of Dataset.
+Domain is distributed among MPI processes using an Octree.
+end note
+
+note over Main, SPH
+Read particles data from file using MPI_IO
+end note
+Main -> InputDataReader: readData(n)
+activate InputDataReader
+Main <- InputDataReader: Dataset
+deactivate InputDataReader
+
+loop s times
+
+Main -[#Tomato]> DistributedDomain: <color:#Tomato>distribute </color>
+activate DistributedDomain
+== Global Barrier == 
+Main <-[#Tomato]- DistributedDomain
+deactivate DistributedDomain
+
+Main -[#Tomato]> DistributedDomain: <color:#Tomato>synchronizeHalos(x, y, z, h)</color>
+activate DistributedDomain
+== Point-to-Point MPI Communication (between *neighbor nodes*) == 
+Main <-[#Tomato]- DistributedDomain
+deactivate DistributedDomain
+Main -[#SeaGreen]> DistributedDomain: <color:#SeaGreen>buildTree</color>
+note right
+Recursive calls with OpenMP tasks. Complexity N*log(N)
+end note
+
+loop over particles (n times)
+Main -[#SeaGreen]> DistributedDomain: <color:#SeaGreen>findNeighbors</color>
+note right
+~10% of iteration time. Complexity N*log(N)
+OpenMP parallel for
+end note
+end
+
+loop over particles (n times)
+Main -[#LightSeaGreen]> SPH: <color:#LightSeaGreen>computeDensity</color>
+note right
+~10% of iteration time. Complexity O(N * M)
+Models: CUDA, Parallel for with OpenMP, OpenMP+target, OpenACC.
+end note
+end
+
+loop over particles (n times)
+Main -[#LightSeaGreen]> SPH: <color:#LightSeaGreen>computeEquationOfState</color>
+note right
+Complexity O(N)
+OpenMP Parallel for
+end note
+end
+
+Main -[#Tomato]> DistributedDomain: <color:#Tomato>synchronizeHalos(vx, vy, vz, ro, p, c)</color>
+activate DistributedDomain
+== Point-to-Point MPI Communication (between *neighbor nodes*) == 
+Main <-[#Tomato]- DistributedDomain
+deactivate DistributedDomain
+
+loop over particles (n times)
+Main -[#LightSeaGreen]> SPH: <color:#LightSeaGreen>computeIAD</color>
+note right
+~30% of iteration time. Complexity O(N * M)
+Models: CUDA, Parallel for with OpenMP, OpenMP+target, OpenACC.
+end note
+end
+
+Main -[#Tomato]> DistributedDomain: <color:#Tomato>synchronizeHalos(c11, c12 ... c33)</color>
+activate DistributedDomain
+== Point-to-Point MPI Communication (between *neighbor nodes*) == 
+Main <-[#Tomato]- DistributedDomain
+deactivate DistributedDomain
+
+loop over particles (n times)
+Main -[#LightSeaGreen]> SPH: <color:#LightSeaGreen>computeMomentumAndEnergy</color>
+note right
+~40% of iteration time. Complexity O(N * M)
+Models: CUDA, Parallel for with OpenMP, OpenMP+target, OpenACC.
+end note
+end
+
+loop over particles (n times)
+Main -[#LightSeaGreen]> SPH: <color:#LightSeaGreen>computeTimestep</color>
+note right
+Complexity O(N)
+OpenMP Parallel for
+end note
+end
+
+activate SPH
+== Global Barrier. MPI_AllReduce ==
+Main <-[#LightSeaGreen]- SPH
+deactivate SPH
+
+loop over particles (n times)
+Main -[#LightSeaGreen]> SPH: <color:#LightSeaGreen>computePositions</color>
+note right
+Complexity O(N)
+OpenMP Parallel for
+end note
+end
+
+loop over particles (n times)
+Main -[#LightSeaGreen]> SPH: <color:#LightSeaGreen>computeTotalEnergy</color>
+note right
+Complexity O(N)
+OpenMP Parallel for
+end note
+end
+
+activate SPH
+== Global Barrier. MPI_AllReduce ==
+Main <-[#LightSeaGreen]- SPH
+deactivate SPH
+note over Main, SPH
+More SPH functions in the future
+end note
+Main -> OutputDataWriter: Write results/checks to file/stdout
+
+note over Main, SPH
+In user defined number of iterations, dump all particles data to file using MPI_IO
+end note
+Main -> OutputDataWriter: Write all particles data to file using MPI_IO
+end
+
+@enduml

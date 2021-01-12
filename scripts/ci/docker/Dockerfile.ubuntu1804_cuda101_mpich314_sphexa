@@ -1,0 +1,40 @@
+# https://github.com/unibas-dmi-hpc/SPH-EXA_mini-app
+# --------------------------------------------------
+# DD=Dockerfile.ubuntu1804+cuda101+mpich314+sphexa
+# VV=sphexa/mpich:ub1804_cuda101_mpi314_sphexa
+# docker build -f ./$DD -t $VV --build-arg branchname=master .
+# docker push $VV
+# docker run --rm $VV
+# docker run --rm $VV bash -c "./gnu7/omp.app -s 1 -n 10"
+# docker run --rm $VV bash -c "mpirun -np 2 ./gnu7/mpi+omp.app -s 1 -n 20"
+# docker run --rm -it $VV bash
+# docker run $VV cat /etc/os-release
+FROM ethcscs/mpich:ub1804_cuda101_mpi314_osu
+
+ARG branchname=develop
+ARG reponame=jgphpc/SPH-EXA_mini-app
+
+# RUN apt update \
+#     && apt install -y unzip
+
+# get the branch from the pull request:
+RUN mkdir -p /sph && cd /sph \
+   && wget https://github.com/$reponame/archive/$branchname.zip \
+   && unzip $branchname.zip \
+   && cd SPH-EXA_mini-app-$branchname
+
+# compile omp with gnu7:
+RUN cd /sph/SPH-EXA_mini-app-$branchname \
+    && make omp CXXFLAGS="-std=c++14 -fopenmp -g -DNDEBUG -I. -Isrc" BINDIR=bin/gnu7 CXX=/usr/bin/g++-7 \
+# compile omp with gnu8:
+    && make omp CXXFLAGS="-std=c++14 -fopenmp -g -DNDEBUG -I. -Isrc" BINDIR=bin/gnu8 CXX=/usr/bin/g++-8 \
+# compile omp with gnu9:
+    && make omp CXXFLAGS="-std=c++14 -fopenmp -g -DNDEBUG -I. -Isrc" BINDIR=bin/gnu9 CXX=/usr/bin/g++-9 \
+# compile mpi+omp with gnu7 (-DUSE_MPI):
+    && make mpi+omp CXXFLAGS="-std=c++14 -fopenmp -g -DNDEBUG -I. -Isrc" BINDIR=bin/gnu7 \
+    && ls -laR bin
+
+WORKDIR /sph/SPH-EXA_mini-app-$branchname/bin
+
+CMD ["./gnu7/omp.app", "-s", "0", "-n", "10"]
+# CMD ["mpirun", "-np", "2", "./mpi+omp.app", "-s", "0", "-n", "10"]

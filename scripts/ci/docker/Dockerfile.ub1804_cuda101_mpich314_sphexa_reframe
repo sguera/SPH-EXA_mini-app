@@ -1,0 +1,82 @@
+FROM ethcscs/mpich:ub1804_cuda101_mpi314_osu
+# https://github.com/unibas-dmi-hpc/SPH-EXA_mini-app
+# --------------------------------------------------
+# DD=Dockerfile.ub1804_cuda101_mpich314_sphexa_reframe
+# VV=jgphpc/mpich:ub1804_cuda101_mpi314_sphexa_reframe
+# sudo docker images
+# sudo docker build -f ./SPH-EXA_mini-app/scripts/ci/docker/$DD -t $VV .
+# sudo docker save --output eff.tar jgphpc/mpich:ub1804_cuda101_mpi314_sphexa_reframe
+# sudo chown ubuntu:ubuntu eff.tar
+# scp eff.tar piccinal@ela.cscs.ch:/project/csstaff/piccinal/CRAYPE_CONTAINER/
+# sarus load /project/csstaff/piccinal/CRAYPE_CONTAINER/eff.tar $VV
+# srun -Cgpu -n1 sarus run --mpi load/jgphpc/mpich:ub1804_cuda101_mpi314_sphexa_reframe bash -c "/tmp/SPH-EXA_mini-app/bin/gnu7/mpi+omp+cuda.app -s 2 -n 100"
+
+# docker build -f ./$DD -t $VV --build-arg branchname=master .
+# docker push $VV
+# docker run --rm $VV
+# docker run --rm $VV bash -c "./gnu7/omp.app -s 1 -n 10"
+# docker run --rm $VV bash -c "mpirun -np 2 ./gnu7/mpi+omp.app -s 1 -n 20"
+# docker run --rm -it $VV bash
+# docker run $VV cat /etc/os-release
+
+# ARG branchname=develop
+# ARG reponame=jgphpc/SPH-EXA_mini-app
+# # get the branch from the pull request:
+# RUN mkdir -p /sph && cd /sph \
+#    && wget https://github.com/$reponame/archive/$branchname.zip \
+#    && unzip $branchname.zip \
+#    && cd SPH-EXA_mini-app-$branchname
+
+# RUN apt update \
+#     && apt install -y unzip
+
+# RUN mkdir -p /SPH-EXA_mini-app
+
+# -----------------------------------------------------------------------------
+# Call COPY to cp the branch into the Docker image:
+COPY SPH-EXA_mini-app.git /tmp/SPH-EXA_mini-app/
+# $ git clone --depth=50 --branch=travisJG https://github.com/jgphpc/SPH-EXA_mini-app.git jgphpc/SPH-EXA_mini-app
+# $ pwd
+# /home/travis/build/jgphpc/SPH-EXA_mini-app
+# $ ls -la
+# drwxrwxr-x 7 travis travis 4096 Oct 21 13:59 .
+# drwxrwxr-x 3 travis travis 4096 Oct 21 13:59 ..
+# -rw-rw-r-- 1 travis travis 3254 Oct 21 13:59 .clang-format
+# -rw-rw-r-- 1 travis travis 1507 Oct 21 13:59 constants.py
+# drwxrwxr-x 8 travis travis 4096 Oct 21 13:59 .git
+# -rw-rw-r-- 1 travis travis  438 Oct 21 13:59 .gitignore
+# -rw-rw-r-- 1 travis travis 1080 Oct 21 13:59 LICENSE
+# -rw-rw-r-- 1 travis travis 3567 Oct 21 13:59 Makefile
+# -rw-rw-r-- 1 travis travis 2098 Oct 21 13:59 README.md
+# drwxrwxr-x 4 travis travis 4096 Oct 21 13:59 scripts
+# drwxrwxr-x 3 travis travis 4096 Oct 21 13:59 src
+# drwxrwxr-x 2 travis travis 4096 Oct 21 13:59 test
+# drwxrwxr-x 2 travis travis 4096 Oct 21 13:59 tools
+# -rw-rw-r-- 1 travis travis 1878 Oct 21 13:59 .travis.yml
+# TRAVIS_REPO_SLUG=jgphpc/SPH-EXA_mini-app
+# USER=travis
+# PWD=/home/travis/build/jgphpc/SPH-EXA_mini-app
+# HOME=/home/travis
+# TRAVIS_BUILD_DIR=/home/travis/build/jgphpc/SPH-EXA_mini-app
+# TRAVIS_BRANCH=travisJG
+# TRAVIS_HOME=/home/travis
+# -----------------------------------------------------------------------------
+
+# RUN cd /sph/SPH-EXA_mini-app-$branchname \
+RUN cd /tmp/SPH-EXA_mini-app ; ls -la ;pwd \
+# compile mpi+omp with gnu7 (-DUSE_MPI):
+    && make mpi+omp CXXFLAGS="-std=c++14 -fopenmp -g -O2 -DNDEBUG -I. -Isrc" BINDIR=bin/gnu7 \
+# --- cuda:
+# cuda/10.1 supports gcc<9
+# compile mpi+omp+cuda with gnu7: 
+    && make mpi+omp+cuda CXXFLAGS="-std=c++14 -fopenmp -g -O2 -DNDEBUG -I. -Isrc" BINDIR=bin/gnu7 CXX=/usr/bin/g++-7 \
+    NVCCFLAGS="-std=c++14 --expt-relaxed-constexpr -arch=sm_60 -rdc=true -ccbin=\${CXX}" \
+# compile mpi+omp+cuda with gnu8: 
+    && make mpi+omp+cuda CXXFLAGS="-std=c++14 -fopenmp -g -O2 -DNDEBUG -I. -Isrc" BINDIR=bin/gnu8 CXX=/usr/bin/g++-8 \
+    NVCCFLAGS="-std=c++14 --expt-relaxed-constexpr -arch=sm_60 -rdc=true -ccbin=\${CXX}" \
+# list executables:
+    && ls -laR bin
+
+WORKDIR /tmp/SPH-EXA_mini-app/bin/
+
+CMD ["./gnu7/mpi+omp.app", "-s", "0", "-n", "10"]
