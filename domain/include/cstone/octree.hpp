@@ -59,6 +59,8 @@
 
 #include "cstone/mortoncode.hpp"
 
+#include "../../include/Timer.hpp"
+
 namespace cstone
 {
 
@@ -233,15 +235,27 @@ computeOctree(const I* codesStart, const I* codesEnd, unsigned bucketSize, std::
         tree.push_back(nodeRange<I>(0));
     }
 
+    int myRank = 0;
+    if constexpr (!std::is_same_v<void, Reduce>)
+    {
+        MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    }
+    sphexa::MasterProcessTimer timer(std::cout, myRank);
+
     std::vector<std::size_t> counts(nNodes(tree));
+
+    timer.start();
 
     bool converged = false;
     while (!converged)
     {
         computeNodeCounts(tree.data(), counts.data(), nNodes(tree), codesStart, codesEnd);
+        timer.step("            octree::count");
         if constexpr (!std::is_same_v<void, Reduce>) Reduce{}(counts);
+        timer.step("            octree::reduce");
         std::vector<I> balancedTree =
             rebalanceTree(tree.data(), counts.data(), nNodes(tree), bucketSize, &converged);
+        timer.step("            octree::rebalance");
 
         swap(tree, balancedTree);
         counts.resize(nNodes(tree));
