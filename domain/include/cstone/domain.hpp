@@ -34,6 +34,8 @@
 
 #pragma once
 
+#include <iomanip>
+
 #include "cstone/box_mpi.hpp"
 #include "cstone/domaindecomp_mpi.hpp"
 #include "cstone/halodiscovery.hpp"
@@ -301,7 +303,7 @@ public:
                            cbegin(z) + particleEnd_,
                            begin(codes) + particleEnd_, box_);
         timer.step("    sfc::halo_morton");
-        printParticleDistribution();
+        printParticleDistribution(outgoingHaloIndices_);
     }
 
     /*! \brief repeat the halo exchange pattern from the previous sync operation for a different set of arrays
@@ -342,7 +344,7 @@ public:
 
 private:
 
-    void printParticleDistribution()
+    void printParticleDistribution(const SendList& outgoingHalos)
     {
         std::vector<int> gatherBuffer(nRanks_);
         MPI_Gather(&localNParticles_, 1, MpiType<int>{}, gatherBuffer.data(), 1, MpiType<int>{}, 0, MPI_COMM_WORLD);
@@ -361,6 +363,28 @@ private:
             for (auto val : gatherBuffer)
                 std::cout << val << " ";
             std::cout << std::endl;
+        }
+
+        std::vector<int> haloSendGather(nRanks_ * nRanks_);
+        std::vector<int> haloSendBuffer(nRanks_);
+
+        for (int r = 0; r < nRanks_; ++r)
+            haloSendBuffer[r] = outgoingHalos[r].totalCount();
+
+        MPI_Gather(haloSendBuffer.data(), nRanks_, MpiType<int>{}, haloSendGather.data(), nRanks_, MpiType<int>{}, 0, MPI_COMM_WORLD);
+
+        if (myRank_ == 0)
+        {
+            std::cout << "#     sfc::haloSends: " << std::endl;
+            for (int r = 0; r < nRanks_; ++r)
+            {
+                std::cout << "#                     ";
+                for (int s = 0; s < nRanks_; ++s)
+                {
+                    std::cout << std::setw(10) << haloSendGather[r*nRanks_ + s] << " ";
+                }
+                std::cout << std::endl;
+            }
         }
     }
 
