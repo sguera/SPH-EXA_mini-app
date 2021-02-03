@@ -41,6 +41,8 @@
 #include "cstone/layout.hpp"
 #include "cstone/octree_mpi.hpp"
 
+#include "../../include/Timer.hpp"
+
 namespace cstone
 {
 
@@ -147,6 +149,8 @@ public:
     void sync(std::vector<T>& x, std::vector<T>& y, std::vector<T>& z, std::vector<T>& h, std::vector<I>& codes,
               Vectors&... particleProperties)
     {
+        sphexa::MasterProcessTimer timer(std::cout, myRank_);
+
         // bounds initialization on first call, use all particles
         if (particleEnd_ == -1)
         {
@@ -169,12 +173,15 @@ public:
 
         codes.resize(nParticles);
 
+        timer.start();
+
         // compute morton codes only for particles participating in tree build
         //std::vector<I> mortonCodes(nParticles);
         computeMortonCodes(cbegin(x) + particleStart_, cbegin(x) + particleEnd_,
                            cbegin(y) + particleStart_,
                            cbegin(z) + particleStart_,
                            begin(codes), box_);
+        timer.step("    sfc::MortonCodes");
 
         // compute the ordering that will sort the mortonCodes in ascending order
         std::vector<int> mortonOrder(nParticles);
@@ -185,12 +192,14 @@ public:
         // but with the difference that we explicitly know the ordering, such
         // that we can later apply it to the x,y,z,h arrays or to access them in the Morton order
         reorder(mortonOrder, codes);
+        timer.step("    sfc::sort_reorder");
 
         // compute the global octree in cornerstone format (leaves only)
         // the resulting tree and node counts will be identical on all ranks
         std::vector<std::size_t> nodeCounts;
         std::tie(tree_, nodeCounts) = computeOctreeGlobal(codes.data(), codes.data() + nParticles, bucketSize_,
                                                           std::move(tree_));
+        timer.step("    sfc::octree");
 
         // assign one single range of Morton codes each rank
         SpaceCurveAssignment<I> assignment = singleRangeSfcSplit(tree_, nodeCounts, nRanks_);
@@ -200,11 +209,13 @@ public:
         std::vector<T> haloRadii(nNodes(tree_));
         computeHaloRadiiGlobal(tree_.data(), nNodes(tree_), codes.data(), codes.data() + nParticles,
                                mortonOrder.data(), h.data() + particleStart_, haloRadii.data());
+        timer.step("    sfc::halo_radii");
 
         // find outgoing and incoming halo nodes of the tree
         // uses 3D collision detection
         std::vector<pair<int>> haloPairs;
         findHalos(tree_, haloRadii, box_, assignment, myRank_, haloPairs);
+        timer.step("    sfc::halo_discovery");
 
         // group outgoing and incoming halo node indices by destination/source rank
         std::vector<std::vector<int>> incomingHaloNodes;
@@ -234,14 +245,17 @@ public:
         // note that there is no offset applied to mortonCodes, because it was constructed
         // only with locally assigned particles
         SendList domainExchangeSends = createSendList(assignment, codes.data(), codes.data() + nParticles);
+        timer.step("    sfc::layout");
 
         // resize arrays to new sizes
         reallocate(localNParticles_, x,y,z,h, particleProperties...);
         reallocate(localNParticles_, codes);
+        timer.step("    sfc::reallocate");
         // exchange assigned particles
         exchangeParticles<T>(domainExchangeSends, Rank(myRank_), newNParticlesAssigned,
                              particleStart_, newParticleStart, mortonOrder.data(),
                              x.data(), y.data(), z.data(), h.data(), particleProperties.data()...);
+        timer.step("    sfc::domain_exchange");
 
         // assigned particles have been moved to their new locations starting at particleStart_
         // by the domain exchange exchangeParticles
@@ -268,11 +282,13 @@ public:
             }
             reorder(mortonOrder, codes, particleStart_);
         }
+        timer.step("    sfc::morton_reorder");
 
         incomingHaloIndices_ = createHaloExchangeList(incomingHaloNodes, presentNodes, nodeOffsets);
         outgoingHaloIndices_ = createHaloExchangeList(outgoingHaloNodes, presentNodes, nodeOffsets);
 
         exchangeHalos(x,y,z,h);
+        timer.step("    sfc::halo_xyzh_exchange");
 
         // compute Morton codes for halo particles just received, from 0 to particleStart_
         // and from particleEnd_ to localNParticles_
@@ -284,6 +300,8 @@ public:
                            cbegin(y) + particleEnd_,
                            cbegin(z) + particleEnd_,
                            begin(codes) + particleEnd_, box_);
+        timer.step("    sfc::halo_morton");
+        printParticleDistribution();
     }
 
     /*! \brief repeat the halo exchange pattern from the previous sync operation for a different set of arrays
@@ -323,6 +341,28 @@ public:
     Box<T> box() const { return box_; }
 
 private:
+
+    void printParticleDistribution()
+    {
+        std::vector<int> gatherBuffer(nRanks_);
+        MPI_Gather(&localNParticles_, 1, MpiType<int>{}, gatherBuffer.data(), 1, MpiType<int>{}, 0, MPI_COMM_WORLD);
+        if (myRank_ == 0)
+        {
+            std::cout << "#     sfc::nLocalParticles:    ";
+            for (auto val : gatherBuffer)
+                std::cout << val << " ";
+            std::cout << std::endl;
+        }
+        int nAssignedParticles = nParticles();
+        MPI_Gather(&nAssignedParticles, 1, MpiType<int>{}, gatherBuffer.data(), 1, MpiType<int>{}, 0, MPI_COMM_WORLD);
+        if (myRank_ == 0)
+        {
+            std::cout << "#     sfc::nAssignedParticles: ";
+            for (auto val : gatherBuffer)
+                std::cout << val << " ";
+            std::cout << std::endl;
+        }
+    }
 
     //! \brief return true if all array sizes are equal to value
     template<class... Arrays>
