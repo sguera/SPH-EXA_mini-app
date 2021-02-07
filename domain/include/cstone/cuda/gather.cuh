@@ -54,6 +54,8 @@ public:
      */
     void setReorderMap(const I* map_first, const I* map_last);
 
+    void getReorderMap(I* map_first);
+
     void setMapFromCodes(I* codes_first, I* codes_last);
 
     /*! \brief reorder the array \a values according to the reorder map provided previously

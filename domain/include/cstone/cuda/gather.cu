@@ -105,6 +105,12 @@ void DeviceGather<T, I>::setReorderMap(const I* map_first, const I* map_last)
     cudaMemcpy(deviceMemory_->ordering(), map_first, mapSize_ * sizeof(I), cudaMemcpyHostToDevice);
 }
 
+template<class T, class I>
+void DeviceGather<T, I>::getReorderMap(I* map_first)
+{
+    cudaMemcpy(map_first, deviceMemory_->ordering(), mapSize_ * sizeof(I), cudaMemcpyDeviceToHost);
+}
+
 template<class I>
 __global__ void iotaKernel(I* buffer, size_t n, size_t offset)
 {

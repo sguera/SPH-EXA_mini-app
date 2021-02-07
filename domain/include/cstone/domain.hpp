@@ -41,6 +41,8 @@
 #include "cstone/layout.hpp"
 #include "cstone/octree_mpi.hpp"
 
+#include "cstone/cuda/gather.cuh"
+
 namespace cstone
 {
 
@@ -170,7 +172,7 @@ public:
         codes.resize(nParticles);
 
         // compute morton codes only for particles participating in tree build
-        //std::vector<I> mortonCodes(nParticles);
+        std::vector<I> mortonCodes(nParticles);
         computeMortonCodes(cbegin(x) + particleStart_, cbegin(x) + particleEnd_,
                            cbegin(y) + particleStart_,
                            cbegin(z) + particleStart_,
@@ -178,13 +180,15 @@ public:
 
         // compute the ordering that will sort the mortonCodes in ascending order
         std::vector<int> mortonOrder(nParticles);
-        sort_invert(cbegin(codes), cbegin(codes) + nParticles, begin(mortonOrder));
+        //sort_invert(cbegin(codes), cbegin(codes) + nParticles, begin(mortonOrder));
+        deviceReorder_.setMapFromCodes(codes.data(), codes.data() + nParticles);
+        deviceReorder_.getReorderMap((I*)mortonOrder.data());
 
         // reorder the codes according to the ordering
         // has the same net effect as std::sort(begin(mortonCodes), end(mortonCodes)),
         // but with the difference that we explicitly know the ordering, such
         // that we can later apply it to the x,y,z,h arrays or to access them in the Morton order
-        reorder(mortonOrder, codes);
+        //reorder(mortonOrder, codes);
 
         // compute the global octree in cornerstone format (leaves only)
         // the resulting tree and node counts will be identical on all ranks
@@ -253,8 +257,9 @@ public:
                            cbegin(z) + particleStart_,
                            begin(codes) + particleStart_, box_);
 
-        mortonOrder.resize(newNParticlesAssigned);
-        sort_invert(cbegin(codes) + particleStart_, cbegin(codes) + particleEnd_, begin(mortonOrder));
+        //mortonOrder.resize(newNParticlesAssigned);
+        //sort_invert(cbegin(codes) + particleStart_, cbegin(codes) + particleEnd_, begin(mortonOrder));
+        deviceReorder_.setMapFromCodes(codes.data() + particleStart_, codes.data() + particleEnd_);
 
         // We have to reorder the locally assigned particles in the coordinate and property arrays
         // which are located in the index range [particleStart_, particleEnd_].
@@ -264,9 +269,10 @@ public:
             std::array<std::vector<T>*, 4 + sizeof...(Vectors)> particleArrays{&x, &y, &z, &h, &particleProperties...};
             for (std::size_t i = 0; i < particleArrays.size(); ++i)
             {
-                reorder(mortonOrder, *particleArrays[i], particleStart_) ;
+                //reorder(mortonOrder, *particleArrays[i], particleStart_);
+                deviceReorder_(particleArrays[i]->data() + particleStart_);
             }
-            reorder(mortonOrder, codes, particleStart_);
+            //reorder(mortonOrder, codes, particleStart_);
         }
 
         incomingHaloIndices_ = createHaloExchangeList(incomingHaloNodes, presentNodes, nodeOffsets);
@@ -352,6 +358,8 @@ private:
     SendList outgoingHaloIndices_;
 
     std::vector<I> tree_;
+
+    DeviceGather<T, I> deviceReorder_;
 };
 
 } // namespace cstone
