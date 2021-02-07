@@ -54,6 +54,7 @@ public:
     }
     void step(const std::string &name)
     {
+        MPI_Barrier(MPI_COMM_WORLD);
         if (rank == 0) Timer::step(name);
     }
 

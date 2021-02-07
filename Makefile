@@ -18,7 +18,7 @@ RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 
 # cuda architecture targets
-SMS ?= 35 60 70 75 80
+SMS ?= 60
 $(foreach sm,$(SMS),$(eval GENCODE_FLAGS += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
 INC += -Isrc -Iinclude -Idomain/include -I$(CUDA_PATH)/include
