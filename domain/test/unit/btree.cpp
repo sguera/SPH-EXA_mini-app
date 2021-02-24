@@ -49,7 +49,7 @@ void internal4x4x4PrefixTest()
 
     auto internalTree = createInternalTree(tree);
     EXPECT_EQ(internalTree[0].prefixLength, 0);
-    EXPECT_EQ(internalTree[0].prefixLength, 0);
+    EXPECT_EQ(internalTree[0].prefix, 0);
 
     EXPECT_EQ(internalTree[31].prefixLength, 1);
     EXPECT_EQ(internalTree[31].prefix, pad(I(0b0), 1));
@@ -86,38 +86,18 @@ TEST(BinaryTree, internalTree4x4x4PrefixTest)
  */
 
 template<class I>
-std::vector<I> makeExample();
-
-template<>
-std::vector<unsigned> makeExample()
+std::vector<I> makeExample()
 {
-    std::vector<unsigned> ret
+    std::vector<I> ret
         {
-            0b0000001u << 25u,
-            0b0000010u << 25u,
-            0b0000100u << 25u,
-            0b0000101u << 25u,
-            0b0010011u << 25u,
-            0b0011000u << 25u,
-            0b0011001u << 25u,
-            0b0011110u << 25u,
-        };
-    return ret;
-}
-
-template<>
-std::vector<uint64_t> makeExample()
-{
-    std::vector<uint64_t> ret
-        {
-            0b000001ul << 58u,
-            0b000010ul << 58u,
-            0b000100ul << 58u,
-            0b000101ul << 58u,
-            0b010011ul << 58u,
-            0b011000ul << 58u,
-            0b011001ul << 58u,
-            0b011110ul << 58u,
+            pad(I(0b00001), 5),
+            pad(I(0b00010), 5),
+            pad(I(0b00100), 5),
+            pad(I(0b00101), 5),
+            pad(I(0b10011), 5),
+            pad(I(0b11000), 5),
+            pad(I(0b11001), 5),
+            pad(I(0b11110), 5),
         };
     return ret;
 }
@@ -186,12 +166,13 @@ void paperExampleTest()
 
     std::vector<int> refPrefixLengths{0, 3, 4, 2, 1, 2, 4};
 
+    using Node = BinaryNode<I>;
     for (std::size_t idx = 0; idx < internalNodes.size(); ++idx)
     {
-        EXPECT_EQ(internalNodes[idx].leftChild,      refLeft[idx]);
-        EXPECT_EQ(internalNodes[idx].leftLeafIndex,  refLeftIndices[idx]);
-        EXPECT_EQ(internalNodes[idx].rightChild,     refRight[idx]);
-        EXPECT_EQ(internalNodes[idx].rightLeafIndex, refRightIndices[idx]);
+        EXPECT_EQ(internalNodes[idx].child[Node::left], refLeft[idx]);
+        EXPECT_EQ(internalNodes[idx].leafIndex[Node::left],  refLeftIndices[idx]);
+        EXPECT_EQ(internalNodes[idx].child[Node::right], refRight[idx]);
+        EXPECT_EQ(internalNodes[idx].leafIndex[Node::right], refRightIndices[idx]);
         EXPECT_EQ(internalNodes[idx].prefixLength,   refPrefixLengths[idx]);
     }
 }

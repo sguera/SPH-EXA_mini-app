@@ -90,3 +90,35 @@ TEST(SFC, reorder)
     std::vector<double> refX{0,1,3,2,6,5,4,7,8,9};
     EXPECT_EQ(x, refX);
 }
+
+template<class ValueType, class CodeType, class IndexType>
+void CpuGatherTest()
+{
+    std::vector<CodeType> codes{0, 50, 10, 60, 20, 70, 30, 80, 40, 90};
+
+    CpuGather<ValueType, CodeType, IndexType> cpuGather;
+    cpuGather.setMapFromCodes(codes.data(), codes.data() + codes.size());
+
+    {
+        std::vector<CodeType> refCodes{0,10,20,30,40,50,60,70,80,90};
+        EXPECT_EQ(codes, refCodes);
+    }
+
+    std::vector<ValueType>    values{-2, -1, 0,1,2,3,4,5,6,7,8,9, 10, 11};
+    cpuGather(values.data() + 2);
+    std::vector<ValueType> reference{-2, -1, 0,2,4,6,8,1,3,5,7,9, 10, 11};
+
+    EXPECT_EQ(values, reference);
+}
+
+TEST(SFC, CpuGather)
+{
+    CpuGatherTest<float,  unsigned, unsigned>();
+    CpuGatherTest<float,  uint64_t, unsigned>();
+    CpuGatherTest<double, unsigned, unsigned>();
+    CpuGatherTest<double, uint64_t, unsigned>();
+    CpuGatherTest<float,  unsigned, uint64_t>();
+    CpuGatherTest<float,  uint64_t, uint64_t>();
+    CpuGatherTest<double, unsigned, uint64_t>();
+    CpuGatherTest<double, uint64_t, uint64_t>();
+}

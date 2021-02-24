@@ -103,9 +103,9 @@ inline unsigned compactBits(unsigned v)
 
 //! \brief Expands a 21-bit integer into 63 bits by inserting 2 zeros after each bit.
 CUDA_HOST_DEVICE_FUN
-inline std::size_t expandBits(std::size_t v)
+inline uint64_t expandBits(uint64_t v)
 {
-    std::size_t x = v & 0x1fffffu; // discard bits higher 21
+    uint64_t x = v & 0x1fffffu; // discard bits higher 21
     x = (x | x << 32u) & 0x001f00000000fffflu;
     x = (x | x << 16u) & 0x001f0000ff0000fflu;
     x = (x | x << 8u)  & 0x100f00f00f00f00flu;
@@ -118,7 +118,7 @@ inline std::size_t expandBits(std::size_t v)
  *         this inverts expandBits
  */
 CUDA_HOST_DEVICE_FUN
-inline std::size_t compactBits(std::size_t v)
+inline uint64_t compactBits(uint64_t v)
 {
     v &= 0x1249249249249249lu;
     v = (v ^ (v >>  2u)) & 0x10c30c30c30c30c3lu;
@@ -546,10 +546,10 @@ void computeMortonCodes(InputIterator  xBegin,
                         OutputIterator codesBegin,
                         const Box<T>& box)
 {
-    assert(xEnd > xBegin);
+    assert(xEnd >= xBegin);
     using CodeType = std::decay_t<decltype(*codesBegin)>;
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < std::size_t(xEnd-xBegin); ++i)
     {
         codesBegin[i] = morton3D<CodeType>(xBegin[i], yBegin[i], zBegin[i], box);

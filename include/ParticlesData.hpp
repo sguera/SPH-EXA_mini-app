@@ -73,16 +73,25 @@ struct ParticlesData
 {
     using CodeType = I;
 
-    inline void resize(const size_t size)
+    inline void resize(size_t size)
     {
+        size_t current_capacity = data[0]->capacity();
+        if (size > current_capacity)
+        {
+            // limit reallocation growth to 5% instead of 200%
+            size_t reserve_size = double(size) * 1.05; 
+            for (unsigned int i = 0; i < data.size(); ++i)
+            {
+                data[i]->reserve(reserve_size);
+            }
+            codes.reserve(reserve_size);
+        }
+
         for (unsigned int i = 0; i < data.size(); ++i)
         {
-            // call reserve to limit reallocation growth to 1% instead of 200%
-            data[i]->reserve(size * 1.01);
             data[i]->resize(size);
         }
 
-        codes.reserve(size * 1.01);
         codes.resize(size);
 
 #if defined(USE_CUDA)
@@ -151,16 +160,25 @@ template <typename T, typename I>
 struct ParticlesDataEvrard
 {
     using CodeType = I;
-    inline void resize(const size_t size)
+    inline void resize(size_t size)
     {
+        size_t current_capacity = data[0]->capacity();
+        if (size > current_capacity)
+        {
+            // limit reallocation growth to 5% instead of 200%
+            size_t reserve_size = double(size) * 1.05; 
+            for (unsigned int i = 0; i < data.size(); ++i)
+            {
+                data[i]->reserve(reserve_size);
+            }
+            codes.reserve(reserve_size);
+        }
+
         for (unsigned int i = 0; i < data.size(); ++i)
         {
-            // call reserve to limit reallocation growth to 1% instead of 200%
-            data[i]->reserve(size * 1.01);
             data[i]->resize(size);
         }
 
-        codes.reserve(size * 1.01);
         codes.resize(size);
 
 #if defined(USE_CUDA)

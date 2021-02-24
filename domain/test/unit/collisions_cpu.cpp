@@ -188,7 +188,7 @@ INSTANTIATE_TEST_SUITE_P(AnisotropicBoxTraversal,
                          AnisotropicBoxTraversal,
                          testing::ValuesIn(boxLimits));
 
-//! \brief this tree results from 2 particles at (0,0,0) and 2 at (1,1,1) with a bucket size of 1
+//! \brief this tree results from 2 particles at (0,0,0) and at (1,1,1) with a bucket size of 1
 std::vector<unsigned> makeEdgeTree()
 {
     std::vector<unsigned> tree{0, 1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 40, 48, 56, 64, 128, 192, 256, 320, 384,

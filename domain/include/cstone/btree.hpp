@@ -67,23 +67,33 @@
 
 namespace cstone {
 
+using TreeNodeIndex = int;
+
 /*! \brief binary radix tree node
  *
- * @tparam I 32 or 64 bit unsigned integer
+ * @tparam I 32- or 64 bit unsigned integer
  */
 template<class I>
 struct BinaryNode
 {
-    //! \brief pointer to the left child node with one bit longer prefixLength and prefix + 0-bit
-    BinaryNode* leftChild;
-    //! \brief pointer to the left child node with one bit longer prefixLength and prefix + 1-bit
-    BinaryNode* rightChild;
+    enum ChildType{ left = 0, right = 1 };
+
+    /*! \brief pointer to the left and right children nodes
+     *
+     * The left child adds a 0-bit to the prefix, while
+     * the right child adds a 1-bit to the prefix.
+     *
+     * If the child is an octree node, the pointer is nullptr and left/rightLeafIndex
+     * is set instead.
+     */
+    BinaryNode* child[2];
 
     /*! \brief the Morton code prefix
      *
-     * Shared among all the node's children share. Only the first prefixLength bits are relevant.
+     * Shared among all the node's children. Only the first prefixLength bits are relevant.
      */
     I   prefix;
+
     //! \brief number of bits in prefix to interpret
     int prefixLength;
 
@@ -93,8 +103,7 @@ struct BinaryNode
      * this integer stores the index (e.g. the global octree), otherwise it will be set to -1
      * if the children are also internal binary nodes.
      */
-    int leftLeafIndex;
-    int rightLeafIndex;
+    TreeNodeIndex leafIndex[2];
 };
 
 
@@ -202,27 +211,27 @@ void constructInternalNode(const I* codes, int nCodes, BinaryNode<I>* internalNo
     if (std::min(secondIndex, firstIndex) == gamma)
     {
         // left child is a leaf
-        outputNode->leftChild     = nullptr;
-        outputNode->leftLeafIndex = gamma;
+        outputNode->child[BinaryNode<I>::left]    = nullptr;
+        outputNode->leafIndex[BinaryNode<I>::left] = gamma;
     }
     else
     {
         //left child is an internal binary node
-        outputNode->leftChild     = internalNodes + gamma;
-        outputNode->leftLeafIndex = -1;
+        outputNode->child[BinaryNode<I>::left]    = internalNodes + gamma;
+        outputNode->leafIndex[BinaryNode<I>::left] = -1;
     }
 
     if (std::max(secondIndex, firstIndex) == gamma + 1)
     {
         // right child is a leaf
-        outputNode->rightChild     = nullptr;
-        outputNode->rightLeafIndex = gamma + 1;
+        outputNode->child[BinaryNode<I>::right]    = nullptr;
+        outputNode->leafIndex[BinaryNode<I>::right] = gamma + 1;
     }
     else
     {
         // right child is an internal binary node
-        outputNode->rightChild     = internalNodes + gamma + 1;
-        outputNode->rightLeafIndex = -1;
+        outputNode->child[BinaryNode<I>::right]    = internalNodes + gamma + 1;
+        outputNode->leafIndex[BinaryNode<I>::right] = -1;
     }
 }
 

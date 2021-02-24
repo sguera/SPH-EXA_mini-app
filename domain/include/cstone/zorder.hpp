@@ -61,13 +61,13 @@ void sort_invert(InputIterator inBegin, InputIterator inEnd, OutputIterator outB
     std::size_t n   = std::distance(inBegin, inEnd);
 
     // create index sequence 0,1,2,...,n
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < n; ++i)
         outBegin[i] = i;
 
     // zip the input integer array together with the index sequence
     std::vector<std::tuple<ValueType, Integer>> keyIndexPairs(n);
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < n; ++i)
         keyIndexPairs[i] = std::make_tuple(inBegin[i], outBegin[i]);
 
@@ -76,7 +76,7 @@ void sort_invert(InputIterator inBegin, InputIterator inEnd, OutputIterator outB
               [](const auto& t1, const auto& t2){ return std::get<0>(t1) < std::get<0>(t2); });
 
     // extract the resulting ordering
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < n; ++i)
         outBegin[i] = std::get<1>(keyIndexPairs[i]);
 }
@@ -119,10 +119,12 @@ void reorder(const std::vector<I>& ordering, std::vector<ValueType>& array)
     assert(array.size() >= ordering.size());
 
     std::vector<ValueType> tmp(array.size());
+    #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < ordering.size(); ++i)
     {
         tmp[i] = array[ordering[i]];
     }
+    #pragma omp parallel for schedule(static)
     for (std::size_t i = ordering.size(); i < array.size(); ++i)
     {
         tmp[i] = array[i];
@@ -146,16 +148,19 @@ void reorder(const std::vector<I>& ordering, std::vector<ValueType>& array, int 
 
     std::vector<ValueType> tmp(array.size());
 
+    #pragma omp parallel for schedule(static)
     for (int i = 0; i < offset; ++i)
     {
         tmp[i] = array[i];
     }
 
+    #pragma omp parallel for schedule(static)
     for (std::size_t i = 0; i < ordering.size(); ++i)
     {
         tmp[i+offset] = array[ordering[i]+offset];
     }
 
+    #pragma omp parallel for schedule(static)
     for (size_t i = ordering.size()+offset; i < array.size(); ++i)
     {
         tmp[i] = array[i];
@@ -163,5 +168,95 @@ void reorder(const std::vector<I>& ordering, std::vector<ValueType>& array, int 
 
     swap(tmp, array);
 }
+
+
+/*! \brief reorder the input array according to the specified ordering, no reallocation
+ *
+ * \tparam LocalIndex    integer type
+ * \tparam ValueType     float or double
+ * \param ordering       an ordering
+ * \param array          an array, size >= ordering.size()
+ */
+template<class LocalIndex, class ValueType>
+void reorderInPlace(const std::vector<LocalIndex>& ordering, ValueType* array)
+{
+    std::vector<ValueType> tmp(ordering.size());
+    #pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < ordering.size(); ++i)
+    {
+        tmp[i] = array[ordering[i]];
+    }
+    #pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < ordering.size(); ++i)
+    {
+        array[i] = tmp[i];
+    }
+}
+
+//! \brief This class conforms to the same interface as the device version to allow abstraction
+template<class ValueType, class CodeType, class IndexType>
+class CpuGather
+{
+public:
+    CpuGather() = default;
+
+    /*! \brief upload the new reorder map to the device and reallocates buffers if necessary
+     *
+     * If the sequence [map_first:map_last] does not contain each element [0:map_last-map_first]
+     * exactly once, the behavior is undefined.
+     */
+    void setReorderMap(const IndexType* map_first, const IndexType* map_last)
+    {
+        mapSize_ = std::size_t(map_last - map_first);
+        ordering_.resize(mapSize_);
+        std::copy(map_first, map_last, begin(ordering_));
+    }
+
+    void getReorderMap(IndexType* map_first)
+    {
+        std::copy(ordering_.data(), ordering_.data() + mapSize_, map_first);
+    }
+
+    /*! \brief sort given Morton codes on the device and determine reorder map based on sort order
+     *
+     * \param[inout] codes_first   pointer to first Morton code
+     * \param[inout] codes_last    pointer to last Morton code
+     *
+     * Precondition:
+     *   - [codes_first:codes_last] is a continues sequence of accessible elements of size N
+     *
+     * Postcondition
+     *   - [codes_first:codes_last] is sorted
+     *   - subsequent calls to operator() apply a gather operation to the input sequence
+     *     with the map obtained from sort_by_key with [codes_first:codes_last] as the keys
+     *     and the identity permutation as the values
+     *
+     *  Remarks:
+     *    - reallocates space on the device if necessary to fit N elements of type LocalIndex
+     *      and a second buffer of size max(2N*sizeof(T), N*sizeof(I))
+     */
+    void setMapFromCodes(CodeType* codes_first, CodeType* codes_last)
+    {
+        mapSize_ = std::size_t(codes_last - codes_first);
+        ordering_.resize(mapSize_);
+
+        sort_invert(codes_first, codes_last, begin(ordering_));
+        reorderInPlace(ordering_, codes_first);
+    }
+
+    /*! \brief reorder the array \a values according to the reorder map provided previously
+     *
+     * \a values must have at least as many elements as the reorder map provided in the last call
+     * to setReorderMap or setMapFromCodes, otherwise the behavior is undefined.
+     */
+    void operator()(ValueType* values)
+    {
+        reorderInPlace(ordering_, values);
+    }
+
+private:
+    std::size_t mapSize_{0};
+    std::vector<IndexType> ordering_;
+};
 
 } // namespace cstone

@@ -82,7 +82,7 @@ TEST(Layout, flattenNodeList)
 TEST(Layout, computeLayoutOffsets)
 {
     int nNodes = 32;
-    std::vector<std::size_t> nodeCounts(nNodes, 1);
+    std::vector<unsigned> nodeCounts(nNodes, 1);
 
     // nodes 4-9 and 23-27 are local nodes
     std::vector<int> localNodes{4,10,23,28};

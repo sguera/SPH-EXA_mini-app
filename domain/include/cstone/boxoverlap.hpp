@@ -175,8 +175,8 @@ IBox makeHaloBox(I codeStart, I codeEnd, int dx, int dy, int dz,
 }
 
 //! \brief create a box with specified radius around node delineated by codeStart/End
-template <class I, class T>
-IBox makeHaloBox(I codeStart, I codeEnd, T radius, const Box<T>& box)
+template <class CoordinateType, class RadiusType, class I>
+IBox makeHaloBox(I codeStart, I codeEnd, RadiusType radius, const Box<CoordinateType>& box)
 {
     // disallow boxes with no volume
     assert(codeEnd > codeStart);

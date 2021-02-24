@@ -38,10 +38,10 @@
 namespace cstone
 {
 
-template<class T, class... Arrays>
+template<class T, class IndexType, class... Arrays>
 void exchangeParticlesImpl(const SendList& sendList, int thisRank, std::size_t nParticlesAssigned,
-                           int inputOffset, int outputOffset,
-                           const int* ordering, T* tempBuffer, Arrays... arrays)
+                           IndexType inputOffset, IndexType outputOffset,
+                           const IndexType* ordering, T* tempBuffer, Arrays... arrays)
 {
     constexpr int nArrays = sizeof...(Arrays);
     std::array<T*, nArrays> sourceArrays{ (arrays + inputOffset)... };
@@ -121,9 +121,20 @@ template<class... Arrays>
 void reallocate(std::size_t size, Arrays&... arrays)
 {
     std::array data{ (&arrays)... };
+
+    size_t current_capacity = data[0]->capacity();
+    if (size > current_capacity)
+    {
+        // limit reallocation growth to 5% instead of 200%
+        size_t reserve_size = double(size) * 1.05;
+        for (auto array : data)
+        {
+            array->reserve(reserve_size);
+        }
+    }
+
     for (auto array : data)
     {
-        array->reserve(size);
         array->resize(size);
     }
 }
@@ -168,11 +179,11 @@ void reallocate(std::size_t size, Arrays&... arrays)
  *      ordering.size() == nOldAssignment
  *      *std::max_element(begin(ordering), end(ordering)) == nOldAssignment - 1
  */
-template<class T, class... Arrays>
-void exchangeParticles(const SendList& sendList, Rank thisRank, int nParticlesAssigned,
-                       int inputOffset, int outputOffset, const int* ordering, Arrays... arrays)
+template<class T, class IndexType, class... Arrays>
+void exchangeParticles(const SendList& sendList, Rank thisRank, IndexType nParticlesAssigned,
+                       IndexType inputOffset, IndexType outputOffset, const IndexType* ordering, Arrays... arrays)
 {
-    int nParticlesAlreadyPresent = sendList[thisRank].totalCount();
+    IndexType nParticlesAlreadyPresent = sendList[thisRank].totalCount();
     std::vector<T> tempBuffer(nParticlesAlreadyPresent);
     exchangeParticlesImpl(sendList, thisRank, nParticlesAssigned, inputOffset, outputOffset,
                           ordering, tempBuffer.data(), arrays...);
@@ -194,9 +205,9 @@ void exchangeParticles(const SendList& sendList, Rank thisRank, int nParticlesAs
  *
  * See documentation of exchangeParticles with the full signature
  */
-template<class T, class... Arrays>
-void exchangeParticles(const SendList& sendList, Rank thisRank, int nParticlesAssigned,
-                       const int* ordering, Arrays... arrays)
+template<class T, class IndexType, class... Arrays>
+void exchangeParticles(const SendList& sendList, Rank thisRank, IndexType nParticlesAssigned,
+                       const IndexType* ordering, Arrays... arrays)
 {
     exchangeParticles<T>(sendList, thisRank, nParticlesAssigned, 0, 0, ordering, arrays...);
 }

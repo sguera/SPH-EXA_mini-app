@@ -243,7 +243,7 @@ private:
  *
  */
 template<class I>
-SpaceCurveAssignment<I> singleRangeSfcSplit(const std::vector<I>& globalTree, const std::vector<std::size_t>& globalCounts,
+SpaceCurveAssignment<I> singleRangeSfcSplit(const std::vector<I>& globalTree, const std::vector<unsigned>& globalCounts,
                                             int nSplits)
 {
     // one element per rank
@@ -298,7 +298,7 @@ SpaceCurveAssignment<I> singleRangeSfcSplit(const std::vector<I>& globalTree, co
 }
 
 //! \brief stores one or multiple index ranges of local particles to send out to another rank
-using SendManifest = IndexRanges<int>; // works if there are < 2^31 local particles
+using SendManifest = IndexRanges<unsigned>; // works if there are < 2^32 local particles
 //! \brief SendList will contain one manifest per rank
 using SendList     = std::vector<SendManifest>;
 
@@ -342,8 +342,8 @@ SendList createSendList(const SpaceCurveAssignment<I>& assignment, const I* code
     return ret;
 }
 
-template<class T>
-void extractRange(const SendManifest& manifest, const T* source, const int* ordering, T* destination)
+template<class T, class IndexType>
+void extractRange(const SendManifest& manifest, const T* source, const IndexType* ordering, T* destination)
 {
     int idx = 0;
     for (std::size_t rangeIndex = 0; rangeIndex < manifest.nRanges(); ++rangeIndex)
@@ -360,9 +360,9 @@ void extractRange(const SendManifest& manifest, const T* source, const int* orde
  *                   if source is space-curve-sorted, \a ordering is the trivial 0,1,...,n sequence
  * \return           the send buffer
  */
-template<class T>
+template<class T, class IndexType>
 std::vector<T> createSendBuffer(const SendManifest& manifest, const T* source,
-                                const int* ordering)
+                                const IndexType* ordering)
 {
     int sendSize = manifest.totalCount();
 

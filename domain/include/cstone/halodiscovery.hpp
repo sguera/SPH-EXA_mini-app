@@ -42,8 +42,9 @@ namespace cstone
 
 /*! \brief Compute halo node pairs
  *
+ * @tparam CoordinateType      float or double
+ * @tparam RadiusType          float or double, float is sufficient for 64-bit codes or less
  * @tparam I                   32- or 64-bit unsigned integer
- * @tparam T                   float or double
  * @param tree                 cornerstone octree
  * @param interactionRadii     effective halo search radii per octree (leaf) node
  * @param box                  coordinate bounding box
@@ -66,10 +67,10 @@ namespace cstone
  * The source rank of the halo is also the destination where the internal node referenced in the first
  * pair element must be sent to.
  */
-template<class I, class T>
+template<class CoordinateType, class RadiusType, class I>
 void findHalos(const std::vector<I>&           tree,
-               const std::vector<T>&           interactionRadii,
-               const Box<T>&                   box,
+               const std::vector<RadiusType>&  interactionRadii,
+               const Box<CoordinateType>&      box,
                const SpaceCurveAssignment<I>&  assignment,
                int                             rank,
                std::vector<pair<int>>&         haloPairs)
@@ -91,7 +92,7 @@ void findHalos(const std::vector<I>&           tree,
             for (int nodeIdx = firstNode; nodeIdx < lastNode; ++nodeIdx)
             {
                 CollisionList collisions;
-                T radius = interactionRadii[nodeIdx];
+                RadiusType radius = interactionRadii[nodeIdx];
 
                 IBox haloBox = makeHaloBox(tree[nodeIdx], tree[nodeIdx + 1], radius, box);
 

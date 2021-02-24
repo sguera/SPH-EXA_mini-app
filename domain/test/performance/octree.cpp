@@ -68,7 +68,8 @@ int main()
 
     auto [tree2, counts2] = computeOctree(randomBox.mortonCodes().data(),
                                           randomBox.mortonCodes().data() + nParticles,
-                                          bucketSize, std::move(tree));
+                                          bucketSize, std::numeric_limits<unsigned>::max(),
+                                          std::move(tree));
 
     tp1  = std::chrono::high_resolution_clock::now();
 

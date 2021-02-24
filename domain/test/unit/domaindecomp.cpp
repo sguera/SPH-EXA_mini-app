@@ -45,8 +45,8 @@ TEST(DomainDecomposition, singleRangeSfcSplit)
     using CodeType = unsigned;
     {
         int nSplits = 2;
-        std::vector<std::size_t> counts{5, 5, 5, 5, 5, 6};
-        std::vector<CodeType>    tree{0, 1, 2, 3, 4, 5, 6};
+        std::vector<unsigned> counts{5, 5, 5, 5, 5, 6};
+        std::vector<CodeType> tree{0, 1, 2, 3, 4, 5, 6};
 
         auto splits = singleRangeSfcSplit(tree, counts, nSplits);
 
@@ -57,8 +57,8 @@ TEST(DomainDecomposition, singleRangeSfcSplit)
     }
     {
         int nSplits = 2;
-        std::vector<std::size_t> counts{5, 5, 5, 15, 1, 0};
-        std::vector<CodeType>    tree{0, 1, 2, 3, 4, 5, 6};
+        std::vector<unsigned> counts{5, 5, 5, 15, 1, 0};
+        std::vector<CodeType> tree{0, 1, 2, 3, 4, 5, 6};
 
         auto splits = singleRangeSfcSplit(tree, counts, nSplits);
 
@@ -69,8 +69,8 @@ TEST(DomainDecomposition, singleRangeSfcSplit)
     }
     {
         int nSplits = 2;
-        std::vector<std::size_t> counts{15, 0, 1, 5, 5, 5};
-        std::vector<CodeType>    tree{0, 1, 2, 3, 4, 5, 6};
+        std::vector<unsigned> counts{15, 0, 1, 5, 5, 5};
+        std::vector<CodeType> tree{0, 1, 2, 3, 4, 5, 6};
 
         auto splits = singleRangeSfcSplit(tree, counts, nSplits);
 
@@ -81,7 +81,7 @@ TEST(DomainDecomposition, singleRangeSfcSplit)
     }
     {
         int nSplits = 7;
-        std::vector<std::size_t> counts{4, 3, 4, 3, 4, 3, 4, 3, 4, 3};
+        std::vector<unsigned> counts{4, 3, 4, 3, 4, 3, 4, 3, 4, 3};
         // should be grouped |4|7|3|7|4|7|3|
         std::vector<CodeType> tree{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
@@ -212,7 +212,7 @@ void assignSendRandomData()
                                                 coords.mortonCodes().data() + nParticles,
                                                 bucketSize);
 
-    int nSplits = 4;
+    int  nSplits    = 4;
     auto assignment = singleRangeSfcSplit(tree, counts, nSplits);
 
     /// all splits except the last one should at least be assigned nParticles/nSplits

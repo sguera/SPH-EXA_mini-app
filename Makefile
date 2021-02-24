@@ -12,13 +12,13 @@ BUILDDIR := build
 BINDIR := bin
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
-CUDA_OBJS := $(BUILDDIR)/findneighbors.o $(BUILDDIR)/cudaDensity.o $(BUILDDIR)/cudaIAD.o $(BUILDDIR)/cudaMomentumAndEnergyIAD.o
+CUDA_OBJS := $(BUILDDIR)/gather.o $(BUILDDIR)/findneighbors.o $(BUILDDIR)/cudaDensity.o $(BUILDDIR)/cudaIAD.o $(BUILDDIR)/cudaMomentumAndEnergyIAD.o
 
 RELEASE := -DNDEBUG
 DEBUG := -D__DEBUG -D_GLIBCXX_DEBUG
 
 # cuda architecture targets
-SMS ?= 35 60 70 75 80
+SMS ?= 35 60 70 75
 $(foreach sm,$(SMS),$(eval GENCODE_FLAGS += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
 INC += -Isrc -Iinclude -Idomain/include -I$(CUDA_PATH)/include

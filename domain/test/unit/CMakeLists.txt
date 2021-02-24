@@ -14,6 +14,7 @@ set(UNIT_TESTS
         layout.cpp
         morton.cpp
         octree.cpp
+        octree_internal.cpp
         octree_util.cpp
         zorder.cpp
         test_main.cpp)

@@ -126,7 +126,8 @@ template <class I>
 void findCollisions(const BinaryNode<I>* internalRoot, const I* leafNodes, CollisionList& collisionList,
                     const IBox& collisionBox)
 {
-    using NodePtr = BinaryNode<I>*;
+    using Node    = BinaryNode<I>;
+    using NodePtr = const Node*;
 
     NodePtr  stack[64];
     NodePtr* stackPtr = stack;
@@ -137,14 +138,14 @@ void findCollisions(const BinaryNode<I>* internalRoot, const I* leafNodes, Colli
 
     do
     {
-        bool traverseL = traverseNode(node->leftChild, collisionBox);
-        bool traverseR = traverseNode(node->rightChild, collisionBox);
+        bool traverseL = traverseNode(node->child[Node::left], collisionBox);
+        bool traverseR = traverseNode(node->child[Node::right], collisionBox);
 
-        bool overlapLeafL = leafOverlap(node->leftLeafIndex, leafNodes, collisionBox);
-        bool overlapLeafR = leafOverlap(node->rightLeafIndex, leafNodes, collisionBox);
+        bool overlapLeafL = leafOverlap(node->leafIndex[Node::left], leafNodes, collisionBox);
+        bool overlapLeafR = leafOverlap(node->leafIndex[Node::right], leafNodes, collisionBox);
 
-        if (overlapLeafL) collisionList.add(node->leftLeafIndex);
-        if (overlapLeafR) collisionList.add(node->rightLeafIndex);
+        if (overlapLeafL) collisionList.add(node->leafIndex[Node::left]);
+        if (overlapLeafR) collisionList.add(node->leafIndex[Node::right]);
 
         if (!traverseL and !traverseR)
         {
@@ -158,10 +159,10 @@ void findCollisions(const BinaryNode<I>* internalRoot, const I* leafNodes, Colli
                 {
                     throw std::runtime_error("btree traversal stack exhausted\n");
                 }
-                *stackPtr++ = node->rightChild; // push
+                *stackPtr++ = node->child[Node::right]; // push
             }
 
-            node = (traverseL) ? node->leftChild : node->rightChild;
+            node = (traverseL) ? node->child[Node::left] : node->child[Node::right];
         }
 
     } while (node != nullptr);

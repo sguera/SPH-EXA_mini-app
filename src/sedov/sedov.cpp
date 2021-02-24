@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     std::ostream &output = quiet ? nullOutput : std::cout;
 
     using Real = double;
-    using CodeType = unsigned;
+    using CodeType = uint64_t;
     using Dataset = ParticlesData<Real, CodeType>;
 
     const IFileWriter<Dataset> &fileWriter = SedovMPIFileWriter<Dataset>();
@@ -58,14 +58,17 @@ int main(int argc, char **argv)
     std::ofstream constantsFile(outDirectory + "constants.txt");
 
     // -n 350, 42M per node
-    const int bucketSize = 512;
+    const int bucketSize = 4096;
     cstone::Box<Real> box{d.bbox.xmin, d.bbox.xmax, d.bbox.ymin, d.bbox.ymax,
                           d.bbox.zmin, d.bbox.zmax, d.bbox.PBCx, d.bbox.PBCy, d.bbox.PBCz};
+#ifdef USE_CUDA
+    cstone::Domain<CodeType, Real, cstone::CudaTag> domain(rank, d.nrank, bucketSize, box);
+#else
     cstone::Domain<CodeType, Real> domain(rank, d.nrank, bucketSize, box);
+#endif
 
     if(d.rank == 0) std::cout << "Domain created." << std::endl;
 
-    //std::vector<CodeType> codes;
     domain.sync(d.x, d.y, d.z, d.h, d.codes, d.m, d.mui, d.u, d.vx, d.vy, d.vz,
                 d.x_m1, d.y_m1, d.z_m1, d.du_m1, d.dt_m1);
 

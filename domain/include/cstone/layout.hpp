@@ -114,11 +114,12 @@ static std::vector<int> flattenNodeList(const std::vector<std::vector<int>>& gro
  * @param offsets[out]       Will contain an offset index for each node in \a presentNodes,
  *                           indicating its position in the particle x,y,z,... buffers
  */
+template<class IndexType>
 static void computeLayoutOffsets(const std::vector<int>& localNodeRanges,
                                  const std::vector<int>& haloNodes,
-                                 const std::vector<std::size_t>& globalNodeCounts,
+                                 const std::vector<unsigned>& globalNodeCounts,
                                  std::vector<int>& presentNodes,
-                                 std::vector<int>& offsets)
+                                 std::vector<IndexType>& offsets)
 {
     // add all halo nodes to present
     std::copy(begin(haloNodes), end(haloNodes), std::back_inserter(presentNodes));
@@ -146,7 +147,7 @@ static void computeLayoutOffsets(const std::vector<int>& localNodeRanges,
 
     offsets.resize(presentNodes.size() + 1);
     {
-        int offset = 0;
+        IndexType offset = 0;
         for (std::size_t i = 0; i < presentNodes.size(); ++i)
         {
             offsets[i] = offset;
@@ -172,9 +173,10 @@ static void computeLayoutOffsets(const std::vector<int>& localNodeRanges,
  * @return                    For each rank, the returned sendList has one or multiple ranges of indices
  *                            of local particle arrays to send or receive.
  */
+template<class IndexType>
 static SendList createHaloExchangeList(const std::vector<std::vector<int>>& outgoingHaloNodes,
                                        const std::vector<int>& presentNodes,
-                                       const std::vector<int>& nodeOffsets)
+                                       const std::vector<IndexType>& nodeOffsets)
 {
     SendList sendList(outgoingHaloNodes.size());
 
@@ -182,10 +184,10 @@ static SendList createHaloExchangeList(const std::vector<std::vector<int>>& outg
     {
         for (int globalNodeIndex : outgoingHaloNodes[rank])
         {
-            int localIndex = std::lower_bound(begin(presentNodes), end(presentNodes), globalNodeIndex)
+            int localNodeIndex = std::lower_bound(begin(presentNodes), end(presentNodes), globalNodeIndex)
                                 - begin(presentNodes);
 
-            sendList[rank].addRange(nodeOffsets[localIndex], nodeOffsets[localIndex+1]);
+            sendList[rank].addRange(nodeOffsets[localNodeIndex], nodeOffsets[localNodeIndex+1]);
         }
     }
 

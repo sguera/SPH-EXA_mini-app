@@ -64,7 +64,7 @@ TEST(BinaryTreeTraversal, collisionList)
  *
  * The example constructs a 4x4x4 regular octree with 64 nodes. A haloBox
  * with coordinates [-1,1]^3 will collide with all 8 nodes in the corners of the tree.
- * and the same happens for a haloBox at the opposite diagonal end with
+ * The same happens for a haloBox at the opposite diagonal end with
  * coordinates [2^(10 or 21)-1, 2^(10 or 21)+1]^3.
  */
 template<class I>
@@ -82,18 +82,20 @@ void pbcCollision()
         std::vector<int> collided(collisions.begin(), collisions.end());
         std::sort(begin(collided), end(collided));
 
-        int deltaLevel = maxTreeLevel<I>{} - 2;
-        I   l2factor    = (1ul<<deltaLevel) * (1ul<<deltaLevel) * (1u<<deltaLevel);
-        // reference from x,y,z coordinates in [0,4], illustrates that all 8 corners collide
+        constexpr int level2 = 2;
+        // nLevel2Codes is the number of Morton codes that a level2 node can cover,
+        // corresponding to the number of contained octree leaf nodes at the maximum division level
+        I nLevel2Codes = 1ul<<(3*(maxTreeLevel<I>{} - level2)); // 8^(maxLevel - 2)
+        // reference from level-2 ix,iy,iz coordinates in [0:4], illustrates that all 8 corners collide
         std::vector<int> refCollided{
-                int(codeFromBox<I>(0,0,0,2) / l2factor),
-                int(codeFromBox<I>(0,0,3,2) / l2factor),
-                int(codeFromBox<I>(0,3,0,2) / l2factor),
-                int(codeFromBox<I>(0,3,3,2) / l2factor),
-                int(codeFromBox<I>(3,0,0,2) / l2factor),
-                int(codeFromBox<I>(3,0,3,2) / l2factor),
-                int(codeFromBox<I>(3,3,0,2) / l2factor),
-                int(codeFromBox<I>(3,3,3,2) / l2factor),
+                int(codeFromBox<I>(0,0,0,level2) / nLevel2Codes),
+                int(codeFromBox<I>(0,0,3,level2) / nLevel2Codes),
+                int(codeFromBox<I>(0,3,0,level2) / nLevel2Codes),
+                int(codeFromBox<I>(0,3,3,level2) / nLevel2Codes),
+                int(codeFromBox<I>(3,0,0,level2) / nLevel2Codes),
+                int(codeFromBox<I>(3,0,3,level2) / nLevel2Codes),
+                int(codeFromBox<I>(3,3,0,level2) / nLevel2Codes),
+                int(codeFromBox<I>(3,3,3,level2) / nLevel2Codes),
         };
         // node indices of the 8 corners in a level-2 tree with 4x4x4=64 nodes
         // explicitly specified
