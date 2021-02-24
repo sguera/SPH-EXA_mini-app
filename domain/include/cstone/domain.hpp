@@ -291,6 +291,7 @@ public:
         // are received in arbitrary order.
         {
             std::array<std::vector<T>*, 4 + sizeof...(Vectors)> particleArrays{&x, &y, &z, &h, &particleProperties...};
+            #pragma omp parallel for
             for (std::size_t i = 0; i < particleArrays.size(); ++i)
             {
                 reorderFunctor(particleArrays[i]->data() + particleStart_) ;
