@@ -312,6 +312,52 @@ inline pair<int> decodeZRange(I code, int length)
     return ret;
 }
 
+/*! \brief compute the X coordinate for a given morton code inside a given box
+ *
+ * @tparam I      32- or 64-bit unsigned integer
+ * @tparam T      float or double
+ * @param code    A morton code
+ * @param box     Number of bits to consider for calculating the upper range limit
+ * @return        The corresponding X coordinate for the input code in the given box
+ */
+template<class I, class T>
+CUDA_HOST_DEVICE_FUN
+inline T decodeXCoordinate(I code, const Box<T> &bbox)
+{
+    constexpr int maxCoord = 1u<<maxTreeLevel<I>{};
+    constexpr T uL = T(1.) / maxCoord; // uL = unitLength
+    int ixBox = decodeMortonX(code);
+    T ret = bbox.xmin() + ixBox * uL * bbox.lx();
+
+    return ret;
+}
+
+//! \brief see decodeXCoordinate
+template<class I, class T>
+CUDA_HOST_DEVICE_FUN
+inline T decodeYCoordinate(I code, const Box<T> &bbox)
+{
+    constexpr int maxCoord = 1u<<maxTreeLevel<I>{};
+    constexpr T uL = T(1.) / maxCoord; // uL = unitLength
+    int iyBox = decodeMortonY(code);
+    T ret = bbox.ymin() + iyBox * uL * bbox.ly();
+
+    return ret;
+}
+
+//! \brief see decodeXCoordinate
+template<class I, class T>
+CUDA_HOST_DEVICE_FUN
+inline T decodeZCoordinate(I code, const Box<T> &bbox)
+{
+    constexpr int maxCoord = 1u<<maxTreeLevel<I>{};
+    constexpr T uL = T(1.) / maxCoord; // uL = unitLength
+    int izBox = decodeMortonZ(code);
+    T ret = bbox.zmin() + izBox * uL * bbox.lz();
+
+    return ret;
+}
+
 //! \brief cut down the input morton code to the start code of the enclosing box at <treeLevel>
 template<class I>
 CUDA_HOST_DEVICE_FUN
