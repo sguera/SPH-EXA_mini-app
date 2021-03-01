@@ -1,11 +1,24 @@
+#include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
+
+// hard code MPI for now
+#ifndef USE_MPI
+#define USE_MPI
+#endif
+
+#include "cstone/domain.hpp"
+#include "gravity.hpp"
 
 #include "sphexa.hpp"
 #include "EvrardCollapseInputFileReader.hpp"
 #include "EvrardCollapseFileWriter.hpp"
 
+#include "sph/findNeighborsSfc.hpp"
+
 using namespace sphexa;
+using namespace cstone;
 
 void printHelp(char *binName, int rank);
 
@@ -35,108 +48,110 @@ int main(int argc, char **argv)
     std::ostream &output = quiet ? nullOutput : std::cout;
 
     using Real = double;
-    using Dataset = ParticlesDataEvrard<Real>;
-    using Tree = GravityOctree<Real>;
+    //using CodeType = uint64_t;
+    using CodeType = uint32_t;
+    using Dataset = ParticlesDataEvrard<Real, CodeType>;
 
-#ifdef USE_MPI
-    DistributedDomain<Real, Dataset, Tree> domain;
     const IFileReader<Dataset> &fileReader = EvrardCollapseMPIInputFileReader<Dataset>();
     const IFileWriter<Dataset> &fileWriter = EvrardCollapseMPIFileWriter<Dataset>();
-#else
-    Domain<Real, Dataset, Tree> domain;
-    const IFileReader<Dataset> &fileReader = EvrardCollapseInputFileReader<Dataset>();
-    const IFileWriter<Dataset> &fileWriter = EvrardCollapseFileWriter<Dataset>();
-#endif
 
     auto d = checkpointInput.empty() ? fileReader.readParticleDataFromBinFile(inputFilePath, nParticles)
                                      : fileReader.readParticleDataFromCheckpointBinFile(checkpointInput);
 
     const Printer<Dataset> printer(d);
 
+    if(d.rank == 0) std::cout << "Data generated." << std::endl;
+
     MasterProcessTimer timer(output, d.rank), totalTimer(output, d.rank);
 
     std::ofstream constantsFile(outDirectory + "constants.txt");
 
-    Tree::bucketSize = 64;
-    Tree::minGlobalBucketSize = 512;
-    Tree::maxGlobalBucketSize = 2048;
-    // Tree::minGlobalBucketSize = 1;
-    // Tree::maxGlobalBucketSize = 1;
+    // -n 350, 42M per node
+    const int bucketSize = 4096;
+    cstone::Box<Real> box{d.bbox.xmin, d.bbox.xmax, d.bbox.ymin, d.bbox.ymax,
+                          d.bbox.zmin, d.bbox.zmax, d.bbox.PBCx, d.bbox.PBCy, d.bbox.PBCz};
+#ifdef USE_CUDA
+    cstone::Domain<CodeType, Real, cstone::CudaTag> domain(rank, d.nrank, bucketSize, box);
+#else
+    cstone::Domain<CodeType, Real> domain(rank, d.nrank, bucketSize, box);
+#endif
 
-    domain.create(d);
+    if(d.rank == 0) std::cout << "Domain created." << std::endl;
+
+    domain.sync(d.x, d.y, d.z, d.h, d.codes, d.m, d.mui, d.u, d.vx, d.vy, d.vz,
+                d.x_m1, d.y_m1, d.z_m1, d.du_m1, d.dt_m1);
+
+    std::vector<int> clist(domain.nParticles());
+    std::iota(begin(clist), end(clist), domain.startIndex());
+
+    if(d.rank == 0) std::cout << "Domain synchronized, nLocalParticles " << d.x.size() << std::endl;
 
     const size_t nTasks = 64;
-    const size_t ng0 = 100;
     const size_t ngmax = 150;
-    TaskList taskList = TaskList(domain.clist, nTasks, ngmax, ng0);
-    using namespace std::chrono_literals;
+    const size_t ng0 = 100;
+    TaskList taskList = TaskList(clist, nTasks, ngmax, ng0);
+
+    if(d.rank == 0) std::cout << "Starting main loop." << std::endl;
 
     totalTimer.start();
     for (d.iteration = 0; d.iteration <= maxStep; d.iteration++)
     {
         timer.start();
-        domain.update(d);
-        timer.step("domain::update");
-        domain.synchronizeHalos(&d.x, &d.y, &d.z, &d.h, &d.m);
-        timer.step("mpi::synchronizeHalos");
-        domain.buildTree(d);
-        timer.step("BuildTree");
-        domain.octree.buildGlobalGravityTree(d.x, d.y, d.z, d.m);
-        timer.step("BuildGlobalGravityTree");
-        taskList.update(domain.clist);
+        domain.sync(d.x, d.y, d.z, d.h, d.codes, d.m, d.mui, d.u, d.vx, d.vy, d.vz,
+                    d.x_m1, d.y_m1, d.z_m1, d.du_m1, d.dt_m1);
+        timer.step("domain::sync");
+
+        d.resize(domain.nParticlesWithHalos());  // also resize arrays not listed in sync, even though space for halos is not needed
+        clist.resize(domain.nParticles());
+        std::iota(begin(clist), end(clist), domain.startIndex());
+        //domain.exchangeHalos(d.m);
+        std::fill(begin(d.m), begin(d.m) + domain.startIndex(), d.m[domain.startIndex()]);
+        std::fill(begin(d.m) + domain.endIndex(), begin(d.m) + domain.nParticlesWithHalos(), d.m[domain.startIndex()]);
+
+        taskList.update(clist);
         timer.step("updateTasks");
-        auto rankToParticlesForRemoteGravCalculations = sph::gravityTreeWalk(taskList.tasks, domain.octree, d);
-        timer.step("Gravity (self)");
-        sph::remoteGravityTreeWalks<Real>(domain.octree, d, rankToParticlesForRemoteGravCalculations, timeRemoteGravitySteps);
-        timer.step("Gravity (remote contributions)");
-#ifdef USE_MPI
-        // This barrier is only just to check how imbalanced gravity is.
-        // Can be removed safely if not needed.
-        MPI_Barrier(d.comm);
-        timer.step("Gravity (remote contributions) Barrier");
-#endif
-        sph::findNeighbors(domain.octree, taskList.tasks, d);
+
+        // BEGIN GRAVITY
+        gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
+        gravity::buildGlobalGravityTree(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
+        // END GRAVITY
+
+        sph::findNeighborsSfc(taskList.tasks, d.x, d.y, d.z, d.h, d.codes, domain.box());
         timer.step("FindNeighbors");
-        sph::computeDensity<Real>(taskList.tasks, d);
-        if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList.tasks, d); }
+        if(!clist.empty()) sph::computeDensity<Real>(taskList.tasks, d);
         timer.step("Density");
         sph::computeEquationOfStateEvrard<Real>(taskList.tasks, d);
         timer.step("EquationOfState");
-        domain.synchronizeHalos(&d.vx, &d.vy, &d.vz, &d.ro, &d.p, &d.c);
+        domain.exchangeHalos(d.vx, d.vy, d.vz, d.ro, d.p, d.c);
         timer.step("mpi::synchronizeHalos");
-        sph::computeIAD<Real>(taskList.tasks, d);
+        if(!clist.empty()) sph::computeIAD<Real>(taskList.tasks, d);
         timer.step("IAD");
-        domain.synchronizeHalos(&d.c11, &d.c12, &d.c13, &d.c22, &d.c23, &d.c33);
+        domain.exchangeHalos(d.c11, d.c12, d.c13, d.c22, d.c23, d.c33);
         timer.step("mpi::synchronizeHalos");
-        sph::computeMomentumAndEnergyIAD<Real>(taskList.tasks, d);
+        if(!clist.empty()) sph::computeMomentumAndEnergyIAD<Real>(taskList.tasks, d);
         timer.step("MomentumEnergyIAD");
-        sph::computeTimestep<Real, sph::TimestepKCourant<Real, Dataset>>(taskList.tasks, d);
+        sph::computeTimestep<Real, sph::TimestepPress2ndOrder<Real, Dataset>>(taskList.tasks, d);
         timer.step("Timestep"); // AllReduce(min:dt)
-        sph::computePositions<Real, sph::computeAccelerationWithGravity<Real, Dataset>, Dataset>(taskList.tasks, d);
+        sph::computePositions<Real, sph::computeAcceleration<Real, Dataset>>(taskList.tasks, d);
         timer.step("UpdateQuantities");
-        sph::computeTotalEnergyWithGravity<Real>(taskList.tasks, d);
+        sph::computeTotalEnergy<Real>(taskList.tasks, d);
         timer.step("EnergyConservation"); // AllReduce(sum:ecin,ein)
         sph::updateSmoothingLength<Real>(taskList.tasks, d);
-        timer.step("UpdateSmoothingLength"); // AllReduce(sum:ecin,ein)
+        timer.step("UpdateSmoothingLength");
 
         const size_t totalNeighbors = sph::neighborsSum(taskList.tasks);
+
         if (d.rank == 0)
         {
-            // printer.printRadiusAndGravityForce(domain.clist, fxFile);
-            // printer.printTree(domain.octree, treeFile);
-            printer.printCheck(d.count, domain.octree.globalNodeCount, d.x.size() - d.count, totalNeighbors, output);
+            printer.printCheck(domain.nParticles(), domain.tree().size(), d.x.size() - domain.nParticles(), totalNeighbors, output);
             printer.printConstants(d.iteration, totalNeighbors, constantsFile);
         }
 
         if ((writeFrequency > 0 && d.iteration % writeFrequency == 0) || writeFrequency == 0)
         {
-            fileWriter.dumpParticleDataToAsciiFile(d, domain.clist, outDirectory + "dump_evrard" + std::to_string(d.iteration) + ".txt");
+            fileWriter.dumpParticleDataToAsciiFile(d, clist, outDirectory + "dump_Sedov" + std::to_string(d.iteration) + ".txt");
+            fileWriter.dumpParticleDataToBinFile(d, outDirectory + "dump_Sedov" + std::to_string(d.iteration) + ".bin");
             timer.step("writeFile");
-        }
-        if (checkpointFrequency > 0 && d.iteration % checkpointFrequency == 0)
-        {
-            fileWriter.dumpCheckpointDataToBinFile(d, outDirectory + "checkpoint_evrard" + std::to_string(d.iteration) + ".bin");
-            timer.step("Save Checkpoint File");
         }
 
         timer.stop();
@@ -144,7 +159,7 @@ int main(int argc, char **argv)
         if (d.rank == 0) printer.printTotalIterationTime(timer.duration(), output);
     }
 
-    totalTimer.step("Total execution time of " + std::to_string(maxStep) + " iterations of Evrard Collapse");
+    totalTimer.step("Total execution time of " + std::to_string(maxStep) + " iterations of Sedov");
 
     constantsFile.close();
 
@@ -158,16 +173,12 @@ void printHelp(char *name, int rank)
         printf("\nUsage:\n\n");
         printf("%s [OPTIONS]\n", name);
         printf("\nWhere possible options are:\n");
-        printf("\t-n NUM \t\t\t NUM Number of particles\n");
+        printf("\t-n NUM \t\t\t NUM^3 Number of particles\n");
         printf("\t-s NUM \t\t\t NUM Number of iterations (time-steps)\n");
-        printf("\t-w NUM \t\t\t Dump particles data every NUM iterations (time-steps)\n");
-        printf("\t-c NUM \t\t\t Create checkpoint every NUM iterations (time-steps)\n\n");
+        printf("\t-w NUM \t\t\t Dump particles data every NUM iterations (time-steps)\n\n");
 
-        printf("\t--quiet \t\t Don't print anything to stdout\n");
-        printf("\t--timeRemoteGravity \t Print times of gravity treewalk steps for each node\n\n");
+        printf("\t--quiet \t\t Don't print anything to stdout\n\n");
 
-        printf("\t--input PATH \t\t Path to input file\n");
-        printf("\t--cinput PATH \t\t Path to checkpoint input file\n");
         printf("\t--outDir PATH \t\t Path to directory where output will be saved.\
                     \n\t\t\t\t Note that directory must exist and be provided with ending slash.\
                     \n\t\t\t\t Example: --outDir /home/user/folderToSaveOutputFiles/\n");
