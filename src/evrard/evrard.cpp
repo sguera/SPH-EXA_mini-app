@@ -9,7 +9,7 @@
 #endif
 
 #include "cstone/domain.hpp"
-#include "gravity.hpp"
+#include "barnes-hut/gravity.hpp"
 
 #include "sphexa.hpp"
 #include "EvrardCollapseInputFileReader.hpp"
@@ -112,8 +112,13 @@ int main(int argc, char **argv)
         timer.step("updateTasks");
 
         // BEGIN GRAVITY
+
+        cstone::Octree<CodeType, cstone::LocalTree> localTree;
+        cstone::Octree<CodeType, cstone::GlobalTree> globalTree;
+        globalTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), bucketSize);
+        localTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 32);
         gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
-        gravity::buildGlobalGravityTree(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
+        gravity::buildGlobalGravityTree(domain.tree(), globalTree, localTree, d.x, d.y, d.z, d.m, d.codes, domain.box());
         // END GRAVITY
 
         sph::findNeighborsSfc(taskList.tasks, d.x, d.y, d.z, d.h, d.codes, domain.box());
