@@ -123,7 +123,7 @@ int main(int argc, char **argv)
         std::tie(gravityLeafData, gravityInternalData) = gravity::buildGravityTree(domain.tree(), globalTree, localTree, d.x, d.y, d.z, d.m, d.codes, domain.box());
         timer.step("buildGravityTree");
 
-        gravity::gravityTreeWalk(taskList.tasks, domain.tree(), globalTree, localTree, d.x, d.y, d.z, d.m, d.codes, domain.box());
+        gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, gravityLeafData, gravityInternalData, domain.box());
         timer.step("Gravity (self)");
         // END GRAVITY
 

@@ -314,8 +314,8 @@ void recursiveBuildGravityTree(const std::vector<I> &tree, std::vector<cstone::O
  * @param withGravitySync
  */
 template <class I, class T>
-std::tuple<GravityTree<T>, GravityTree<T>> buildGravityTree(const std::vector<I> &tree, cstone::Octree<I, cstone::GlobalTree> globalTree,
-                            cstone::Octree<I, cstone::LocalTree> localTree, const std::vector<T> &x, const std::vector<T> &y,
+std::tuple<GravityTree<T>, GravityTree<T>> buildGravityTree(const std::vector<I> &tree, cstone::Octree<I, cstone::GlobalTree> &globalTree,
+                            cstone::Octree<I, cstone::LocalTree> &localTree, const std::vector<T> &x, const std::vector<T> &y,
                             const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes, const cstone::Box<T> &box,
                             bool withGravitySync = false)
 {
@@ -331,13 +331,6 @@ std::tuple<GravityTree<T>, GravityTree<T>> buildGravityTree(const std::vector<I>
     recursiveBuildGravityTree(tree, internalOctree, 0, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
 
     return std::make_tuple(std::move(gravityLeafData), std::move(gravityInternalData));
-}
-
-template <class I, class T>
-void printTree(const std::vector<I> &tree, std::vector<cstone::OctreeNode<I>> &internalOctree, cstone::TreeNodeIndex i,
-               GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x, const std::vector<T> &y,
-               const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes, const cstone::Box<T> &box)
-{
 }
 
 /**
