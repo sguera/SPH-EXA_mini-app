@@ -118,7 +118,13 @@ int main(int argc, char **argv)
         globalTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), bucketSize);
         localTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 32);
         gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
-        gravity::buildGlobalGravityTree(domain.tree(), globalTree, localTree, d.x, d.y, d.z, d.m, d.codes, domain.box());
+        gravity::GravityTree<Real> gravityLeafData;
+        gravity::GravityTree<Real> gravityInternalData;
+        std::tie(gravityLeafData, gravityInternalData) = gravity::buildGravityTree(domain.tree(), globalTree, localTree, d.x, d.y, d.z, d.m, d.codes, domain.box());
+        timer.step("buildGravityTree");
+
+        gravity::gravityTreeWalk(taskList.tasks, domain.tree(), globalTree, localTree, d.x, d.y, d.z, d.m, d.codes, domain.box());
+        timer.step("Gravity (self)");
         // END GRAVITY
 
         sph::findNeighborsSfc(taskList.tasks, d.x, d.y, d.z, d.h, d.codes, domain.box());
