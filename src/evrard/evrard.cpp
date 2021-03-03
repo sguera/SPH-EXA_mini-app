@@ -34,7 +34,7 @@ int main(int argc, char **argv)
         return exitSuccess();
     }
 
-    const size_t maxStep = parser.getInt("-s", 10);
+    const size_t maxStep = parser.getInt("-s", 0);
     const size_t nParticles = parser.getInt("-n", 65536);
     const int writeFrequency = parser.getInt("-w", -1);
     const int checkpointFrequency = parser.getInt("-c", -1);
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
         cstone::Octree<CodeType, cstone::LocalTree> localTree;
         cstone::Octree<CodeType, cstone::GlobalTree> globalTree;
         globalTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), bucketSize);
-        localTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 32);
+        localTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 1);
         gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
         gravity::GravityTree<Real> gravityLeafData;
         gravity::GravityTree<Real> gravityInternalData;
