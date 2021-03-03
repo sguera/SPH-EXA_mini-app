@@ -9,21 +9,66 @@ namespace gravity
 constexpr static double gravityTolerance = 0.5;
 
 template <class I, class T>
-void gravityTreeWalkParticle(const std::vector<I> &tree, GravityTree<T> &leafData, GravityTree<T> &internalData, const int i,
-                             const I *codes, const T *xi, const T *yi, const T *zi, const T *hi, const T *hj, const T *mj, T *fx, T *fy,
-                             T *fz, T *ugrav)
+void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex nodeIdx, cstone::Octree<I, cstone::GlobalTree> &globalTree,
+                             cstone::Octree<I, cstone::LocalTree> &localTree, GravityTree<T> &leafData, GravityTree<T> &internalData,
+                             const int i, const I *codes, const T *xi, const T *yi, const T *zi, const T *hi, const T *hj, const T *mj,
+                             T *fx, T *fy, T *fz, T *ugrav)
 {
+    std::vector<cstone::OctreeNode<I>> internalTree = localTree.internalTree();
+    cstone::OctreeNode<I> tnode = internalTree[nodeIdx];
+    GravityData<T> gnode = internalData[nodeIdx];
+
+    const T d1 = std::abs(xi[i] - gnode.xce);
+    const T d2 = std::abs(yi[i] - gnode.yce);
+    const T d3 = std::abs(zi[i] - gnode.zce);
+    const T dc = 4.0 * hi[i] + gnode.dx / 2.0;
+
+    if (d1 <= dc && d2 <= dc && d3 <= dc) // intersecting
+    {
+        if (gnode.dx == 0) // node is a leaf
+        {
+            const auto j = gnode.particleIdx;
+
+            if (!(xi[i] == gnode.xce && yi[i] == gnode.yce && zi[i] == gnode.zce))
+            {
+                const T dd2 = d1 * d1 + d2 * d2 + d3 * d3;
+                const T dd5 = std::sqrt(dd2);
+
+                T g0;
+
+                if (dd5 > 2.0 * hi[i] && dd5 > 2.0 * hj[j]) { g0 = 1.0 / dd5 / dd2; }
+                else
+                {
+                    const T hij = hi[i] + hj[j];
+                    const T vgr = dd5 / hij;
+                    const T mefec = std::min(1.0, vgr * vgr * vgr);
+                    g0 = mefec / dd5 / dd2;
+                }
+                const T r1 = xi[i] - gnode.xcm;
+                const T r2 = yi[i] - gnode.ycm;
+                const T r3 = zi[i] - gnode.zcm;
+
+                fx[i] -= g0 * r1 * mj[j];
+                fy[i] -= g0 * r2 * mj[j];
+                fz[i] -= g0 * r3 * mj[j];
+                ugrav[i] += g0 * dd2 * mj[j];
+            }
+        } else {
+            for (int c = 0 ; c < 8 ; ++ c) // go deeper to the childs
+            {
+                // TODO: Check if we need to store it for remote
+                cstone::TreeNodeIndex childIdx = tnode.child[c];
+                gravityTreeWalkParticle(tree, childIdx, globalTree, localTree, leafData, internalData, i, codes, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
+            }
+        }
+    }
+
     /*
     const auto gnode = dynamic_cast<const GravityOctree<T> &>(node);
 
     // Skip empty treenodes that are not part of global tree
     // Carefull! empty global tree nodes cannot be skipped. They are used to fill RankToParticles map used later in remote grav calculations
     if (gnode.particleIdxList.empty() && !gnode.global) return;
-
-    const T d1 = std::abs(xi[i] - gnode.xce);
-    const T d2 = std::abs(yi[i] - gnode.yce);
-    const T d3 = std::abs(zi[i] - gnode.zce);
-    const T dc = 4.0 * hi[i] + gnode.dx / 2.0;
 
     if (d1 <= dc && d2 <= dc && d3 <= dc) // intersecting
     {
@@ -182,8 +227,9 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, GravityTree<T> &leafDat
 }
 
 template <class I, class T, class Dataset>
-void gravityTreeWalkTask(const sphexa::Task &t, Dataset d, const std::vector<I> &tree, GravityTree<T> &leafData,
-                         GravityTree<T> &internalData, const cstone::Box<T> &box, bool withGravitySync = false)
+void gravityTreeWalkTask(const sphexa::Task &t, Dataset d, const std::vector<I> &tree, cstone::Octree<I, cstone::GlobalTree> &globalTree,
+                         cstone::Octree<I, cstone::LocalTree> &localTree, GravityTree<T> &leafData, GravityTree<T> &internalData,
+                         const cstone::Box<T> &box, bool withGravitySync = false)
 {
     const size_t n = t.clist.size();
     const int *clist = t.clist.data();
@@ -208,17 +254,18 @@ void gravityTreeWalkTask(const sphexa::Task &t, Dataset d, const std::vector<I> 
         const int i = clist[pi];
         fx[i] = fy[i] = fz[i] = ugrav[i] = 0.0;
 
-        gravityTreeWalkParticle(tree, leafData, internalData, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
+        gravityTreeWalkParticle(tree, 0, globalTree, localTree, leafData, internalData, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
     }
 }
 
 template <class I, class T, class Dataset>
-void gravityTreeWalk(std::vector<sphexa::Task> &taskList, const std::vector<I> &tree, Dataset d, GravityTree<T> &leafData,
-                     GravityTree<T> &internalData, const cstone::Box<T> &box, bool withGravitySync = false)
+void gravityTreeWalk(std::vector<sphexa::Task> &taskList, const std::vector<I> &tree, Dataset d,
+                     cstone::Octree<I, cstone::GlobalTree> &globalTree, cstone::Octree<I, cstone::LocalTree> &localTree,
+                     GravityTree<T> &leafData, GravityTree<T> &internalData, const cstone::Box<T> &box, bool withGravitySync = false)
 {
     for (const auto &task : taskList)
     {
-        gravityTreeWalkTask(task, d, tree, leafData, internalData, box);
+        gravityTreeWalkTask(task, d, tree, globalTree, localTree, leafData, internalData, box);
     }
 }
 
