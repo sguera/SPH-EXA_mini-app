@@ -16,27 +16,141 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
 {
     std::vector<cstone::OctreeNode<I>> internalTree = localTree.internalTree();
     cstone::OctreeNode<I> tnode = internalTree[nodeIdx];
-    GravityData<T> gnode = internalData[nodeIdx];
-
-    static int count = 0;
-
-    const T d1 = std::abs(xi[i] - gnode.xce);
-    const T d2 = std::abs(yi[i] - gnode.yce);
-    const T d3 = std::abs(zi[i] - gnode.zce);
-    const T dc = 4.0 * hi[i] + gnode.dx / 2.0;
 
     for (int c = 0; c < 8; ++c) // go deeper to the childs
     {
         // TODO: Check if we need to store it for remote
         cstone::TreeNodeIndex childIdx = tnode.child[c];
-        if (tnode.childType[c] == cstone::OctreeNode<I>::ChildType::internal)
-        {
-            gravityTreeWalkParticle(tree, childIdx, globalTree, localTree, leafData, internalData, i, codes, xi, yi, zi, hi, hj, mj,
-                                    fx, fy, fz, ugrav);
-        }
+        GravityData<T> gnode;
+        if (tnode.childType[c] == cstone::OctreeNode<I>::ChildType::internal) { gnode = internalData[childIdx]; }
         else
         {
-            printf("processed %d until now. current: %d. node: %d. parent: %d. level: %d\n", count++, localTree.tree()[childIdx], nodeIdx, tnode.parent, tnode.level);
+            gnode = leafData[childIdx];
+        }
+
+        const T d1 = std::abs(xi[i] - gnode.xce);
+        const T d2 = std::abs(yi[i] - gnode.yce);
+        const T d3 = std::abs(zi[i] - gnode.zce);
+        const T dc = 4.0 * hi[i] + gnode.dx / 2.0;
+
+        if (d1 <= dc && d2 <= dc && d3 <= dc) // intersecting
+        {
+            if (gnode.dx == 0) // node is a leaf
+            {
+                // If tree node assignee is -1 it means that this tree node is shared across a few computing nodes.
+                // uncomment the if below if you want to skip calculating gravity contribution of this nodes
+                // if (gnode.assignee == -1) return;
+
+                const auto j = gnode.particleIdx;
+
+                // if (i != j) // skip calculating gravity contribution of myself
+                if (!(xi[i] == gnode.xce && yi[i] == gnode.yce && zi[i] == gnode.zce))
+                {
+                    const T dd2 = d1 * d1 + d2 * d2 + d3 * d3;
+                    const T dd5 = std::sqrt(dd2);
+
+                    T g0;
+
+                    if (dd5 > 2.0 * hi[i] && dd5 > 2.0 * hj[j]) { g0 = 1.0 / dd5 / dd2; }
+                    else
+                    {
+                        const T hij = hi[i] + hj[j];
+                        const T vgr = dd5 / hij;
+                        const T mefec = std::min(1.0, vgr * vgr * vgr);
+                        g0 = mefec / dd5 / dd2;
+                    }
+                    const T r1 = xi[i] - gnode.xcm;
+                    const T r2 = yi[i] - gnode.ycm;
+                    const T r3 = zi[i] - gnode.zcm;
+
+                    fx[i] -= g0 * r1 * mj[j];
+                    fy[i] -= g0 * r2 * mj[j];
+                    fz[i] -= g0 * r3 * mj[j];
+                    ugrav[i] += g0 * dd2 * mj[j];
+                }
+            }
+            else
+            {
+                if (tnode.childType[c] == cstone::OctreeNode<I>::ChildType::internal)
+                {
+                    gravityTreeWalkParticle(tree, childIdx, globalTree, localTree, leafData, internalData, i, codes, xi, yi, zi, hi, hj, mj,
+                                            fx, fy, fz, ugrav);
+                }
+            }
+        }
+        else // not intersecting
+        {
+            const T r1 = xi[i] - gnode.xcm;
+            const T r2 = yi[i] - gnode.ycm;
+            const T r3 = zi[i] - gnode.zcm;
+            const T dd2 = r1 * r1 + r2 * r2 + r3 * r3;
+
+            if (gnode.dx * gnode.dx <= gravityTolerance * dd2)
+            {
+                // If tree node assignee is -1 it means that this tree node is shared across a few computing nodes.
+                // uncomment the if below if you want to skip calculating gravity contribution of this nodes
+                // if (gnode.assignee == -1) return;
+
+                const T dd5 = sqrt(dd2);
+                const T d32 = 1.0 / dd5 / dd2;
+
+                T g0;
+
+                if (gnode.dx == 0) // node is a leaf
+                {
+                    const int j = gnode.particleIdx;
+                    const T v1 = dd5 / hi[i];
+                    const T v2 = dd5 / hj[j];
+
+                    if (v1 > 2.0 && v2 > 2.0) { g0 = gnode.mTot * d32; }
+                    else
+                    {
+                        const T hij = hi[i] + hj[j];
+                        const T vgr = dd5 / hij;
+                        const T mefec = std::min(1.0, vgr * vgr * vgr);
+                        g0 = mefec * d32 * gnode.mTot;
+                    }
+
+                    fx[i] -= g0 * r1;
+                    fy[i] -= g0 * r2;
+                    fz[i] -= g0 * r3;
+                    ugrav[i] += g0 * dd2;
+                }
+                else // node is not leaf
+                {
+                    g0 = gnode.mTot * d32; // Base Value
+                    fx[i] -= g0 * r1;
+                    fy[i] -= g0 * r2;
+                    fz[i] -= g0 * r3;
+                    ugrav[i] += g0 * dd2; // eof Base value
+
+                    const T r5 = dd2 * dd2 * dd5;
+                    const T r7 = r5 * dd2;
+
+                    const T qr1 = r1 * gnode.qxx + r2 * gnode.qxy + r3 * gnode.qxz;
+                    const T qr2 = r1 * gnode.qxy + r2 * gnode.qyy + r3 * gnode.qyz;
+                    const T qr3 = r1 * gnode.qxz + r2 * gnode.qyz + r3 * gnode.qzz;
+
+                    const T rqr = r1 * qr1 + r2 * qr2 + r3 * qr3;
+
+                    const T c1 = (-7.5 / r7) * rqr;
+                    const T c2 = 3.0 / r5;
+                    const T c3 = 0.5 * gnode.trq;
+
+                    fx[i] += c1 * r1 + c2 * (qr1 + c3 * r1);
+                    fy[i] += c1 * r2 + c2 * (qr2 + c3 * r2);
+                    fz[i] += c1 * r3 + c2 * (qr3 + c3 * r3);
+                    ugrav[i] -= (1.5 / r5) * rqr + c3 * d32;
+                }
+            }
+            else // go deeper
+            {
+                if (tnode.childType[c] == cstone::OctreeNode<I>::ChildType::internal)
+                {
+                    gravityTreeWalkParticle(tree, childIdx, globalTree, localTree, leafData, internalData, i, codes, xi, yi, zi, hi, hj, mj,
+                                            fx, fy, fz, ugrav);
+                }
+            }
         }
     }
 
@@ -81,9 +195,9 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                 fy[i] -= g0 * r2 * mj[j];
                 fz[i] -= g0 * r3 * mj[j];
                 ugrav[i] += g0 * dd2 * mj[j];
-#ifndef NDEBUG
+    #ifndef NDEBUG
                 if (std::isnan(fx[i])) printf("i=%d fx[i]=%.15f, g0=%f\n", i, fx[i], g0);
-#endif
+    #endif
             }
         }
         else
@@ -139,9 +253,9 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                 fz[i] -= g0 * r3;
                 ugrav[i] += g0 * dd2;
 
-#ifndef NDEBUG
+    #ifndef NDEBUG
                 if (std::isnan(fx[i])) printf("NE i=%d fx[i]=%.15f g0=%f\n", i, fx[i], g0);
-#endif
+    #endif
             }
             else // node is not leaf
             {
@@ -170,7 +284,7 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                 fz[i] += c1 * r3 + c2 * (qr3 + c3 * r3);
                 ugrav[i] -= (1.5 / r5) * rqr + c3 * d32;
 
-#ifndef NDEBUG
+    #ifndef NDEBUG
                 if (std::isnan(c1))
                 {
                     printf("r7=%e dd2=%e dd5=%e r1=%e r2=%e r3=%e\n", r7, dd2, dd5, r1, r2, r3);
@@ -182,7 +296,7 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                     printf("NI, NL i=%d fx[i]=%f c1=%f c2=%f c3=%f gnode.trq=%f\n", i, fx[i], c1, c2, c3, gnode.trq);
                     exit(0);
                 }
-#endif
+    #endif
             }
         }
         else // go deeper
@@ -231,8 +345,7 @@ void gravityTreeWalkTask(const sphexa::Task &t, Dataset d, const std::vector<I> 
         const int i = clist[pi];
         fx[i] = fy[i] = fz[i] = ugrav[i] = 0.0;
 
-        if (i == 0)
-            gravityTreeWalkParticle(tree, 0, globalTree, localTree, leafData, internalData, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
+        gravityTreeWalkParticle(tree, 0, globalTree, localTree, leafData, internalData, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
     }
 }
 
