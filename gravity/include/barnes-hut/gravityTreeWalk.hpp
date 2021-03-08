@@ -345,7 +345,11 @@ void gravityTreeWalkTask(const sphexa::Task &t, Dataset d, const std::vector<I> 
         const int i = clist[pi];
         fx[i] = fy[i] = fz[i] = ugrav[i] = 0.0;
 
-        gravityTreeWalkParticle(tree, 0, globalTree, localTree, leafData, internalData, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
+        if(i == 0)
+        {
+            gravityTreeWalkParticle(tree, 0, globalTree, localTree, leafData, internalData, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
+            printf("i=%d fx[i]=%.15f, ugrav[i]=%f\n", i, fx[i], ugrav[i]);
+        }
     }
 }
 
