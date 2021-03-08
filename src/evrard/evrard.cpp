@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         cstone::Octree<CodeType, cstone::LocalTree> localTree;
         cstone::Octree<CodeType, cstone::GlobalTree> globalTree;
         globalTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), bucketSize);
-        localTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 64);
+        localTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 1);
         // gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
         gravity::GravityTree<Real> gravityLeafData;
         gravity::GravityTree<Real> gravityInternalData;
