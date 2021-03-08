@@ -14,6 +14,7 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                              const int i, const I *codes, const T *xi, const T *yi, const T *zi, const T *hi, const T *hj, const T *mj,
                              T *fx, T *fy, T *fz, T *ugrav)
 {
+    static int scannedParticles = 0;
     std::vector<cstone::OctreeNode<I>> internalTree = localTree.internalTree();
     cstone::OctreeNode<I> tnode = internalTree[nodeIdx];
 
@@ -67,6 +68,7 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                     fy[i] -= g0 * r2 * mj[j];
                     fz[i] -= g0 * r3 * mj[j];
                     ugrav[i] += g0 * dd2 * mj[j];
+                    scannedParticles += gnode.pcount;
                 }
             }
             else
@@ -115,6 +117,7 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                     fy[i] -= g0 * r2;
                     fz[i] -= g0 * r3;
                     ugrav[i] += g0 * dd2;
+                    scannedParticles += gnode.pcount;
                 }
                 else // node is not leaf
                 {
@@ -141,6 +144,8 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                     fy[i] += c1 * r2 + c2 * (qr2 + c3 * r2);
                     fz[i] += c1 * r3 + c2 * (qr3 + c3 * r3);
                     ugrav[i] -= (1.5 / r5) * rqr + c3 * d32;
+                    scannedParticles += gnode.pcount;
+                    printf("using aggregated data for cluster [%f, %f, %f] with %d particles, now at %d\n", gnode.xce, gnode.yce, gnode.zce, gnode.pcount, scannedParticles);
                 }
             }
             else // go deeper
@@ -153,6 +158,8 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
             }
         }
     }
+
+    printf("finished scanning %d particles\n", scannedParticles);
 
     /*
     const auto gnode = dynamic_cast<const GravityOctree<T> &>(node);
@@ -345,7 +352,7 @@ void gravityTreeWalkTask(const sphexa::Task &t, Dataset d, const std::vector<I> 
         const int i = clist[pi];
         fx[i] = fy[i] = fz[i] = ugrav[i] = 0.0;
 
-        if(i == 0)
+        if(i < 1)
         {
             gravityTreeWalkParticle(tree, 0, globalTree, localTree, leafData, internalData, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
             printf("i=%d fx[i]=%.15f, ugrav[i]=%f\n", i, fx[i], ugrav[i]);

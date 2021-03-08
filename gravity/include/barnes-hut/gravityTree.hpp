@@ -187,9 +187,9 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
  * @param withGravitySync
  */
 template <class I, class T>
-void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
-                              const std::vector<T> &m, const std::vector<I> &codes, const cstone::Box<T> &box,
-                              GravityTree<T> &gravityTreeData, bool withGravitySync = false)
+void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsigned> &csCounts, const std::vector<T> &x,
+                              const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
+                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData, bool withGravitySync = false)
 {
     int i = 0;
     for (auto it = tree.begin(); it + 1 != tree.end(); ++it)
@@ -199,8 +199,10 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<T> &
 
         // TODO: Search only from codes+lastParticle to the end since we know particles can not be in multiple nodes
         int startIndex = stl::lower_bound(codes.data(), codes.data() + codes.size(), firstCode) - codes.data();
-        int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
-        int nParticles = endIndex - startIndex;
+        // int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
+        // int nParticles = endIndex - startIndex;
+        int endIndex = startIndex + csCounts[i];
+        int nParticles = csCounts[i];
         // NOTE: using morton codes to compute geometrical center. It might not be accurate.
         I lastCode = codes[nParticles - 1];
         T xmin = decodeXCoordinate(firstCode, box);
@@ -232,6 +234,7 @@ void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, cstone::
     gv.xce = (xrange[1] + xrange[0]) / 2.0;
     gv.yce = (yrange[1] + yrange[0]) / 2.0;
     gv.zce = (zrange[1] + zrange[0]) / 2.0;
+    gv.dx = xrange[1] - xrange[0];
 
     for (int j = 0; j < 8; ++j)
     {
@@ -276,6 +279,8 @@ void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, cstone::
 
         gv.pcount += partialGravity.pcount;
     }
+
+    if (gv.pcount == 1) gv.dx = 0;
 
     gv.qxx = gv.qxxa;
     gv.qxy = gv.qxya;
@@ -324,16 +329,17 @@ void recursiveBuildGravityTree(const std::vector<I> &tree, cstone::Octree<I, cst
  * @param withGravitySync
  */
 template <class I, class T>
-std::tuple<GravityTree<T>, GravityTree<T>> buildGravityTree(const std::vector<I> &tree, cstone::Octree<I, cstone::GlobalTree> &globalTree,
-                            cstone::Octree<I, cstone::LocalTree> &localTree, const std::vector<T> &x, const std::vector<T> &y,
-                            const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes, const cstone::Box<T> &box,
-                            bool withGravitySync = false)
+std::tuple<GravityTree<T>, GravityTree<T>>
+buildGravityTree(const std::vector<I> &tree, cstone::Octree<I, cstone::GlobalTree> &globalTree,
+                 cstone::Octree<I, cstone::LocalTree> &localTree, const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+                 const std::vector<T> &m, const std::vector<I> &codes, const cstone::Box<T> &box, bool withGravitySync = false)
 {
     std::vector<cstone::OctreeNode<I>> internalOctree = localTree.internalTree();
     const std::vector<I> cstree = localTree.tree();
+    const std::vector<unsigned> csCounts = localTree.nodeCounts();
 
     GravityTree<T> gravityLeafData(cstone::nNodes(cstree));
-    calculateLeafGravityData(cstree, x, y, z, m, codes, box, gravityLeafData, false);
+    calculateLeafGravityData(cstree, csCounts, x, y, z, m, codes, box, gravityLeafData, false);
 
     GravityTree<T> gravityInternalData(internalOctree.size());
     recursiveBuildGravityTree(cstree, localTree, 0, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
