@@ -449,6 +449,9 @@ public:
     //! \brief return the cornerstone octree
     const std::vector<I>& tree() const { return tree_; }
 
+    //! \brief return node counts for the cornerstone octree
+    const std::vector<I>& nodeCounts() const { return nodeCounts_; }
+
 private:
 
     //! \brief cornerstone octree, just the leaves
