@@ -37,7 +37,32 @@ struct GravityData
 
     void print() { printf("mTot = %.15f, qxx = %.15f, trq = %.15f, xcm = %.15f\n", mTot, qxx, trq, xcm); }
 
-    //GravityData& operator=(GravityData other) = delete;
+    // GravityData& operator=(GravityData other) = delete;
+};
+
+template <class I, class T, class Locality = cstone::LocalTree>
+class GravityOctree : public cstone::Octree<I, Locality>
+{
+public:
+/*
+    void compute(const I *codesStart, const I *codesEnd, unsigned bucketSize)
+    {
+        cstone::Octree::compute(codesStart, codesEnd, bucketSize);
+    }
+    */
+
+    void build(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m,
+               const std::vector<I> &codes, const cstone::Box<T> &box)
+    {
+        leafGravityData_.resize(cstone::nNodes(this->tree()));
+        internalGravityData_.resize(this->internalTree().size());
+        calculateLeafGravityData(this->tree(), this->nodeCounts(), x, y, z, m, codes, box, leafGravityData_);
+        recursiveBuildGravityTree(this->tree(), *this, 0, leafGravityData_, internalGravityData_, x, y, z, m, codes, box);
+    }
+
+private:
+    std::vector<GravityData<T>> leafGravityData_;
+    std::vector<GravityData<T>> internalGravityData_;
 };
 
 /*
