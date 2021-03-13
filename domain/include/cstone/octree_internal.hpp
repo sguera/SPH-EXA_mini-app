@@ -443,13 +443,13 @@ public:
         return {zBox, zBox + uLz};
     }
 
-    //! \brief return the internal octree
+    //! \brief returns the internal octree
     const std::vector<OctreeNode<I>>& internalTree() const { return internalTree_; }
 
-    //! \brief return the cornerstone octree
+    //! \brief returns the cornerstone octree
     const std::vector<I>& tree() const { return tree_; }
 
-    //! \brief return node counts for the cornerstone octree
+    //! \brief returns node counts for the cornerstone octree
     const std::vector<I>& nodeCounts() const { return nodeCounts_; }
 
 private:
