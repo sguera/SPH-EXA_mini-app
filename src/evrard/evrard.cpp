@@ -35,13 +35,13 @@ int main(int argc, char **argv)
     }
 
     const size_t maxStep = parser.getInt("-s", 0);
-    const size_t nParticles = parser.getInt("-n", 65536);
+    const size_t nParticles = parser.getInt("-n", 8192);
     const int writeFrequency = parser.getInt("-w", -1);
     const int checkpointFrequency = parser.getInt("-c", -1);
     const bool quiet = parser.exists("--quiet");
     const bool timeRemoteGravitySteps = parser.exists("--timeRemoteGravity");
     const std::string checkpointInput = parser.getString("--cinput");
-    const std::string inputFilePath = parser.getString("--input", "bigfiles/Test3DEvrardRel.bin");
+    const std::string inputFilePath = parser.getString("--input", "bigfiles/MiniTest3DEvrardRel.bin");
     const std::string outDirectory = parser.getString("--outDir");
 
     std::ofstream nullOutput("/dev/null");
@@ -129,6 +129,7 @@ int main(int argc, char **argv)
         sph::findNeighborsSfc(taskList.tasks, d.x, d.y, d.z, d.h, d.codes, domain.box());
         timer.step("FindNeighbors");
         if(!clist.empty()) sph::computeDensity<Real>(taskList.tasks, d);
+        if (d.iteration == 0) { sph::initFluidDensityAtRest<Real>(taskList.tasks, d); }
         timer.step("Density");
         sph::computeEquationOfStateEvrard<Real>(taskList.tasks, d);
         timer.step("EquationOfState");
@@ -144,7 +145,7 @@ int main(int argc, char **argv)
         timer.step("Timestep"); // AllReduce(min:dt)
         sph::computePositions<Real, sph::computeAcceleration<Real, Dataset>>(taskList.tasks, d);
         timer.step("UpdateQuantities");
-        sph::computeTotalEnergy<Real>(taskList.tasks, d);
+        sph::computeTotalEnergyWithGravity<Real>(taskList.tasks, d);
         timer.step("EnergyConservation"); // AllReduce(sum:ecin,ein)
         sph::updateSmoothingLength<Real>(taskList.tasks, d);
         timer.step("UpdateSmoothingLength");
@@ -159,8 +160,8 @@ int main(int argc, char **argv)
 
         if ((writeFrequency > 0 && d.iteration % writeFrequency == 0) || writeFrequency == 0)
         {
-            fileWriter.dumpParticleDataToAsciiFile(d, clist, outDirectory + "dump_Sedov" + std::to_string(d.iteration) + ".txt");
-            fileWriter.dumpParticleDataToBinFile(d, outDirectory + "dump_Sedov" + std::to_string(d.iteration) + ".bin");
+            fileWriter.dumpParticleDataToAsciiFile(d, clist, outDirectory + "dump_evrard" + std::to_string(d.iteration) + ".txt");
+            fileWriter.dumpParticleDataToBinFile(d, outDirectory + "dump_evrard" + std::to_string(d.iteration) + ".bin");
             timer.step("writeFile");
         }
 
@@ -169,7 +170,7 @@ int main(int argc, char **argv)
         if (d.rank == 0) printer.printTotalIterationTime(timer.duration(), output);
     }
 
-    totalTimer.step("Total execution time of " + std::to_string(maxStep) + " iterations of Sedov");
+    totalTimer.step("Total execution time of " + std::to_string(maxStep) + " iterations of Evrard Collapse");
 
     constantsFile.close();
 
