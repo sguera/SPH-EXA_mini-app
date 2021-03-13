@@ -28,7 +28,7 @@ NVCCLDFLAGS := $(GENCODE_FLAGS) -rdc=true
 
 ifeq ($(ENV),gnu)
 	#CXXFLAGS += -std=c++17 -O2 -Wall -Wextra -fopenmp -fopenacc -march=native -mtune=native -g
-	CXXFLAGS += -std=c++17 -O0 -fopenacc -march=native -mtune=native -g
+	CXXFLAGS += -std=c++17 -O0 -fopenmp -fopenacc -march=native -mtune=native -g
 endif
 
 ifeq ($(ENV),pgi)

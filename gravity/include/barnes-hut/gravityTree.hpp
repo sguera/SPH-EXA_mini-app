@@ -36,6 +36,8 @@ struct GravityData
     int particleIdx = 0; // filled only if node is a leaf
 
     void print() { printf("mTot = %.15f, qxx = %.15f, trq = %.15f, xcm = %.15f\n", mTot, qxx, trq, xcm); }
+
+    //GravityData& operator=(GravityData other) = delete;
 };
 
 /*
