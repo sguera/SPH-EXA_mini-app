@@ -126,6 +126,10 @@ int main(int argc, char **argv)
         localGravityTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 1);
         localGravityTree.build(d.x, d.y, d.z, d.m, d.codes, domain.box());
 
+        gravity::GravityOctree<CodeType, Real, cstone::GlobalTree> globalGravityTree;
+        globalGravityTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), bucketSize);
+        globalGravityTree.build(d.x, d.y, d.z, d.m, d.codes, domain.box());
+
         gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, globalTree, localTree, gravityLeafData, gravityInternalData, domain.box());
         timer.step("Gravity (self)");
         // END GRAVITY
