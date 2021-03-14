@@ -245,8 +245,8 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
     }
 }
 
-template <class I, class T>
-void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, cstone::LocalTree> &localTree, cstone::TreeNodeIndex i,
+template <class I, class T, class Locality = cstone::LocalTree>
+void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, Locality> &localTree, cstone::TreeNodeIndex i,
                           GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x,
                           const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
                           const cstone::Box<T> &box)
@@ -320,8 +320,8 @@ void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, cstone::
     gravityInternalData[i] = gv;
 }
 
-template <class I, class T>
-void recursiveBuildGravityTree(const std::vector<I> &tree, cstone::Octree<I, cstone::LocalTree> &localTree, cstone::TreeNodeIndex i,
+template <class I, class T, class Locality = cstone::LocalTree>
+void recursiveBuildGravityTree(const std::vector<I> &tree, cstone::Octree<I, Locality> &localTree, cstone::TreeNodeIndex i,
                                GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x,
                                const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
                                const cstone::Box<T> &box)
