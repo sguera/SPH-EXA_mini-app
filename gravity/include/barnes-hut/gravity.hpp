@@ -1,8 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 CSCS, ETH Zurich
- *               2021 University of Basel
+ * Copyright (c) 2021 University of Basel
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,4 +31,4 @@
 #pragma once
 
 #include "gravityTree.hpp"
-#include "gravityTreeWalk.hpp"
+//#include "gravityTreeWalk.hpp"

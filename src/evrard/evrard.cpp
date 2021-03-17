@@ -8,7 +8,7 @@
 #define USE_MPI
 #endif
 
-#include "cstone/domain.hpp"
+#include "cstone/domain/domain.hpp"
 #include "barnes-hut/gravity.hpp"
 
 #include "sphexa.hpp"
@@ -112,25 +112,15 @@ int main(int argc, char **argv)
         timer.step("updateTasks");
 
         // BEGIN GRAVITY
-        cstone::Octree<CodeType, cstone::LocalTree> localTree;
-        cstone::Octree<CodeType, cstone::GlobalTree> globalTree;
-        globalTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), bucketSize);
-        localTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 1);
+        cstone::Octree<CodeType> octree;
+        octree.update(domain.tree().data(), domain.tree().data() + domain.tree().size());
         // gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
         gravity::GravityTree<Real> gravityLeafData;
         gravity::GravityTree<Real> gravityInternalData;
-        std::tie(gravityLeafData, gravityInternalData) = gravity::buildGravityTree(domain.tree(), globalTree, localTree, d.x, d.y, d.z, d.m, d.codes, domain.box());
+        std::tie(gravityLeafData, gravityInternalData) = gravity::buildGravityTree(domain.tree(), octree, d.x, d.y, d.z, d.m, d.codes, domain.box());
         timer.step("buildGravityTree");
 
-        gravity::GravityOctree<CodeType, Real, cstone::LocalTree> localGravityTree;
-        localGravityTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), 1);
-        localGravityTree.build(d.x, d.y, d.z, d.m, d.codes, domain.box());
-
-        gravity::GravityOctree<CodeType, Real, cstone::GlobalTree> globalGravityTree;
-        globalGravityTree.compute(d.codes.data(), d.codes.data() + d.codes.size(), bucketSize);
-        globalGravityTree.build(d.x, d.y, d.z, d.m, d.codes, domain.box());
-
-        gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, globalTree, localTree, gravityLeafData, gravityInternalData, domain.box());
+        //gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, globalTree, localTree, gravityLeafData, gravityInternalData, domain.box());
         timer.step("Gravity (self)");
         // END GRAVITY
 

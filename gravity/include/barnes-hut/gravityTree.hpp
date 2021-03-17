@@ -2,8 +2,8 @@
 
 #include "sphexa.hpp"
 
-#include "cstone/bsearch.hpp"
-#include "cstone/octree_internal.hpp"
+#include "cstone/primitives/stl.hpp"
+#include "cstone/tree/octree_internal.hpp"
 
 namespace gravity
 {
@@ -40,31 +40,6 @@ struct GravityData
     // GravityData& operator=(GravityData other) = delete;
 };
 
-template <class I, class T, class Locality = cstone::LocalTree>
-class GravityOctree : public cstone::Octree<I, Locality>
-{
-public:
-/*
-    void compute(const I *codesStart, const I *codesEnd, unsigned bucketSize)
-    {
-        cstone::Octree::compute(codesStart, codesEnd, bucketSize);
-    }
-    */
-
-    void build(const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m,
-               const std::vector<I> &codes, const cstone::Box<T> &box)
-    {
-        leafGravityData_.resize(cstone::nNodes(this->tree()));
-        internalGravityData_.resize(this->internalTree().size());
-        calculateLeafGravityData(this->tree(), this->nodeCounts(), x, y, z, m, codes, box, leafGravityData_);
-        recursiveBuildGravityTree(this->tree(), *this, 0, leafGravityData_, internalGravityData_, x, y, z, m, codes, box);
-    }
-
-private:
-    std::vector<GravityData<T>> leafGravityData_;
-    std::vector<GravityData<T>> internalGravityData_;
-};
-
 /*
 template <class I, class T>
 using TreeData = std::map<InternalNode<I>, GravityData<T>>;
@@ -73,24 +48,21 @@ template <class T>
 using GravityTree = std::vector<GravityData<T>>;
 
 template <class T>
-void gatherGravValues(GravityData<T> *gv, bool global, int assignee)
+void gatherGravValues(GravityData<T> *gv)
 {
 #ifdef USE_MPI
-    if (global && assignee == -1)
-    {
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).mTot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).mTot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).xcm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).ycm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).zcm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).xcm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).ycm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).zcm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).qxxa, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).qxya, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).qxza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).qyya, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).qyza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &(*gv).qzza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    }
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).qxxa, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).qxya, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).qxza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).qyya, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).qyza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).qzza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
 }
 
@@ -150,11 +122,9 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
         gv.particleIdx = i;
     }
 
-    bool global = false;
-    int assignee = -1;
-    if (withGravitySync) gatherGravValues(&gv, global, assignee);
+    if (withGravitySync) gatherGravValues(&gv);
 
-    if (nParticles > 1 || global)
+    if (nParticles > 1)
     {
         gv.xcm /= gv.mTot;
         gv.ycm /= gv.mTot;
@@ -214,7 +184,7 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
  * @param withGravitySync
  */
 template <class I, class T>
-void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsigned> &csCounts, const std::vector<T> &x,
+void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<T> &x,
                               const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
                               const cstone::Box<T> &box, GravityTree<T> &gravityTreeData, bool withGravitySync = false)
 {
@@ -226,10 +196,11 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
 
         // TODO: Search only from codes+lastParticle to the end since we know particles can not be in multiple nodes
         int startIndex = stl::lower_bound(codes.data(), codes.data() + codes.size(), firstCode) - codes.data();
-        // int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
-        // int nParticles = endIndex - startIndex;
-        int endIndex = startIndex + csCounts[i];
-        int nParticles = csCounts[i];
+        int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
+        int nParticles = endIndex - startIndex;
+        // NOTE: we should use node counts to get the last one, otherwise, we might find 0 particles where there should be 1 in case bucketsize is 1
+        //int endIndex = startIndex + csCounts[i];
+        //int nParticles = csCounts[i];
         // NOTE: using morton codes to compute geometrical center. It might not be accurate.
         I lastCode = codes[nParticles - 1];
         T xmin = decodeXCoordinate(firstCode, box);
@@ -245,16 +216,17 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
     }
 }
 
-template <class I, class T, class Locality = cstone::LocalTree>
-void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, Locality> &localTree, cstone::TreeNodeIndex i,
+template <class I, class T>
+void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I> &octree, cstone::TreeNodeIndex i,
                           GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x,
                           const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
                           const cstone::Box<T> &box)
 {
-    cstone::OctreeNode<I> node = localTree.internalTree()[i];
+    //cstone::OctreeNode<I> node = localTree.internalTree()[i];
 
     GravityData<T> gv;
 
+    /*
     cstone::pair<T> xrange = localTree.x(i, box);
     cstone::pair<T> yrange = localTree.y(i, box);
     cstone::pair<T> zrange = localTree.z(i, box);
@@ -262,12 +234,15 @@ void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, Locality
     gv.yce = (yrange[1] + yrange[0]) / 2.0;
     gv.zce = (zrange[1] + zrange[0]) / 2.0;
     gv.dx = xrange[1] - xrange[0];
+    */
 
     for (int j = 0; j < 8; ++j)
     {
-        cstone::TreeNodeIndex child = node.child[j];
+        //cstone::TreeNodeIndex child = node.child[j];
+        cstone::TreeNodeIndex child = octree.childDirect(i, j);
         GravityData<T> current;
-        if (node.childType[j] == cstone::OctreeNode<I>::ChildType::internal) { current = gravityInternalData[child]; }
+        //if (node.childType[j] == cstone::OctreeNode<I>::ChildType::internal) { current = gravityInternalData[child]; }
+        if (!octree.isLeafChild(i, j)) { current = gravityInternalData[child]; }
         else
         {
             current = gravityLeafData[child];
@@ -285,9 +260,11 @@ void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, Locality
 
     for (int j = 0; j < 8; ++j)
     {
-        cstone::TreeNodeIndex child = node.child[j];
+        //cstone::TreeNodeIndex child = node.child[j];
+        cstone::TreeNodeIndex child = octree.childDirect(i, j);
         GravityData<T> partialGravity;
-        if (node.childType[j] == cstone::OctreeNode<I>::ChildType::internal) { partialGravity = gravityInternalData[child]; }
+        //if (node.childType[j] == cstone::OctreeNode<I>::ChildType::internal) { partialGravity = gravityInternalData[child]; }
+        if (!octree.isLeafChild(i, j)) { partialGravity = gravityInternalData[child]; }
         else
         {
             partialGravity = gravityLeafData[child];
@@ -320,23 +297,25 @@ void aggregateNodeGravity(const std::vector<I> &tree, cstone::Octree<I, Locality
     gravityInternalData[i] = gv;
 }
 
-template <class I, class T, class Locality = cstone::LocalTree>
-void recursiveBuildGravityTree(const std::vector<I> &tree, cstone::Octree<I, Locality> &localTree, cstone::TreeNodeIndex i,
+template <class I, class T>
+void recursiveBuildGravityTree(const std::vector<I> &tree, cstone::Octree<I> &octree, cstone::TreeNodeIndex i,
                                GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x,
                                const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
                                const cstone::Box<T> &box)
 {
-    cstone::OctreeNode<I> node = localTree.internalTree()[i];
+    //cstone::OctreeNode<I> node = octree.internalTree()[i];
 
     for (int j = 0; j < 8; ++j)
     {
-        cstone::TreeNodeIndex child = node.child[j];
-        if (node.childType[j] == cstone::OctreeNode<I>::ChildType::internal)
+        //cstone::TreeNodeIndex child = node.child[j];
+        cstone::TreeNodeIndex child = octree.childDirect(i, j);
+        //if (node.childType[j] == cstone::OctreeNode<I>::ChildType::internal)
+        if (!octree.isLeafChild(i, j))
         {
-            recursiveBuildGravityTree(tree, localTree, child, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
+            recursiveBuildGravityTree(tree, octree, child, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
         }
     }
-    aggregateNodeGravity(tree, localTree, i, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
+    aggregateNodeGravity(tree, octree, i, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
 }
 
 /**
@@ -357,20 +336,15 @@ void recursiveBuildGravityTree(const std::vector<I> &tree, cstone::Octree<I, Loc
  */
 template <class I, class T>
 std::tuple<GravityTree<T>, GravityTree<T>>
-buildGravityTree(const std::vector<I> &tree, cstone::Octree<I, cstone::GlobalTree> &globalTree,
-                 cstone::Octree<I, cstone::LocalTree> &localTree, const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
+buildGravityTree(const std::vector<I> &tree, cstone::Octree<I> &octree, const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z,
                  const std::vector<T> &m, const std::vector<I> &codes, const cstone::Box<T> &box, bool withGravitySync = false)
 {
-    std::vector<cstone::OctreeNode<I>> internalOctree = localTree.internalTree();
-    const std::vector<I> cstree = localTree.tree();
-    const std::vector<unsigned> csCounts = localTree.nodeCounts();
+    GravityTree<T> gravityLeafData(cstone::nNodes(tree));
+    calculateLeafGravityData(tree, x, y, z, m, codes, box, gravityLeafData, false);
 
-    GravityTree<T> gravityLeafData(cstone::nNodes(cstree));
-    calculateLeafGravityData(cstree, csCounts, x, y, z, m, codes, box, gravityLeafData, false);
-
-    GravityTree<T> gravityInternalData(internalOctree.size());
-    recursiveBuildGravityTree(cstree, localTree, 0, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
-
+    GravityTree<T> gravityInternalData(octree.nTreeNodes() - cstone::nNodes(tree));
+    recursiveBuildGravityTree(tree, octree, 0, gravityLeafData, gravityInternalData, x, y, z, m, codes, box);
+    
     return std::make_tuple(std::move(gravityLeafData), std::move(gravityInternalData));
 }
 
