@@ -12,22 +12,36 @@ if len(sys.argv) < 3:
 file = sys.argv[1]
 n = int(sys.argv[2])
 
-d = np.fromfile(file)
+d = np.loadtxt(file)
 
-x = d[0:n]
-y = d[1*n:2*n]
-z = d[2*n:3*n]
-vx = d[3*n:4*n]
-vy = d[4*n:5*n]
-vz = d[5*n:6*n]
-h = d[6*n:7*n]
-ro = d[7*n:8*n]
-u = d[8*n:9*n]
-p = d[9*n:10*n]
-c = d[10*n:11*n]
-grad_P_x = d[11*n:12*n]
-grad_P_y = d[12*n:13*n]
-grad_P_z = d[13*n:14*n]
+print(d[:,0].shape)
+
+x = d[:,0]
+y = d[:,1]
+z = d[:,2]
+vx = d[:,3]
+vy = d[:,4]
+vz = d[:,5]
+h = d[:,6]
+ro = d[:,7]
+u = d[:,8]
+p = d[:,9]
+c = d[:,10]
+fx = d[:,14]
+fy = d[:,15]
+fz = d[:,16]
+
+x = np.array(x)
+y = np.array(y)
+z = np.array(z)
+fx = np.array(fx)
+fy = np.array(fy)
+fz = np.array(fz)
+
+radius = np.sqrt(x*x + y*y + z*z)
+gravity = (fx*x + fy*y + fz*z) / radius
+
+to_plot = gravity
 
 mask = abs(z / h) < 1.0
 
@@ -39,7 +53,7 @@ plt.style.use('dark_background')
 plt.figure(figsize=(10,8))
 
 # Plot 2D projection a middle cut
-sc = plt.scatter(x[mask], y[mask], c=ro[mask], s=10.0, label="Sedov", vmin=min(ro[mask]), vmax=max(ro[mask]), cmap=cm)
+sc = plt.scatter(radius, gravity, s=1.0, label="Sedov", vmin=min(to_plot), vmax=max(to_plot))
 plt.colorbar(sc)
 
 plt.axis('square')
