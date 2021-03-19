@@ -335,6 +335,9 @@ public:
     //! \brief return the coordinate bounding box from the previous sync call
     Box<T> box() const { return box_; }
 
+    //! \brief return node counts of the cstree
+    const std::vector<unsigned>& nodeCounts() const { return nodeCounts_; }
+
 private:
 
     //! \brief return true if all array sizes are equal to value

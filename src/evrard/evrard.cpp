@@ -112,15 +112,13 @@ int main(int argc, char **argv)
         timer.step("updateTasks");
 
         // BEGIN GRAVITY
-        cstone::Octree<CodeType> octree;
-        octree.update(domain.tree().data(), domain.tree().data() + domain.tree().size());
+        gravity::GravityOctree<CodeType, Real> gravityOctree;
+        gravityOctree.update(domain.tree().data(), domain.tree().data() + domain.tree().size());
         // gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
-        gravity::GravityTree<Real> gravityLeafData;
-        gravity::GravityTree<Real> gravityInternalData;
-        std::tie(gravityLeafData, gravityInternalData) = gravity::buildGravityTree(domain.tree(), octree, d.x, d.y, d.z, d.m, d.codes, domain.box());
+        gravityOctree.buildGravityTree(domain.tree(), domain.nodeCounts(), d.x, d.y, d.z, d.m, d.codes, domain.box());
         timer.step("buildGravityTree");
 
-        //gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, globalTree, localTree, gravityLeafData, gravityInternalData, domain.box());
+        gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, gravityOctree, domain.box());
         timer.step("Gravity (self)");
         // END GRAVITY
 

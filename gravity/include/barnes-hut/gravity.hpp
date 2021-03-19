@@ -31,4 +31,4 @@
 #pragma once
 
 #include "gravityTree.hpp"
-//#include "gravityTreeWalk.hpp"
+#include "gravityTreeWalk.hpp"
