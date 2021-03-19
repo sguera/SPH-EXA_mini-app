@@ -13,8 +13,7 @@ file = sys.argv[1]
 n = int(sys.argv[2])
 
 d = np.loadtxt(file)
-
-print(d[:,0].shape)
+#d = np.fromfile(file)
 
 x = d[:,0]
 y = d[:,1]
