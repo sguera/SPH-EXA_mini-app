@@ -625,7 +625,7 @@ public:
 
     //! \brief returns (min,max) x-coordinate pair for \a node
     template<class T>
-    [[nodiscard]] pair<T> x(TreeNodeIndex node, const Box<T>& box)
+    [[nodiscard]] pair<T> x(TreeNodeIndex node, const Box<T>& box) const
     {
         constexpr int maxCoord = 1u<<maxTreeLevel<I>{};
         constexpr T uL = T(1.) / maxCoord;
@@ -642,7 +642,7 @@ public:
 
     //! \brief returns (min,max) y-coordinate pair for \a node
     template<class T>
-    [[nodiscard]] pair<T> y(TreeNodeIndex node, const Box<T>& box)
+    [[nodiscard]] pair<T> y(TreeNodeIndex node, const Box<T>& box) const
     {
         constexpr int maxCoord = 1u<<maxTreeLevel<I>{};
         constexpr T uL = T(1.) / maxCoord;
@@ -659,7 +659,7 @@ public:
 
     //! \brief returns (min,max) z-coordinate pair for \a node
     template<class T>
-    [[nodiscard]] pair<T> z(TreeNodeIndex node, const Box<T>& box)
+    [[nodiscard]] pair<T> z(TreeNodeIndex node, const Box<T>& box) const
     {
         constexpr int maxCoord = 1u<<maxTreeLevel<I>{};
         constexpr T uL = T(1.) / maxCoord;

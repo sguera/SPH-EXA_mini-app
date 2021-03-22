@@ -35,13 +35,13 @@ int main(int argc, char **argv)
     }
 
     const size_t maxStep = parser.getInt("-s", 0);
-    const size_t nParticles = parser.getInt("-n", 8192);
+    const size_t nParticles = parser.getInt("-n", 65536);
     const int writeFrequency = parser.getInt("-w", -1);
     const int checkpointFrequency = parser.getInt("-c", -1);
     const bool quiet = parser.exists("--quiet");
     const bool timeRemoteGravitySteps = parser.exists("--timeRemoteGravity");
     const std::string checkpointInput = parser.getString("--cinput");
-    const std::string inputFilePath = parser.getString("--input", "bigfiles/MiniTest3DEvrardRel.bin");
+    const std::string inputFilePath = parser.getString("--input", "bigfiles/Test3DEvrardRel.bin");
     const std::string outDirectory = parser.getString("--outDir");
 
     std::ofstream nullOutput("/dev/null");

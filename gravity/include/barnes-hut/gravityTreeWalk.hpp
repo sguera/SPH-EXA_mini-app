@@ -77,6 +77,7 @@ void gravityTreeWalkParticle(const std::vector<I> &tree, cstone::TreeNodeIndex n
                 }
                 else
                 {
+                    // TODO: leaf node contains a cluster, iterate through particles
                     // printf("[WARNING] Going deeper into a leaf node. This should not be the case!\n");
                 }
             }
@@ -193,6 +194,8 @@ void gravityTreeWalkTask(const sphexa::Task &t, Dataset &d, const std::vector<I>
         // if (i < 1)
         {
             gravityTreeWalkParticle(tree, 0, gravityOctree, i, co, xi, yi, zi, hi, hj, mj, fx, fy, fz, ugrav);
+            //printf("%d\n", count);
+            //assert(count == 65536);
 
             // printf("i=%d fx[i]=%.15f, fy[i]=%.15f, fz[i]=%.15f, ugrav[i]=%f\n", i, fx[i], fy[i], fz[i], ugrav[i]);
         }

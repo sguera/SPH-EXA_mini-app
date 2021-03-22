@@ -110,7 +110,7 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
     gv.yce = (ymax + ymin) / 2.0;
     gv.zce = (zmax + zmin) / 2.0;
 
-    gv.dx = xmax - xmin;
+    gv.dx = abs(xmax - xmin);
 
     for (size_t i = 0; i < nParticles; ++i)
     {
@@ -221,7 +221,7 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
         int endIndex = startIndex + nodeCounts[i];
         int nParticles = nodeCounts[i];
         // NOTE: using morton codes to compute geometrical center. It might not be accurate.
-        I lastCode = codes[nParticles - 1];
+        I lastCode = codes[endIndex + nParticles - 1];
         T xmin = decodeXCoordinate(firstCode, box);
         T xmax = decodeXCoordinate(lastCode, box);
         T ymin = decodeYCoordinate(firstCode, box);
@@ -229,14 +229,28 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
         T zmin = decodeZCoordinate(firstCode, box);
         T zmax = decodeZCoordinate(lastCode, box);
 
-        gravityTreeData[i++] =
-            computeNodeGravity<I, T>(x.data() + startIndex, y.data() + startIndex, z.data() + startIndex, m.data() + startIndex, nParticles,
-                                     xmin, xmax, ymin, ymax, zmin, zmax, withGravitySync);
+        if (nParticles > 0)
+        {
+            gravityTreeData[i] =
+                computeNodeGravity<I, T>(x.data() + startIndex, y.data() + startIndex, z.data() + startIndex, m.data() + startIndex,
+                                         nParticles, xmin, xmax, ymin, ymax, zmin, zmax, withGravitySync);
+        }
+        i++;
     }
 }
 
+/*
+    TODO: check that pcounts in leaf nodes sums up to the number of particles
+    unsigned int pcounts = 0;
+    for (auto x : gravityOctree.leafData())
+    {
+        pcounts += x.pcount;
+    }
+    printf("total pcounts = %d\n", pcounts);
+*/
+
 template <class I, class T>
-void aggregateNodeGravity(const std::vector<I> &tree, const cstone::Octree<I> &octree, cstone::TreeNodeIndex i,
+void aggregateNodeGravity(const std::vector<I> &tree, const GravityOctree<I, T> &octree, cstone::TreeNodeIndex i,
                           GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x,
                           const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
                           const cstone::Box<T> &box)
@@ -244,16 +258,15 @@ void aggregateNodeGravity(const std::vector<I> &tree, const cstone::Octree<I> &o
     // cstone::OctreeNode<I> node = localTree.internalTree()[i];
 
     GravityData<T> gv;
-
-    /*
-    cstone::pair<T> xrange = localTree.x(i, box);
-    cstone::pair<T> yrange = localTree.y(i, box);
-    cstone::pair<T> zrange = localTree.z(i, box);
+    
+    pair<T> xrange = octree.x(i, box);
+    pair<T> yrange = octree.y(i, box);
+    pair<T> zrange = octree.z(i, box);
     gv.xce = (xrange[1] + xrange[0]) / 2.0;
     gv.yce = (yrange[1] + yrange[0]) / 2.0;
     gv.zce = (zrange[1] + zrange[0]) / 2.0;
-    gv.dx = xrange[1] - xrange[0];
-    */
+    gv.dx = abs(xrange[1] - xrange[0]);
+
 
     for (int j = 0; j < 8; ++j)
     {
@@ -317,7 +330,7 @@ void aggregateNodeGravity(const std::vector<I> &tree, const cstone::Octree<I> &o
 }
 
 template <class I, class T>
-void recursiveBuildGravityTree(const std::vector<I> &tree, const cstone::Octree<I> &octree, cstone::TreeNodeIndex i,
+void recursiveBuildGravityTree(const std::vector<I> &tree, const GravityOctree<I, T> &octree, cstone::TreeNodeIndex i,
                                GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x,
                                const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
                                const cstone::Box<T> &box)
@@ -355,7 +368,7 @@ void recursiveBuildGravityTree(const std::vector<I> &tree, const cstone::Octree<
  */
 template <class I, class T>
 std::tuple<GravityTree<T>, GravityTree<T>>
-buildGravityTree(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const cstone::Octree<I> &octree,
+buildGravityTree(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const GravityOctree<I, T> &octree,
                  const std::vector<T> &x, const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m,
                  const std::vector<I> &codes, const cstone::Box<T> &box, bool withGravitySync = false)
 {
