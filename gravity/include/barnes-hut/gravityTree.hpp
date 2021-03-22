@@ -48,21 +48,21 @@ public:
 
     void buildGravityTree(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                           const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                          const cstone::Box<T> &box, bool withGravitySync = false)
+                          const cstone::Box<T> &box)
     {
-        gravityLeafData_.resize(cstone::nNodes(tree));
-        calculateLeafGravityData(tree, nodeCounts, x, y, z, m, codes, box, gravityLeafData_, withGravitySync);
+        leafData_.resize(cstone::nNodes(tree));
+        calculateLeafGravityData(tree, nodeCounts, x, y, z, m, codes, box, leafData_);
 
-        gravityInternalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
-        recursiveBuildGravityTree(tree, *this, 0, gravityLeafData_, gravityInternalData_, x, y, z, m, codes, box);
+        internalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
+        recursiveBuildGravityTree(tree, *this, 0, leafData_, internalData_, x, y, z, m, codes, box);
     }
 
-    const GravityTree<T> &leafData() const { return gravityLeafData_; }
-    const GravityTree<T> &internalData() const { return gravityInternalData_; }
+    const GravityTree<T> &leafData() const { return leafData_; }
+    const GravityTree<T> &internalData() const { return internalData_; }
 
 private:
-    GravityTree<T> gravityLeafData_;
-    GravityTree<T> gravityInternalData_;
+    GravityTree<T> leafData_;
+    GravityTree<T> internalData_;
 };
 
 template <class T>
@@ -81,6 +81,8 @@ void gatherGravValues(GravityData<T> *gv)
     MPI_Allreduce(MPI_IN_PLACE, &(*gv).qyya, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, &(*gv).qyza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, &(*gv).qzza, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    MPI_Allreduce(MPI_IN_PLACE, &(*gv).pcount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
 }
 
@@ -101,8 +103,8 @@ void gatherGravValues(GravityData<T> *gv)
  * @param withGravitySync
  */
 template <class I, class T>
-CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m, int nParticles, T xmin, T xmax,
-                                                       T ymin, T ymax, T zmin, T zmax, bool withGravitySync = false)
+GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m, int nParticles, T xmin, T xmax, T ymin, T ymax, T zmin,
+                                  T zmax)
 {
     GravityData<T> gv;
 
@@ -111,6 +113,8 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
     gv.zce = (zmax + zmin) / 2.0;
 
     gv.dx = abs(xmax - xmin);
+
+    gv.pcount = nParticles;
 
     for (size_t i = 0; i < nParticles; ++i)
     {
@@ -140,7 +144,7 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
         gv.particleIdx = i;
     }
 
-    if (withGravitySync) gatherGravValues(&gv);
+    gatherGravValues(&gv);
 
     if (nParticles > 1)
     {
@@ -182,7 +186,6 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
         gv.trq = 0;
         gv.dx = 0; // used to indicate that node is a leaf
     }
-    gv.pcount = nParticles;
     return gv;
 }
 
@@ -204,7 +207,7 @@ CUDA_HOST_DEVICE_FUN GravityData<T> computeNodeGravity(const T *x, const T *y, c
 template <class I, class T>
 void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                               const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData, bool withGravitySync = false)
+                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData)
 {
     int i = 0;
     for (auto it = tree.begin(); it + 1 != tree.end(); ++it)
@@ -214,27 +217,31 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
 
         // TODO: Search only from codes+lastParticle to the end since we know particles can not be in multiple nodes
         int startIndex = stl::lower_bound(codes.data(), codes.data() + codes.size(), firstCode) - codes.data();
-        // int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
-        // int nParticles = endIndex - startIndex;
+        int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
+        int nParticles = endIndex - startIndex;
         // NOTE: we should use node counts to get the last one, otherwise, we might find 0 particles where there should be 1 in case
         // bucketsize is 1
-        int endIndex = startIndex + nodeCounts[i];
-        int nParticles = nodeCounts[i];
+        // int endIndex = startIndex + nodeCounts[i];
+        assert(nParticles == nodeCounts[i]);
         // NOTE: using morton codes to compute geometrical center. It might not be accurate.
-        I lastCode = codes[endIndex + nParticles - 1];
-        T xmin = decodeXCoordinate(firstCode, box);
-        T xmax = decodeXCoordinate(lastCode, box);
-        T ymin = decodeYCoordinate(firstCode, box);
-        T ymax = decodeYCoordinate(lastCode, box);
-        T zmin = decodeZCoordinate(firstCode, box);
-        T zmax = decodeZCoordinate(lastCode, box);
+        I lastCode = codes[startIndex + nParticles - 1];
 
-        if (nParticles > 0)
-        {
-            gravityTreeData[i] =
-                computeNodeGravity<I, T>(x.data() + startIndex, y.data() + startIndex, z.data() + startIndex, m.data() + startIndex,
-                                         nParticles, xmin, xmax, ymin, ymax, zmin, zmax, withGravitySync);
-        }
+        I endCode = secondCode - 1;
+        // we use morton codes from the global tree to compute the same box coordinates accross all ranks without reduction
+        T xmin = decodeXCoordinate(firstCode, box);
+        T xmax = decodeXCoordinate(endCode, box);
+        T ymin = decodeYCoordinate(firstCode, box);
+        T ymax = decodeYCoordinate(endCode, box);
+        T zmin = decodeZCoordinate(firstCode, box);
+        T zmax = decodeZCoordinate(endCode, box);
+
+        /*
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+        printf("rank %d: computing for leaf [%o, %o] from %d to %d\n", world_rank, firstCode, secondCode, startIndex, endIndex);
+        */
+        gravityTreeData[i] = computeNodeGravity<I, T>(x.data() + startIndex, y.data() + startIndex, z.data() + startIndex,
+                                                      m.data() + startIndex, nParticles, xmin, xmax, ymin, ymax, zmin, zmax);
         i++;
     }
 }
@@ -251,20 +258,20 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
 
 /**
  * @brief aggregate using parallel axis theorem
- * 
- * @tparam I 
- * @tparam T 
- * @param tree 
- * @param octree 
- * @param i 
- * @param gravityLeafData 
- * @param gravityInternalData 
- * @param x 
- * @param y 
- * @param z 
- * @param m 
- * @param codes 
- * @param box 
+ *
+ * @tparam I
+ * @tparam T
+ * @param tree
+ * @param octree
+ * @param i
+ * @param gravityLeafData
+ * @param gravityInternalData
+ * @param x
+ * @param y
+ * @param z
+ * @param m
+ * @param codes
+ * @param box
  */
 template <class I, class T>
 void aggregateNodeGravity(const std::vector<I> &tree, const GravityOctree<I, T> &octree, cstone::TreeNodeIndex i,
@@ -275,7 +282,7 @@ void aggregateNodeGravity(const std::vector<I> &tree, const GravityOctree<I, T> 
     // cstone::OctreeNode<I> node = localTree.internalTree()[i];
 
     GravityData<T> gv;
-    
+
     pair<T> xrange = octree.x(i, box);
     pair<T> yrange = octree.y(i, box);
     pair<T> zrange = octree.z(i, box);
@@ -283,7 +290,6 @@ void aggregateNodeGravity(const std::vector<I> &tree, const GravityOctree<I, T> 
     gv.yce = (yrange[1] + yrange[0]) / 2.0;
     gv.zce = (zrange[1] + zrange[0]) / 2.0;
     gv.dx = abs(xrange[1] - xrange[0]);
-
 
     for (int j = 0; j < 8; ++j)
     {
