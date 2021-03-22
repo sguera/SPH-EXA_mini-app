@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     std::ofstream constantsFile(outDirectory + "constants.txt");
 
     // -n 350, 42M per node
-    const int bucketSize = 1;
+    const int bucketSize = 512;
     cstone::Box<Real> box{d.bbox.xmin, d.bbox.xmax, d.bbox.ymin, d.bbox.ymax,
                           d.bbox.zmin, d.bbox.zmax, d.bbox.PBCx, d.bbox.PBCy, d.bbox.PBCz};
 #ifdef USE_CUDA

@@ -249,6 +249,23 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
     printf("total pcounts = %d\n", pcounts);
 */
 
+/**
+ * @brief aggregate using parallel axis theorem
+ * 
+ * @tparam I 
+ * @tparam T 
+ * @param tree 
+ * @param octree 
+ * @param i 
+ * @param gravityLeafData 
+ * @param gravityInternalData 
+ * @param x 
+ * @param y 
+ * @param z 
+ * @param m 
+ * @param codes 
+ * @param box 
+ */
 template <class I, class T>
 void aggregateNodeGravity(const std::vector<I> &tree, const GravityOctree<I, T> &octree, cstone::TreeNodeIndex i,
                           GravityTree<T> &gravityLeafData, GravityTree<T> &gravityInternalData, const std::vector<T> &x,
