@@ -25,7 +25,7 @@ struct GravityData
 
     T trq = 0.0;
     int pcount = 0;
-    std::vector<unsigned> plist;
+    // std::vector<unsigned> plist;
 
     // std::vector<int> particleIdxList;
     // std::vector<int> globalParticleIdxList;
@@ -56,31 +56,20 @@ public:
 
         internalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
         recursiveBuildGravityTree(tree, *this, 0, leafData_, internalData_, x, y, z, m, codes, box);
-
+        /* this needs to go to an integrity test
         int rank;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        int plistsum = 0;
-        for (auto tt : leafData_)
-        {
-            plistsum += tt.plist.size();
-            for (auto xx : tt.plist)
-            {
-                if (xx <= sfcAssignment.rangeStart(rank, 0) || xx >= sfcAssignment.rangeEnd(rank, 0))
-                {
-                    printf("something wierd\n");
-                }
-            }
-        }
 
         int locals = 0;
         for (auto cc : codes)
         {
-            if (cc >= sfcAssignment.rangeStart(rank, 0) || cc < sfcAssignment.rangeEnd(rank, 0))
+            if (cc >= sfcAssignment.rangeStart(rank, 0) && cc < sfcAssignment.rangeEnd(rank, 0))
             {
                 locals ++;
             }
         }
-        printf("%d have %d codes in between, total plist sizes is %d and should have %ld\n", rank, locals, plistsum, sfcAssignment.count(rank, 0));
+        printf("%d have %d codes in between and should have %ld\n", rank, locals, sfcAssignment.count(rank, 0));
+        //*/
     }
 
     const GravityTree<T> &leafData() const { return leafData_; }
@@ -153,7 +142,7 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
             continue;
         else
             localParticles++;
-        gv.plist.emplace_back(codes[i]);
+        // gv.plist.emplace_back(codes[i]);
 
         T xx = x[i];
         T yy = y[i];
@@ -246,9 +235,10 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
 template <class I, class T>
 void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                               const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                              const cstone::Box<T> &box, GravityTree<T> &gravityLeafData,
-                              const cstone::SpaceCurveAssignment<I> &assignment)
+                              const cstone::Box<T> &box, GravityTree<T> &gravityLeafData, const cstone::SpaceCurveAssignment<I> &assignment)
 {
+    const I *mortonCodes = codes.data();
+    size_t n = codes.size();
     int i = 0;
 
     int rank;
@@ -257,18 +247,18 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
     for (auto it = tree.begin(); it + 1 != tree.end(); ++it)
     {
         I firstCode = *it;
-        I secondCode = *(it + 1);
+        // if a morton code is exactly equal to a tree leaf, it will be found twice with lower/upper bound and computed twice
+        // we should skip one of the two
+        I secondCode = *(it + 1) - 1;
 
         // TODO: Search only from codes+lastParticle to the end since we know particles can not be in multiple nodes
-        int startIndex = stl::lower_bound(codes.data(), codes.data() + codes.size(), firstCode) - codes.data();
-        // NOTE: we should use node counts to get the last one, otherwise, we might find 0 particles where there should be 1 in case
-        // bucketsize is 1
-        //int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
-        int endIndex = startIndex + nodeCounts[i];
+        int startIndex = stl::lower_bound(mortonCodes, mortonCodes + n, firstCode) - mortonCodes;
+        int endIndex = stl::upper_bound(mortonCodes + startIndex, mortonCodes + n, secondCode) - mortonCodes;
+        // int endIndex = startIndex + nodeCounts[i];
         int nParticles = endIndex - startIndex;
         // NOTE: using morton codes to compute geometrical center. It might not be accurate.
-        I lastCode = codes[startIndex + nParticles - 1];
-
+        I lastCode = codes[endIndex - 1];
+        // TODO: This is off by 1./1024
         I endCode = secondCode - 1;
         // we use morton codes from the global tree to compute the same box coordinates accross all ranks without reduction
         T xmin = decodeXCoordinate(firstCode, box);
