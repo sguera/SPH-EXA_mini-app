@@ -103,8 +103,8 @@ void gatherGravValues(GravityData<T> *gv)
  * @param withGravitySync
  */
 template <class I, class T>
-GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m, int nParticles, T xmin, T xmax, T ymin, T ymax, T zmin,
-                                  T zmax)
+GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m, const I *codes, int nParticles, T xmin, T xmax, T ymin, T ymax, T zmin,
+                                  T zmax, int rank, const cstone::SpaceCurveAssignment<I>& assignment)
 {
     GravityData<T> gv;
 
@@ -118,6 +118,16 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
 
     for (size_t i = 0; i < nParticles; ++i)
     {
+        bool halo = false;
+        for (int range = 0 ; range < assignment.nRanges(rank); ++ range)
+        {
+            if(codes[i] < assignment.rangeStart(rank, range) || codes[i] >= assignment.rangeEnd(rank, range))
+            {
+                halo = true;
+            }
+        }
+        if (halo) continue;
+
         T xx = x[i];
         T yy = y[i];
         T zz = z[i];
@@ -246,16 +256,11 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
         T zmin = decodeZCoordinate(firstCode, box);
         T zmax = decodeZCoordinate(endCode, box);
 
-        std::vector<unsigned> plist;
-        localParticleList(plist, codes.data(), codes.size(), startIndex, nParticles, sfcAssignment);
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-        /*
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-        printf("rank %d: computing for leaf [%o, %o] from %d to %d\n", world_rank, firstCode, secondCode, startIndex, endIndex);
-        */
         gravityTreeData[i] = computeNodeGravity<I, T>(x.data() + startIndex, y.data() + startIndex, z.data() + startIndex,
-                                                      m.data() + startIndex, nParticles, xmin, xmax, ymin, ymax, zmin, zmax);
+                                                      m.data() + startIndex, codes.data() + startIndex, nParticles, xmin, xmax, ymin, ymax, zmin, zmax, rank, sfcAssignment);
         i++;
     }
 }
