@@ -25,6 +25,8 @@ struct GravityData
 
     T trq = 0.0;
     int pcount = 0;
+    int lpcount = 0;
+    std::vector<unsigned> plist;
 
     // std::vector<int> particleIdxList;
     // std::vector<int> globalParticleIdxList;
@@ -48,7 +50,7 @@ public:
 
     void buildGravityTree(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                           const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                          const cstone::Box<T> &box, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
+                          const cstone::Box<T> &box, const cstone::SpaceCurveAssignment<I> &sfcAssignment)
     {
         leafData_.resize(cstone::nNodes(tree));
         calculateLeafGravityData(tree, nodeCounts, x, y, z, m, codes, box, leafData_, sfcAssignment);
@@ -56,7 +58,12 @@ public:
         internalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
         recursiveBuildGravityTree(tree, *this, 0, leafData_, internalData_, x, y, z, m, codes, box);
 
-        printf("TOTAL PARTICLE COUNT: %d pcout\n", internalData_[0].pcount);
+        int sum = 0;
+        for (auto tt : leafData_)
+        {
+            sum += tt.plist.size();
+        }
+        printf("PLIST_SIZE: %d\n", sum);
     }
 
     const GravityTree<T> &leafData() const { return leafData_; }
@@ -105,8 +112,8 @@ void gatherGravValues(GravityData<T> *gv)
  * @param withGravitySync
  */
 template <class I, class T>
-GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m, const I *codes, int nParticles, T xmin, T xmax, T ymin, T ymax, T zmin,
-                                  T zmax, int rank, const cstone::SpaceCurveAssignment<I>& assignment)
+GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m, const I *codes, int nParticles, T xmin, T xmax, T ymin,
+                                  T ymax, T zmin, T zmax, int rank, const cstone::SpaceCurveAssignment<I> &assignment)
 {
     GravityData<T> gv;
 
@@ -121,15 +128,15 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
     for (size_t i = 0; i < nParticles; ++i)
     {
         bool halo = false;
-        for (int range = 0 ; range < assignment.nRanges(rank); ++ range)
+        for (int range = 0; range < assignment.nRanges(rank); ++range)
         {
-            if(codes[i] < assignment.rangeStart(rank, range) || codes[i] >= assignment.rangeEnd(rank, range))
-            {
-                halo = true;
-            }
+            if (codes[i] < assignment.rangeStart(rank, range) || codes[i] >= assignment.rangeEnd(rank, range)) { halo = true; }
         }
-        if (halo) continue;
-        else localParticles ++;
+        if (halo)
+            continue;
+        else
+            localParticles++;
+        gv.plist.emplace_back(codes[i]);
 
         T xx = x[i];
         T yy = y[i];
@@ -157,11 +164,12 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
         gv.particleIdx = i;
     }
 
+    gv.lpcount = localParticles;
     gv.pcount = localParticles;
 
     gatherGravValues(&gv);
 
-    if (nParticles > 1)
+    if (gv.pcount > 1)
     {
         gv.xcm /= gv.mTot;
         gv.ycm /= gv.mTot;
@@ -179,7 +187,7 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
 
         gv.trq = gv.qxx + gv.qyy + gv.qzz;
     }
-    else if (nParticles == 1)
+    else if (gv.pcount == 1)
     {
         size_t idx = gv.particleIdx;
 
@@ -204,17 +212,6 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
     return gv;
 }
 
-template <class I>
-void localParticleList(std::vector<unsigned>& plist, const I* codes, int size, int start, int np, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
-{
-    int end = start + np;
-    for(int i = start ; i < end ; ++ i)
-    {
-        I code = codes[i];
-    }
-
-}
-
 /**
  * @brief
  *
@@ -233,9 +230,14 @@ void localParticleList(std::vector<unsigned>& plist, const I* codes, int size, i
 template <class I, class T>
 void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                               const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
+                              const cstone::Box<T> &box, GravityTree<T> &gravityLeafData,
+                              const cstone::SpaceCurveAssignment<I> &assignment)
 {
     int i = 0;
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     for (auto it = tree.begin(); it + 1 != tree.end(); ++it)
     {
         I firstCode = *it;
@@ -243,12 +245,11 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
 
         // TODO: Search only from codes+lastParticle to the end since we know particles can not be in multiple nodes
         int startIndex = stl::lower_bound(codes.data(), codes.data() + codes.size(), firstCode) - codes.data();
-        int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
-        int nParticles = endIndex - startIndex;
         // NOTE: we should use node counts to get the last one, otherwise, we might find 0 particles where there should be 1 in case
         // bucketsize is 1
-        // int endIndex = startIndex + nodeCounts[i];
-        assert(nParticles == nodeCounts[i]);
+        //int endIndex = stl::upper_bound(codes.data(), codes.data() + codes.size(), secondCode) - codes.data();
+        int endIndex = startIndex + nodeCounts[i];
+        int nParticles = endIndex - startIndex;
         // NOTE: using morton codes to compute geometrical center. It might not be accurate.
         I lastCode = codes[startIndex + nParticles - 1];
 
@@ -261,13 +262,18 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
         T zmin = decodeZCoordinate(firstCode, box);
         T zmax = decodeZCoordinate(endCode, box);
 
-        int rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-        gravityTreeData[i] = computeNodeGravity<I, T>(x.data() + startIndex, y.data() + startIndex, z.data() + startIndex,
-                                                      m.data() + startIndex, codes.data() + startIndex, nParticles, xmin, xmax, ymin, ymax, zmin, zmax, rank, sfcAssignment);
+        gravityLeafData[i] =
+            computeNodeGravity<I, T>(x.data() + startIndex, y.data() + startIndex, z.data() + startIndex, m.data() + startIndex,
+                                     codes.data() + startIndex, nParticles, xmin, xmax, ymin, ymax, zmin, zmax, rank, assignment);
         i++;
     }
+
+    int sum = 0;
+    for (auto tt : gravityLeafData)
+    {
+        sum += tt.lpcount;
+    }
+    printf("[%d] have %d\n", rank, sum);
 }
 
 /*

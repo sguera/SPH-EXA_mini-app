@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     std::ofstream constantsFile(outDirectory + "constants.txt");
 
     // -n 350, 42M per node
-    const int bucketSize = 512;
+    const int bucketSize = 2;
     cstone::Box<Real> box{d.bbox.xmin, d.bbox.xmax, d.bbox.ymin, d.bbox.ymax,
                           d.bbox.zmin, d.bbox.zmax, d.bbox.PBCx, d.bbox.PBCy, d.bbox.PBCz};
 #ifdef USE_CUDA
@@ -91,6 +91,8 @@ int main(int argc, char **argv)
     const size_t ng0 = 100;
     TaskList taskList = TaskList(clist, nTasks, ngmax, ng0);
 
+    gravity::GravityOctree<CodeType, Real> gravityOctree;
+
     if(d.rank == 0) std::cout << "Starting main loop." << std::endl;
 
     totalTimer.start();
@@ -112,14 +114,11 @@ int main(int argc, char **argv)
         timer.step("updateTasks");
 
         // BEGIN GRAVITY
-        gravity::GravityOctree<CodeType, Real> gravityOctree;
         gravityOctree.update(domain.tree().data(), domain.tree().data() + domain.tree().size());
-        // gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
         gravityOctree.buildGravityTree(domain.tree(), domain.nodeCounts(), d.x, d.y, d.z, d.m, d.codes, domain.box(), domain.sfcAssignment());
         timer.step("buildGravityTree");
-
         gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, gravityOctree, domain.box());
-        timer.step("Gravity (self)");
+        timer.step("gravityTreeWalk");
         // END GRAVITY
 
         sph::findNeighborsSfc(taskList.tasks, d.x, d.y, d.z, d.h, d.codes, domain.box());

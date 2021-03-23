@@ -339,9 +339,7 @@ public:
     //! \brief return node counts of the cstree
     const std::vector<unsigned>& nodeCounts() const { return nodeCounts_; }
 
-    //! \brief return the lists of incoming halo particles
-    const SendList& incomingHaloIndices() const { return incomingHaloIndices_; }
-
+    //! \brief return the morton code rank assignments of the current iteration
     const SpaceCurveAssignment<I>&  sfcAssignment() const { return assignment_; }
 
 private:
