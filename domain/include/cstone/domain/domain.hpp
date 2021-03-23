@@ -342,7 +342,7 @@ public:
     //! \brief return the lists of incoming halo particles
     const SendList& incomingHaloIndices() const { return incomingHaloIndices_; }
 
-    const SpaceCurveAssignment<I>&  assignment() const { return assignment_; }
+    const SpaceCurveAssignment<I>&  sfcAssignment() const { return assignment_; }
 
 private:
 

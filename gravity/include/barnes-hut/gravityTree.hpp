@@ -190,7 +190,7 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
 }
 
 template <class I, class T>
-void localParticleList(std::vector<unsigned>& plist, I* codes, int size, int start, int np, const cstone::SendList& incomingHaloIndices)
+void localParticleList(std::vector<unsigned>& plist, I* codes, int size, int start, int np, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
 {
     int end = start + np;
     for(int i = start ; i < end ; ++ i)
@@ -218,7 +218,7 @@ void localParticleList(std::vector<unsigned>& plist, I* codes, int size, int sta
 template <class I, class T>
 void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                               const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData, const cstone::SendList& incomingHaloIndices)
+                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
 {
     int i = 0;
     for (auto it = tree.begin(); it + 1 != tree.end(); ++it)
@@ -247,7 +247,7 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
         T zmax = decodeZCoordinate(endCode, box);
 
         std::vector<unsigned> plist;
-        findUniqueParticleList(plist, codes.data(), codes.size(), startIndex, nParticles, incomingHaloIndices);
+        localParticleList(plist, codes.data(), codes.size(), startIndex, nParticles, sfcAssignment);
 
         /*
         int world_rank;
