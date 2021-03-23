@@ -48,10 +48,10 @@ public:
 
     void buildGravityTree(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                           const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                          const cstone::Box<T> &box, const cstone::SendList& incomingHaloIndices)
+                          const cstone::Box<T> &box, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
     {
         leafData_.resize(cstone::nNodes(tree));
-        calculateLeafGravityData(tree, nodeCounts, x, y, z, m, codes, box, leafData_, incomingHaloIndices);
+        calculateLeafGravityData(tree, nodeCounts, x, y, z, m, codes, box, leafData_, sfcAssignment);
 
         internalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
         recursiveBuildGravityTree(tree, *this, 0, leafData_, internalData_, x, y, z, m, codes, box);
