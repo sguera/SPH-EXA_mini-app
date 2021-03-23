@@ -25,7 +25,6 @@ struct GravityData
 
     T trq = 0.0;
     int pcount = 0;
-    int lpcount = 0;
     std::vector<unsigned> plist;
 
     // std::vector<int> particleIdxList;
@@ -58,12 +57,30 @@ public:
         internalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
         recursiveBuildGravityTree(tree, *this, 0, leafData_, internalData_, x, y, z, m, codes, box);
 
-        int sum = 0;
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        int plistsum = 0;
         for (auto tt : leafData_)
         {
-            sum += tt.plist.size();
+            plistsum += tt.plist.size();
+            for (auto xx : tt.plist)
+            {
+                if (xx <= sfcAssignment.rangeStart(rank, 0) || xx >= sfcAssignment.rangeEnd(rank, 0))
+                {
+                    printf("something wierd\n");
+                }
+            }
         }
-        printf("PLIST_SIZE: %d\n", sum);
+
+        int locals = 0;
+        for (auto cc : codes)
+        {
+            if (cc >= sfcAssignment.rangeStart(rank, 0) || cc < sfcAssignment.rangeEnd(rank, 0))
+            {
+                locals ++;
+            }
+        }
+        printf("%d have %d codes in between, total plist sizes is %d and should have %ld\n", rank, locals, plistsum, sfcAssignment.count(rank, 0));
     }
 
     const GravityTree<T> &leafData() const { return leafData_; }
@@ -164,7 +181,6 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
         gv.particleIdx = i;
     }
 
-    gv.lpcount = localParticles;
     gv.pcount = localParticles;
 
     gatherGravValues(&gv);
@@ -267,13 +283,6 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
                                      codes.data() + startIndex, nParticles, xmin, xmax, ymin, ymax, zmin, zmax, rank, assignment);
         i++;
     }
-
-    int sum = 0;
-    for (auto tt : gravityLeafData)
-    {
-        sum += tt.lpcount;
-    }
-    printf("[%d] have %d\n", rank, sum);
 }
 
 /*
