@@ -189,8 +189,8 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
     return gv;
 }
 
-template <class I, class T>
-void localParticleList(std::vector<unsigned>& plist, I* codes, int size, int start, int np, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
+template <class I>
+void localParticleList(std::vector<unsigned>& plist, const I* codes, int size, int start, int np, const cstone::SpaceCurveAssignment<I>& sfcAssignment)
 {
     int end = start + np;
     for(int i = start ; i < end ; ++ i)
