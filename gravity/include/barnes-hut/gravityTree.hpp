@@ -55,6 +55,8 @@ public:
 
         internalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
         recursiveBuildGravityTree(tree, *this, 0, leafData_, internalData_, x, y, z, m, codes, box);
+
+        printf("TOTAL PARTICLE COUNT: %d pcout\n", internalData_[0].pcount);
     }
 
     const GravityTree<T> &leafData() const { return leafData_; }
@@ -114,7 +116,7 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
 
     gv.dx = abs(xmax - xmin);
 
-    gv.pcount = nParticles;
+    int localParticles = 0;
 
     for (size_t i = 0; i < nParticles; ++i)
     {
@@ -127,6 +129,7 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
             }
         }
         if (halo) continue;
+        else localParticles ++;
 
         T xx = x[i];
         T yy = y[i];
@@ -153,6 +156,8 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
 
         gv.particleIdx = i;
     }
+
+    gv.pcount = localParticles;
 
     gatherGravValues(&gv);
 
