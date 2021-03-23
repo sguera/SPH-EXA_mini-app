@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         gravity::GravityOctree<CodeType, Real> gravityOctree;
         gravityOctree.update(domain.tree().data(), domain.tree().data() + domain.tree().size());
         // gravity::showParticles(domain.tree(), d.x, d.y, d.z, d.m, d.codes, domain.box());
-        gravityOctree.buildGravityTree(domain.tree(), domain.nodeCounts(), d.x, d.y, d.z, d.m, d.codes, domain.box());
+        gravityOctree.buildGravityTree(domain.tree(), domain.nodeCounts(), d.x, d.y, d.z, d.m, d.codes, domain.box(), domain.incomingHaloIndices());
         timer.step("buildGravityTree");
 
         gravity::gravityTreeWalk(taskList.tasks, domain.tree(), d, gravityOctree, domain.box());

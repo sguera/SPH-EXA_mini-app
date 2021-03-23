@@ -48,10 +48,10 @@ public:
 
     void buildGravityTree(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                           const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                          const cstone::Box<T> &box)
+                          const cstone::Box<T> &box, const cstone::SendList& incomingHaloIndices)
     {
         leafData_.resize(cstone::nNodes(tree));
-        calculateLeafGravityData(tree, nodeCounts, x, y, z, m, codes, box, leafData_);
+        calculateLeafGravityData(tree, nodeCounts, x, y, z, m, codes, box, leafData_, incomingHaloIndices);
 
         internalData_.resize(this->nTreeNodes() - cstone::nNodes(tree));
         recursiveBuildGravityTree(tree, *this, 0, leafData_, internalData_, x, y, z, m, codes, box);
@@ -189,6 +189,17 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
     return gv;
 }
 
+template <class I, class T>
+void localParticleList(std::vector<unsigned>& plist, I* codes, int size, int start, int np, const cstone::SendList& incomingHaloIndices)
+{
+    int end = start + np;
+    for(int i = start ; i < end ; ++ i)
+    {
+        I code = codes[i];
+    }
+
+}
+
 /**
  * @brief
  *
@@ -207,7 +218,7 @@ GravityData<T> computeNodeGravity(const T *x, const T *y, const T *z, const T *m
 template <class I, class T>
 void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsigned> &nodeCounts, const std::vector<T> &x,
                               const std::vector<T> &y, const std::vector<T> &z, const std::vector<T> &m, const std::vector<I> &codes,
-                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData)
+                              const cstone::Box<T> &box, GravityTree<T> &gravityTreeData, const cstone::SendList& incomingHaloIndices)
 {
     int i = 0;
     for (auto it = tree.begin(); it + 1 != tree.end(); ++it)
@@ -234,6 +245,9 @@ void calculateLeafGravityData(const std::vector<I> &tree, const std::vector<unsi
         T ymax = decodeYCoordinate(endCode, box);
         T zmin = decodeZCoordinate(firstCode, box);
         T zmax = decodeZCoordinate(endCode, box);
+
+        std::vector<unsigned> plist;
+        findUniqueParticleList(plist, codes.data(), codes.size(), startIndex, nParticles, incomingHaloIndices);
 
         /*
         int world_rank;

@@ -207,6 +207,7 @@ public:
 
         // assign one single range of Morton codes each rank
         SpaceCurveAssignment<I> assignment = singleRangeSfcSplit(tree_, nodeCounts_, nRanks_);
+        assignment_ = assignment;
         LocalIndex newNParticlesAssigned   = assignment.totalCount(myRank_);
 
         // Compute the maximum smoothing length (=halo radii) in each global node.
@@ -338,6 +339,11 @@ public:
     //! \brief return node counts of the cstree
     const std::vector<unsigned>& nodeCounts() const { return nodeCounts_; }
 
+    //! \brief return the lists of incoming halo particles
+    const SendList& incomingHaloIndices() const { return incomingHaloIndices_; }
+
+    const SpaceCurveAssignment<I>&  assignment() const { return assignment_; }
+
 private:
 
     //! \brief return true if all array sizes are equal to value
@@ -372,6 +378,8 @@ private:
     bool incrementalBuild_{false};
 
     ReorderFunctor reorderFunctor;
+
+    SpaceCurveAssignment<I> assignment_;
 };
 
 } // namespace cstone
